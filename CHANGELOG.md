@@ -5,10 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
 ### Changed
 
-- Optimized API Calls.
-- Handle Timeout.
+- **Java 17 → Java 25 Migration**
+  - Raised the toolchain to Java 25 with JavaFX 25 EA (25-ea+21) and Gradle 9.2.1
+  - Updated Java toolchain configuration to use Java 25
+  - Added compiler warnings for deprecation and unchecked code
+  - Replaced deprecated `java.util.Calendar` with `java.time.Year` for copyright year display
+  - Fixed module-info.java to export `domain.configuration` package for proper module access
+
+- **Dependency Updates**
+  - ControlsFX: 11.1.0 → 11.2.2
+  - FormsFX: 11.3.2 → 11.6.0
+  - ValidatorFX: 0.1.13 → 0.6.1
+  - Ikonli JavaFX: 12.2.0 → 12.4.0
+  - TilesFX: 11.48 → 21.0.9
+  - JetBrains Annotations: 20.1.0 → 26.0.2
+  - JUnit: 5.8.1 → 6.0.1
+  - Migrated from json-simple 1.1 to Jackson 2.18.2 for better Java 25 compatibility
+
+- **Build System**
+  - Updated Gradle wrapper from 7.3.1 to 9.2.1
+  - Updated JavaFX plugin from 0.0.13 to 0.1.0
+  - Updated jlink plugin from 2.26.0 to 3.1.3
+  - Documented the new Java requirement and Gradle commands in `README.md`
+
+- **Code Quality**
+  - Optimized API Calls
+  - Handle Timeout
+  - Removed deprecated API usage
+  - Improved module system compatibility
 
 ## Ver [1.5.2] - 02-13-2022
 

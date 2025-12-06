@@ -20,13 +20,12 @@ package services.configuration;
 
 import domain.configuration.PiholeConfig;
 import domain.configuration.WidgetConfig;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import services.helpers.HelperService;
 
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 
 public class ConfigurationService {
@@ -49,24 +48,21 @@ public class ConfigurationService {
         if (SETTTINGS_FILE == null || (SETTTINGS_FILE != null && !SETTTINGS_FILE.exists()))
             saveEmptyConfiguration();
 
-        JSONParser parser = new JSONParser();
+        ObjectMapper mapper = new ObjectMapper();
         try {
-            Object obj = parser.parse(new FileReader(SETTTINGS_FILE));
+            JsonNode jsonObject = mapper.readTree(SETTTINGS_FILE);
 
-            JSONObject jsonObject = (JSONObject) obj;
+            JsonNode jsonWidget = jsonObject.get("Widget");
+            JsonNode jsonDNS1 = jsonObject.get("DNS1");
+            JsonNode jsonDNS2 = jsonObject.get("DNS2");
 
+            Long port1 = jsonDNS1.has("Port") && !jsonDNS1.get("Port").isNull() ? jsonDNS1.get("Port").asLong() : 80L;
+            Long port2 = jsonDNS2.has("Port") && !jsonDNS2.get("Port").isNull() ? jsonDNS2.get("Port").asLong() : 80L;
 
-            JSONObject jsonWidget = (JSONObject) jsonObject.get("Widget");
-            JSONObject jsonDNS1 = (JSONObject) jsonObject.get("DNS1");
-            JSONObject jsonDNS2 = (JSONObject) jsonObject.get("DNS2");
-
-            Long port1= jsonDNS1.get("Port") != null ? (Long) jsonDNS1.get("Port") :80L;
-            Long port2= jsonDNS2.get("Port") != null ? (Long) jsonDNS2.get("Port") :80L;
-
-            configDNS1 = new PiholeConfig((String) jsonDNS1.get("IP"),Math.toIntExact(port1) ,(String) jsonDNS1.get("Authentication Token"));
-            configDNS2 = new PiholeConfig((String) jsonDNS2.get("IP"),Math.toIntExact(port2) ,(String) jsonDNS2.get("Authentication Token"));
-            if(jsonWidget!=null)
-            widgetConfig= new WidgetConfig((String) jsonWidget.get("Size"), (String) jsonWidget.get("Layout"),true,true,true,5,5,5);
+            configDNS1 = new PiholeConfig(jsonDNS1.get("IP").asText(), Math.toIntExact(port1), jsonDNS1.get("Authentication Token").asText());
+            configDNS2 = new PiholeConfig(jsonDNS2.get("IP").asText(), Math.toIntExact(port2), jsonDNS2.get("Authentication Token").asText());
+            if (jsonWidget != null)
+                widgetConfig = new WidgetConfig(jsonWidget.get("Size").asText(), jsonWidget.get("Layout").asText(), true, true, true, 5, 5, 5);
 
             /*
             if(configDNS1.getIPAddress().isEmpty() && configDNS2.getIPAddress().isEmpty())
@@ -92,47 +88,38 @@ public class ConfigurationService {
     }
 
 
-    public boolean writeConfigFile(String ip1, int port1,String auth1, String ip2,int port2, String auth2, String size, String layout, boolean show_live, boolean show_status, boolean show_fluid
-    ,int update_status_sec,int update_fluid_sec,int update_active_sec) {
+    public boolean writeConfigFile(String ip1, int port1, String auth1, String ip2, int port2, String auth2, String size, String layout, boolean show_live, boolean show_status, boolean show_fluid
+            , int update_status_sec, int update_fluid_sec, int update_active_sec) {
 
-        JSONObject jsonObject = new JSONObject();
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode jsonObject = mapper.createObjectNode();
 
-        JSONObject jsonDNS1 = new JSONObject();
+        ObjectNode jsonDNS1 = mapper.createObjectNode();
         jsonDNS1.put("IP", ip1);
         jsonDNS1.put("Port", port1);
         jsonDNS1.put("Authentication Token", auth1);
 
-        JSONObject jsonDNS2 = new JSONObject();
+        ObjectNode jsonDNS2 = mapper.createObjectNode();
         jsonDNS2.put("IP", ip2);
         jsonDNS2.put("Port", port2);
         jsonDNS2.put("Authentication Token", auth2);
 
-
-        JSONObject jsonWidget = new JSONObject();
+        ObjectNode jsonWidget = mapper.createObjectNode();
         jsonWidget.put("Size", size);
         jsonWidget.put("Layout", layout);
         //jsonWidget.put("show_live", show_live);
         //jsonWidget.put("show_status", show_status);
         //jsonWidget.put("show_fluid", show_fluid);
 
+        jsonObject.set("DNS1", jsonDNS1);
+        jsonObject.set("DNS2", jsonDNS2);
+        jsonObject.set("Widget", jsonWidget);
 
-        jsonObject.put("DNS1", jsonDNS1);
-        jsonObject.put("DNS2", jsonDNS2);
-        jsonObject.put("Widget",jsonWidget);
-
-
-        FileWriter file = null;
         try {
-            file = new FileWriter(file_path);
-
-            file.write(jsonObject.toJSONString());
-            file.close();
-
+            mapper.writerWithDefaultPrettyPrinter().writeValue(new java.io.File(file_path), jsonObject);
             System.out.println("JSON Written.");
-
             return true;
         } catch (IOException e) {
-
             System.out.println("Couldn't write JSON.");
             e.printStackTrace();
         }

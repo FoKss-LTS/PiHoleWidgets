@@ -46,7 +46,7 @@ import services.helpers.HelperService;
 
 import java.io.FileInputStream;
 import java.net.URL;
-import java.util.Calendar;
+import java.time.Year;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.concurrent.Executors;
@@ -164,7 +164,7 @@ public class WidgetController implements Initializable {
 
             //rootPane.setStyle("-fx-background-color: rgba(42, 42, 42, 1);");
 
-            dakLabel.setText("Copyright (C) " + Calendar.getInstance().get(Calendar.YEAR) + ".  Reda ELFARISSI aka foxy999");
+            dakLabel.setText("Copyright (C) " + Year.now().getValue() + ".  Reda ELFARISSI aka foxy999");
             dakLabel.setLayoutX(TILE_WIDTH + 1);
             dakLabel.setLayoutY((TILE_HEIGHT * 2) - 15);
             dakLabel.addEventHandler(MouseEvent.MOUSE_PRESSED, event -> {
@@ -723,7 +723,7 @@ public class WidgetController implements Initializable {
                 //.textSize(Tile.TextSize.SMALLER)
                 .build();
 
-        leaderBoardTile.setText("Copyright (C) " + Calendar.getInstance().get(Calendar.YEAR) + ".  Reda ELFARISSI aka foxy999");
+        leaderBoardTile.setText("Copyright (C) " + Year.now().getValue() + ".  Reda ELFARISSI aka foxy999");
 
         List<TopAd> topBlocked = piholeDns1.getTopXBlocked(TopX);
 
@@ -796,7 +796,7 @@ public class WidgetController implements Initializable {
                 //.textSize(Tile.TextSize.SMALLER)
                 .build();
 
-        leaderBoardTile.setText("Copyright (C) " + Calendar.getInstance().get(Calendar.YEAR) + ".  Reda ELFARISSI aka foxy999");
+        leaderBoardTile.setText("Copyright (C) " + Year.now().getValue() + ".  Reda ELFARISSI aka foxy999");
 
         //gridPane = new FlowGridPane(cols, rows, ledTile, fluidTile, statusTile, leaderBoardTile);
 /*
@@ -843,7 +843,7 @@ public class WidgetController implements Initializable {
         topXTile = TileBuilder.create()
                 .skinType(Tile.SkinType.CUSTOM).prefSize(TILE_WIDTH, TILE_HEIGHT)
                 .title("TOP X")
-                .text(("Copyright (C) " + Calendar.getInstance().get(Calendar.YEAR) + ".  Reda ELFARISSI aka foxy999"))
+                .text(("Copyright (C) " + Year.now().getValue() + ".  Reda ELFARISSI aka foxy999"))
                 //.graphic(new VBox())
                 .build();
 

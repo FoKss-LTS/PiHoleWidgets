@@ -60,7 +60,7 @@ All donations are welcome and any amount of money will help me to maintain this 
 
 ### Pre-Requisites
 
-- Java 17+
+- Java 25 (set `JAVA_HOME` to your JDK 25 installation).
 - Last version of Pihole.
 
 ### Configuration
@@ -86,7 +86,7 @@ You can set your Widget size or layout by accessing the Widget configuration pan
 
 ### Running the widget
 
-Exe is available for **Windows**, for other OS `Gradle run` the project, or you can package it to your needs using `gradle jpackage` or whatever tool suits you.
+Exe is available for **Windows**; for other OS run the widget with `./gradlew run` (or `.\gradlew run` on Windows after installing JDK 25), or package it to your needs using `./gradlew jpackage -PinstallerType=<type>`.
 
 If you want to close Widget right-click on the Widget and a contextual menu will appear giving you the option to close it or update manually.
 
