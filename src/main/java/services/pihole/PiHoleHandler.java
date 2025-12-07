@@ -22,17 +22,12 @@ import domain.pihole.Gravity;
 import domain.pihole.PiHole;
 import domain.pihole.TopAd;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import services.helpers.HelperService;
+import services.helpers.HttpClientUtil;
+import services.helpers.HttpClientUtil.HttpResponsePayload;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
 import java.net.SocketTimeoutException;
-import java.net.URI;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,34 +35,59 @@ public class PiHoleHandler {
 
     private final String IPAddress;
     private final int Port;
+    private final String Scheme;
+    private final String apiBaseUrl;
+    private final HttpClientUtil httpClientUtil;
+    private String sessionId;
     private final String Auth;
+    private static final String API_PATH = "/api";
+    private static final String AUTH_QUERY_PARAM = "auth";
 
-
-    public PiHoleHandler(String IPAddress, int Port, String auth) {
+    public PiHoleHandler(String IPAddress, int Port, String Scheme, String sessionId) {
         this.IPAddress = IPAddress;
         this.Port = Port;
+        this.Scheme = (Scheme == null || Scheme.isBlank()) ? "http" : Scheme.replace("://", "").trim();
+        this.sessionId = sessionId == null ? "" : sessionId.trim();
+        this.Auth = this.sessionId;
+        this.apiBaseUrl = normalizeBaseApiUrl(buildDefaultBaseApiUrl(this.Scheme, IPAddress, Port));
+        this.httpClientUtil = new HttpClientUtil();
+    }
+
+    /**
+     * Allows injecting a full API base URL from configuration (e.g. http://host:port/api).
+     */
+    public PiHoleHandler(String apiBaseUrl, String auth) {
+        this.IPAddress = "";
+        this.Port = -1;
         this.Auth = auth;
+        this.Scheme = "";
+        this.sessionId = auth == null ? "" : auth.trim();
+        this.apiBaseUrl = normalizeBaseApiUrl(apiBaseUrl);
+        this.httpClientUtil = new HttpClientUtil();
     }
 
     public String getIPAddress() {
         return IPAddress;
     }
+    public void setSessionId(String sessionId) {
+        this.sessionId = sessionId;
+    }
+
+    public int getPort() {
+        return Port;
+    }
+
+    public String getScheme() {
+        return Scheme;
+    }
+
+    public String getSessionId() {
+        return sessionId;
+    }
 
     public PiHole getPiHoleStats() {
 
-        String output = getApiResponseAsString("summary", "");
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode jsonResult = null;
-        if (output != null && output.equals("")) return null;
-
-        // Transform Raw result to JSON
-
-        try {
-            jsonResult = mapper.readTree(output);
-        } catch (JsonProcessingException ioe) {
-            ioe.printStackTrace();
-        }
-
+        JsonNode jsonResult = getApiResponseAsJson("summary", "");
         if (jsonResult != null) {
             JsonNode gravity_json = jsonResult.get("gravity_last_updated");
             JsonNode relative_json = gravity_json.get("relative");
@@ -110,7 +130,15 @@ public class PiHoleHandler {
 
     public String getLastBlocked() {
         if (Auth != null && !Auth.isEmpty()) {
-            String output = getApiResponseAsString("recentBlocked", "");
+            HttpResponsePayload response = httpClientUtil.get(apiBaseUrl + "/api/recentBlocked");
+            if (!response.isSuccessful()) {
+                System.out.println("Failed : HTTP Error code : " + response.statusCode());
+            }
+            var jsonOpt = response.bodyAsJson();
+            if (!jsonOpt.isPresent()) {
+                System.out.println("Failed to parse JSON response: " + response.bodyText());
+                return "";
+            }
             if (output != null && output.equals("")) return "";
 
             return output;
@@ -120,18 +148,7 @@ public class PiHoleHandler {
 
     public String getVersion() {
 
-        String output = getApiResponseAsString("type%20&%20version", "");
-        if (output != null && output.equals("")) return "";
-
-        // Transform Raw result to JSON
-
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode jsonResult = null;
-        try {
-            jsonResult = mapper.readTree(output);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-        }
+        JsonNode jsonResult = getApiResponseAsJson("type%20&%20version", "");
         if (jsonResult != null) return jsonResult.get("version").asText();
         return "";
     }
@@ -139,15 +156,8 @@ public class PiHoleHandler {
     public List<TopAd> getTopXBlocked(int x) {
         if (Auth != null && !Auth.isEmpty()) {
 
-            String output = getApiResponseAsString("topItems", String.valueOf(x));
-
-            if (output != null && output.equals("")) return null;
-
-            // Transform Raw result to JSON
-
-            ObjectMapper mapper = new ObjectMapper();
-            try {
-                JsonNode jsonResult = mapper.readTree(output);
+            JsonNode jsonResult = getApiResponseAsJson("topItems", String.valueOf(x));
+            if (jsonResult != null && !jsonResult.isEmpty()) {
                 JsonNode topADS = jsonResult.get("top_ads");
                 List<TopAd> list = new ArrayList<>();
 
@@ -158,11 +168,9 @@ public class PiHoleHandler {
                 list.sort((s1, s2) -> Long.compare(s2.getNumberBlocked(), s1.getNumberBlocked()));
 
                 return list;
-            } catch (JsonProcessingException e) {
-                e.printStackTrace();
-                return null;
             }
         } else return null;
+        return null;
     }
 
     public String getGravityLastUpdate() {
@@ -187,67 +195,21 @@ public class PiHoleHandler {
         return "";
     }
 
-
-    private String getApiResponseAsString(String Param, String ParamVal) {
-
-        String fullAuth = "";
-        String fullParam = "";
-        String fullParamVal = "";
-        InputStreamReader in;
-        BufferedReader br;
-
-        int responseCode;
-
-        if (!Param.isEmpty()) fullParam = "?" + Param;
-
-
-        if (!ParamVal.isEmpty()) fullParamVal = "=" + ParamVal;
-
-        if (Auth != null && !Auth.isEmpty()) fullAuth = "&auth=" + this.Auth;
-
-        HttpURLConnection conn=null;
-        if (!IPAddress.isEmpty()) {
-            try {
-                URL url = URI.create("http://" + IPAddress + ":" + Port + "/admin/api.php" + fullParam + fullParamVal + fullAuth).toURL();
-
-                conn = (HttpURLConnection) url.openConnection();
-
-
-                conn.setConnectTimeout(1000);
-                conn.setReadTimeout(1000);
-                conn.setRequestMethod("GET");
-                conn.setRequestProperty("Accept", "application/json");
-
-                responseCode = conn.getResponseCode();
-
-
-                System.out.println(conn.getResponseMessage());
-                if (responseCode == HttpURLConnection.HTTP_OK) {
-                    String server_response;
-                    in = new InputStreamReader(conn.getInputStream());
-                    br = new BufferedReader(in);
-
-                    server_response = br.readLine();
-                    return server_response;
-                } else {
-                    System.out.println("Failed : HTTP Error code : " + responseCode);
-                    conn.disconnect();
-                    return "";
-                }
-
-            } catch (SocketTimeoutException et) {
-            System.out.println("Timed out: Can't login to API: Check your PiHole server ?");
-            } catch (IOException e) {
-                System.out.println("API Error for:" + IPAddress + " " + e.getMessage());
-                return "";
-            }
-            finally {
-                if (conn != null) {
-                    conn.disconnect();
-                }
-            }
+    private void authenticate(String queryString) throws IOException, InterruptedException {
+        String resolvedQuery = (queryString == null || queryString.isEmpty()) ? "" : queryString;
+        String url = apiBaseUrl + resolvedQuery;
+        HttpResponsePayload response = httpClientUtil.get(url);
+        if (!response.isSuccessful()) {
+            System.out.println("Failed : HTTP Error code : " + response.statusCode());
         }
-        return "";
+        var jsonOpt = response.bodyAsJson();
+        if (!jsonOpt.isPresent()) {
+            
+        JsonNode json = jsonOpt.get();
+        if (json.has("sid")) {
+            this.sessionId = json.get("sid").asText();
+        }
+        }
     }
 
 }

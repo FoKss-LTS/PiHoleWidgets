@@ -92,7 +92,12 @@ public class ConfigurationController implements Initializable {
         int port1= TF_Port1.getText() != null ? Integer.parseInt(TF_Port1.getText()) :80;
         int port2= TF_Port2.getText() != null ? Integer.parseInt(TF_Port2.getText()) :80;
 
-        confService.writeConfigFile(TF_IP1.getText(),port1, TF_AUTH1.getText(), TF_IP2.getText(),port2, TG_AUTH2.getText(),
+        String scheme1 = extractSchemeOrDefault(TF_IP1.getText());
+        String scheme2 = extractSchemeOrDefault(TF_IP2.getText());
+        String ip1 = stripScheme(TF_IP1.getText());
+        String ip2 = stripScheme(TF_IP2.getText());
+
+        confService.writeConfigFile(scheme1, ip1,port1, TF_AUTH1.getText(), scheme2, ip2,port2, TG_AUTH2.getText(),
                 ComboBoxSize.getValue()==null? "Medium" : ComboBoxSize.getValue().toString(), ComboBoxLayout.getValue()== null ? "Square" : ComboBoxLayout.getValue().toString(), true,true,true,5,5,5);
 
     }
@@ -107,13 +112,13 @@ public class ConfigurationController implements Initializable {
         widgetConfig=confService.getWidgetConfig();
 
         if(configDNS1!=null) {
-            TF_IP1.setText(configDNS1.getIPAddress());
+            TF_IP1.setText(formatHost(configDNS1));
             TF_Port1.setText(String.valueOf((configDNS1.getPort())));
             TF_AUTH1.setText(configDNS1.getAUTH());
         }
 
         if(configDNS2!=null) {
-            TF_IP2.setText(configDNS2.getIPAddress());
+            TF_IP2.setText(formatHost(configDNS2));
             TF_Port2.setText(String.valueOf((configDNS2.getPort())));
             TG_AUTH2.setText(configDNS2.getAUTH());
         }
@@ -124,6 +129,31 @@ public class ConfigurationController implements Initializable {
         }
 
 
+    }
+
+    private String extractSchemeOrDefault(String rawHost) {
+        if (rawHost == null) return "http";
+        String host = rawHost.trim().toLowerCase();
+        if (host.startsWith("https://")) return "https";
+        if (host.startsWith("http://")) return "http";
+        return "http";
+    }
+
+    private String stripScheme(String rawHost) {
+        if (rawHost == null) return "";
+        String host = rawHost.trim();
+        if (host.startsWith("https://")) host = host.substring("https://".length());
+        else if (host.startsWith("http://")) host = host.substring("http://".length());
+        if (host.endsWith("/")) host = host.substring(0, host.length() - 1);
+        return host;
+    }
+
+    private String formatHost(PiholeConfig config) {
+        if (config == null) return "";
+        String scheme = config.getScheme() == null || config.getScheme().isEmpty() ? "http" : config.getScheme();
+        String ip = config.getIPAddress() == null ? "" : config.getIPAddress();
+        if (ip.isEmpty()) return "";
+        return scheme + "://" + ip;
     }
 
 

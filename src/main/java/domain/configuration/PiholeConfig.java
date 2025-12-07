@@ -23,12 +23,14 @@ public class PiholeConfig {
     private String IPAddress;
     private String AUTH;
     private int Port;
+    private String Scheme;
 
 
-    public PiholeConfig(String IPAddress,int Port, String AUTH) {
+    public PiholeConfig(String IPAddress, int Port, String Scheme, String AUTH) {
         this.IPAddress = IPAddress;
         this.AUTH = AUTH;
-        this.Port=Port;
+        this.Port = Port;
+        this.Scheme = Scheme;
     }
 
     public String getIPAddress() {
@@ -41,5 +43,9 @@ public class PiholeConfig {
 
     public int getPort() {
         return Port;
+    }
+
+    public String getScheme() {
+        return Scheme;
     }
 }

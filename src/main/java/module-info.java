@@ -13,6 +13,7 @@ module pihole {
     requires org.jetbrains.annotations;
     requires com.fasterxml.jackson.core;
     requires com.fasterxml.jackson.databind;
+    requires java.net.http;
 
     opens controllers to javafx.fxml;
     exports controllers;

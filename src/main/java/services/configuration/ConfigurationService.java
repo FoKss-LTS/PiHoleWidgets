@@ -58,9 +58,11 @@ public class ConfigurationService {
 
             Long port1 = jsonDNS1.has("Port") && !jsonDNS1.get("Port").isNull() ? jsonDNS1.get("Port").asLong() : 80L;
             Long port2 = jsonDNS2.has("Port") && !jsonDNS2.get("Port").isNull() ? jsonDNS2.get("Port").asLong() : 80L;
+            String scheme1 = jsonDNS1.has("Scheme") && !jsonDNS1.get("Scheme").isNull() ? jsonDNS1.get("Scheme").asText() : "http";
+            String scheme2 = jsonDNS2.has("Scheme") && !jsonDNS2.get("Scheme").isNull() ? jsonDNS2.get("Scheme").asText() : "http";
 
-            configDNS1 = new PiholeConfig(jsonDNS1.get("IP").asText(), Math.toIntExact(port1), jsonDNS1.get("Authentication Token").asText());
-            configDNS2 = new PiholeConfig(jsonDNS2.get("IP").asText(), Math.toIntExact(port2), jsonDNS2.get("Authentication Token").asText());
+            configDNS1 = new PiholeConfig(jsonDNS1.get("IP").asText(), Math.toIntExact(port1), scheme1, jsonDNS1.get("Authentication Token").asText());
+            configDNS2 = new PiholeConfig(jsonDNS2.get("IP").asText(), Math.toIntExact(port2), scheme2, jsonDNS2.get("Authentication Token").asText());
             if (jsonWidget != null)
                 widgetConfig = new WidgetConfig(jsonWidget.get("Size").asText(), jsonWidget.get("Layout").asText(), true, true, true, 5, 5, 5);
 
@@ -83,23 +85,24 @@ public class ConfigurationService {
 
         SETTTINGS_FILE = HelperService.createFile(home, file_name, folder_name);
 
-        return writeConfigFile("pi.hole", 80, "", "",80,"", "Medium", "Square", true, true, true,5,5,5);
+        return writeConfigFile("http", "pi.hole", 80, "", "http", "",80,"", "Medium", "Square", true, true, true,5,5,5);
 
     }
 
-
-    public boolean writeConfigFile(String ip1, int port1, String auth1, String ip2, int port2, String auth2, String size, String layout, boolean show_live, boolean show_status, boolean show_fluid
+    public boolean writeConfigFile(String scheme1, String ip1, int port1, String auth1, String scheme2, String ip2, int port2, String auth2, String size, String layout, boolean show_live, boolean show_status, boolean show_fluid
             , int update_status_sec, int update_fluid_sec, int update_active_sec) {
 
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode jsonObject = mapper.createObjectNode();
 
         ObjectNode jsonDNS1 = mapper.createObjectNode();
+        jsonDNS1.put("Scheme", scheme1);
         jsonDNS1.put("IP", ip1);
         jsonDNS1.put("Port", port1);
         jsonDNS1.put("Authentication Token", auth1);
 
         ObjectNode jsonDNS2 = mapper.createObjectNode();
+        jsonDNS2.put("Scheme", scheme2);
         jsonDNS2.put("IP", ip2);
         jsonDNS2.put("Port", port2);
         jsonDNS2.put("Authentication Token", auth2);
