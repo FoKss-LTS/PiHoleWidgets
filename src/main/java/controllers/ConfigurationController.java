@@ -44,7 +44,7 @@ public class ConfigurationController implements Initializable {
     private TextField TF_IP1,TF_Port1, TF_IP2,TF_Port2, TF_AUTH1, TG_AUTH2;
 
     @FXML
-    private ComboBox<String> ComboBoxSize,ComboBoxLayout;
+    private ComboBox<String> ComboBoxSize,ComboBoxLayout, ComboBox_Scheme1, ComboBox_Scheme2;
 
 
     private PiholeConfig configDNS1;
@@ -70,6 +70,19 @@ public class ConfigurationController implements Initializable {
         ComboBoxLayout.setItems(FXCollections
                 .observableArrayList(layouts));
 
+        // Initialize scheme ComboBoxes
+        String schemes[] = { "http", "https" };
+        ComboBox_Scheme1.setItems(FXCollections.observableArrayList(schemes));
+        ComboBox_Scheme2.setItems(FXCollections.observableArrayList(schemes));
+        ComboBox_Scheme1.setValue("http");
+        ComboBox_Scheme2.setValue("http");
+        
+        // Apply dark theme styling to all ComboBoxes
+        applyComboBoxDarkTheme(ComboBox_Scheme1);
+        applyComboBoxDarkTheme(ComboBox_Scheme2);
+        applyComboBoxDarkTheme(ComboBoxSize);
+        applyComboBoxDarkTheme(ComboBoxLayout);
+
         accord.setExpandedPane(dns1TitledPane);
         button_apply.setOnMouseClicked(event -> {
             saveConfiguration();
@@ -79,8 +92,69 @@ public class ConfigurationController implements Initializable {
         button_load.setOnMouseClicked(event -> loadConfiguration());
         button_cancel.setOnMouseClicked(event -> WidgetApplication.closeConfigurationWindow());
 
+        // Add button hover effects
+        setupButtonHoverEffects();
 
         loadConfiguration();
+    }
+
+    private void setupButtonHoverEffects() {
+        // Apply button
+        button_apply.setOnMouseEntered(e -> button_apply.setStyle("-fx-background-color: #5aaeff; -fx-text-fill: white; -fx-background-radius: 5; -fx-padding: 8 16 8 16;"));
+        button_apply.setOnMouseExited(e -> button_apply.setStyle("-fx-background-color: #4a9eff; -fx-text-fill: white; -fx-background-radius: 5; -fx-padding: 8 16 8 16;"));
+
+        // Load button
+        button_load.setOnMouseEntered(e -> button_load.setStyle("-fx-background-color: #7c858d; -fx-text-fill: white; -fx-background-radius: 5; -fx-padding: 8 16 8 16;"));
+        button_load.setOnMouseExited(e -> button_load.setStyle("-fx-background-color: #6c757d; -fx-text-fill: white; -fx-background-radius: 5; -fx-padding: 8 16 8 16;"));
+
+        // Save button
+        button_save.setOnMouseEntered(e -> button_save.setStyle("-fx-background-color: #38b755; -fx-text-fill: white; -fx-background-radius: 5; -fx-padding: 8 16 8 16;"));
+        button_save.setOnMouseExited(e -> button_save.setStyle("-fx-background-color: #28a745; -fx-text-fill: white; -fx-background-radius: 5; -fx-padding: 8 16 8 16;"));
+
+        // Cancel button
+        button_cancel.setOnMouseEntered(e -> button_cancel.setStyle("-fx-background-color: #ec4555; -fx-text-fill: white; -fx-background-radius: 5; -fx-padding: 8 16 8 16;"));
+        button_cancel.setOnMouseExited(e -> button_cancel.setStyle("-fx-background-color: #dc3545; -fx-text-fill: white; -fx-background-radius: 5; -fx-padding: 8 16 8 16;"));
+    }
+
+    private void applyComboBoxDarkTheme(ComboBox<String> comboBox) {
+        if (comboBox != null) {
+            // Apply comprehensive dark theme styling for ComboBox
+            String darkStyle = 
+                "-fx-background-color: #2a2d32; " +
+                "-fx-text-fill: #e0e0e0; " +
+                "-fx-control-inner-background: #2a2d32; " +
+                "-fx-prompt-text-fill: #888888;";
+            comboBox.setStyle(darkStyle);
+            
+            // Set cell factory to ensure text is visible in dropdown
+            comboBox.setCellFactory(listView -> new ListCell<String>() {
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || item == null) {
+                        setText(null);
+                        setStyle("-fx-background-color: #2a2d32; -fx-text-fill: #e0e0e0;");
+                    } else {
+                        setText(item);
+                        setStyle("-fx-background-color: #2a2d32; -fx-text-fill: #e0e0e0;");
+                    }
+                }
+            });
+            
+            // Set button cell factory to ensure selected text is visible
+            comboBox.setButtonCell(new ListCell<String>() {
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || item == null) {
+                        setText(null);
+                    } else {
+                        setText(item);
+                    }
+                    setStyle("-fx-background-color: #2a2d32; -fx-text-fill: #e0e0e0;");
+                }
+            });
+        }
     }
 
 
@@ -89,11 +163,14 @@ public class ConfigurationController implements Initializable {
 
         ConfigurationService confService = new ConfigurationService();
 
-        int port1= TF_Port1.getText() != null ? Integer.parseInt(TF_Port1.getText()) :80;
-        int port2= TF_Port2.getText() != null ? Integer.parseInt(TF_Port2.getText()) :80;
+        int port1= TF_Port1.getText() != null && !TF_Port1.getText().isEmpty() ? Integer.parseInt(TF_Port1.getText()) :80;
+        int port2= TF_Port2.getText() != null && !TF_Port2.getText().isEmpty() ? Integer.parseInt(TF_Port2.getText()) :80;
 
-        String scheme1 = extractSchemeOrDefault(TF_IP1.getText());
-        String scheme2 = extractSchemeOrDefault(TF_IP2.getText());
+        // Get scheme from ComboBox, fallback to extracting from IP field for backward compatibility
+        String scheme1 = ComboBox_Scheme1.getValue() != null ? ComboBox_Scheme1.getValue() : extractSchemeOrDefault(TF_IP1.getText());
+        String scheme2 = ComboBox_Scheme2.getValue() != null ? ComboBox_Scheme2.getValue() : extractSchemeOrDefault(TF_IP2.getText());
+        
+        // Strip scheme from IP field if present (for backward compatibility)
         String ip1 = stripScheme(TF_IP1.getText());
         String ip2 = stripScheme(TF_IP2.getText());
 
@@ -112,15 +189,29 @@ public class ConfigurationController implements Initializable {
         widgetConfig=confService.getWidgetConfig();
 
         if(configDNS1!=null) {
-            TF_IP1.setText(formatHost(configDNS1));
+            // Set scheme from config
+            String scheme1 = configDNS1.getScheme() != null && !configDNS1.getScheme().isEmpty() ? configDNS1.getScheme() : "http";
+            ComboBox_Scheme1.setValue(scheme1);
+            // Set IP address without scheme
+            TF_IP1.setText(configDNS1.getIPAddress() != null ? configDNS1.getIPAddress() : "");
             TF_Port1.setText(String.valueOf((configDNS1.getPort())));
             TF_AUTH1.setText(configDNS1.getAUTH());
+        } else {
+            ComboBox_Scheme1.setValue("http");
+            TF_IP1.setText("");
         }
 
         if(configDNS2!=null) {
-            TF_IP2.setText(formatHost(configDNS2));
+            // Set scheme from config
+            String scheme2 = configDNS2.getScheme() != null && !configDNS2.getScheme().isEmpty() ? configDNS2.getScheme() : "http";
+            ComboBox_Scheme2.setValue(scheme2);
+            // Set IP address without scheme
+            TF_IP2.setText(configDNS2.getIPAddress() != null ? configDNS2.getIPAddress() : "");
             TF_Port2.setText(String.valueOf((configDNS2.getPort())));
             TG_AUTH2.setText(configDNS2.getAUTH());
+        } else {
+            ComboBox_Scheme2.setValue("http");
+            TF_IP2.setText("");
         }
 
         if(widgetConfig!=null) {
@@ -147,14 +238,5 @@ public class ConfigurationController implements Initializable {
         if (host.endsWith("/")) host = host.substring(0, host.length() - 1);
         return host;
     }
-
-    private String formatHost(PiholeConfig config) {
-        if (config == null) return "";
-        String scheme = config.getScheme() == null || config.getScheme().isEmpty() ? "http" : config.getScheme();
-        String ip = config.getIPAddress() == null ? "" : config.getIPAddress();
-        if (ip.isEmpty()) return "";
-        return scheme + "://" + ip;
-    }
-
 
 }
