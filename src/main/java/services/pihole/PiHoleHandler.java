@@ -24,31 +24,38 @@ import domain.pihole.TopAd;
 import helpers.HelperService;
 import helpers.HttpClientUtil;
 import helpers.HttpClientUtil.HttpResponsePayload;
-
+import services.configuration.ConfigurationService;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class PiHoleHandler {
 
     private final String IPAddress;
     private final int Port;
     private final String Scheme;
+    private final String password;
     private final String apiBaseUrl;
     private String sessionId;
     private static final String API_PATH = "/api";
-    private static final String AUTH_QUERY_PARAM = "auth";
+    private static final String AUTH_QUERY_PARAM = "/auth";
 
-    public PiHoleHandler(String IPAddress, int Port, String Scheme) {
-        this.IPAddress = IPAddress;
-        this.Port = Port;
-        this.Scheme = (Scheme == null || Scheme.isBlank()) ? "http" : Scheme.replace("://", "").trim();
+    public PiHoleHandler(String IPAddress, int Port, String Scheme, String password) {
+        ConfigurationService configurationService = new ConfigurationService();
+        configurationService.readConfiguration();
+        this.IPAddress = configurationService.getConfigDNS1().getIPAddress();
+        this.Port = configurationService.getConfigDNS1().getPort();
+        this.Scheme = configurationService.getConfigDNS1().getScheme();
+        this.password = configurationService.getConfigDNS1().getAUTH();
         this.apiBaseUrl = this.Scheme + "://" + this.IPAddress + ":" + this.Port + API_PATH;
         try {
-            this.authenticate(API_PATH);
+            this.authenticate();
         } catch (IOException e) {
             System.out.println("IOException: " + e.getMessage());
         } catch (InterruptedException e) {
@@ -56,10 +63,10 @@ public class PiHoleHandler {
         }
     }
 
-
     public String getIPAddress() {
         return IPAddress;
     }
+
     public void setSessionId(String sessionId) {
         this.sessionId = sessionId;
     }
@@ -77,7 +84,7 @@ public class PiHoleHandler {
     }
 
     public PiHole getPiHoleStats() {
-/*
+    /*
         JsonNode jsonResult = getApiResponseAsJson("summary", "");
         if (jsonResult != null) {
             JsonNode gravity_json = jsonResult.get("gravity_last_updated");
@@ -188,21 +195,54 @@ public class PiHoleHandler {
         return "";
     }
 
-    private void authenticate(String queryString) throws IOException, InterruptedException {
-        String resolvedQuery = (queryString == null || queryString.isEmpty()) ? "" : queryString;
-        String url = apiBaseUrl + resolvedQuery;
-        HttpResponsePayload response = new HttpClientUtil().get(url);
+    private void authenticate() throws IOException, InterruptedException {
+        System.out.println("password: " + password);
+        if (password == null || password.isBlank()) {
+            System.out.println("Password is required for authentication");
+            return;
+        }
+        
+        String url = apiBaseUrl + AUTH_QUERY_PARAM;
+        System.out.println("url: " + url);
+        
+        // Create request body with password
+        Map<String, String> requestBody = new HashMap<>();
+        requestBody.put("password", password);
+        
+        // Send POST request with JSON body
+        HttpClientUtil httpClientUtil = new HttpClientUtil();
+        HttpResponsePayload response = httpClientUtil.postJson(url, requestBody, Collections.emptyMap());
+        
         if (!response.isSuccessful()) {
             System.out.println("Failed : HTTP Error code : " + response.statusCode());
+            System.out.println("Response body: " + response.bodyText());
+            return;
         }
+        
         var jsonOpt = response.bodyAsJson();
         if (!jsonOpt.isPresent()) {
-            
+            System.out.println("Failed to parse JSON response: " + response.bodyText());
+            return;
+        }
+        
         JsonNode json = jsonOpt.get();
         System.out.println("json: " + json);
-        if (json.has("sid")) {
-            this.sessionId = json.get("sid").asText();
-        }
+        
+        // Parse nested session object
+        if (json.has("session")) {
+            JsonNode session = json.get("session");
+            if (session.has("sid") && !session.get("sid").isNull()) {
+                this.sessionId = session.get("sid").asText();
+                System.out.println("Session ID: " + this.sessionId);
+            }
+            if (session.has("valid")) {
+                boolean isValid = session.get("valid").asBoolean();
+                System.out.println("Session valid: " + isValid);
+            }
+            if (session.has("message")) {
+                String message = session.get("message").asText();
+                System.out.println("Session message: " + message);
+            }
         }
     }
 

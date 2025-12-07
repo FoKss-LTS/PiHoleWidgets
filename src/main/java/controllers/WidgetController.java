@@ -200,10 +200,10 @@ public class WidgetController implements Initializable {
 
     public void refreshPihole() {
         if (configDNS1 != null)
-            piholeDns1 = new PiHoleHandler(configDNS1.getIPAddress(), configDNS1.getPort(), configDNS1.getScheme());
+            piholeDns1 = new PiHoleHandler(configDNS1.getIPAddress(), configDNS1.getPort(), configDNS1.getScheme(), configDNS1.getAUTH());
 
         if (configDNS2 != null)
-            piholeDns2 = new PiHoleHandler(configDNS2.getIPAddress(), configDNS2.getPort(), configDNS2.getScheme());
+            piholeDns2 = new PiHoleHandler(configDNS2.getIPAddress(), configDNS2.getPort(), configDNS2.getScheme(), configDNS2.getAUTH());
 
         inflateAllData();
     }

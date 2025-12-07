@@ -14,8 +14,8 @@
             "type": "java",
             "name": "WidgetApplication",
             "request": "launch",
-            "mainClass": "pihole/controllers.WidgetApplication",
-            "projectName": "piholeProject-PiHoleWidgets"
+            "mainClass": "controllers.WidgetApplication",
+            "projectName": "piholeProject"
         }
     ]
 }
