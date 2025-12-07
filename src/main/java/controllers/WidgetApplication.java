@@ -168,7 +168,9 @@ public class WidgetApplication extends Application {
             hideToTray();
         });
         
+        // Show the stage and ensure it's visible and focused (Windows workaround)
         widgetStage.show();
+        bringStageToFront(widgetStage);
 
         Scene scene2 = new Scene(root2);
         configurationStage.setScene(scene2);
@@ -294,7 +296,7 @@ public class WidgetApplication extends Application {
                 Platform.runLater(() -> {
                     if (widgetStage != null) {
                         widgetStage.show();
-                        widgetStage.toFront();
+                        bringStageToFront(widgetStage);
                     }
                 });
             }
@@ -353,7 +355,7 @@ public class WidgetApplication extends Application {
                 Platform.runLater(() -> {
                     if (widgetStage != null) {
                         widgetStage.show();
-                        widgetStage.toFront();
+                        bringStageToFront(widgetStage);
                     }
                 });
             }
@@ -375,8 +377,28 @@ public class WidgetApplication extends Application {
     public static void showFromTray() {
         if (widgetStage != null) {
             widgetStage.show();
-            widgetStage.toFront();
+            bringStageToFront(widgetStage);
         }
+    }
+    
+    /**
+     * Reliably brings a stage to the front on Windows.
+     * Windows doesn't always honor toFront() calls, so we use the "always on top" trick.
+     */
+    private static void bringStageToFront(Stage stage) {
+        if (stage == null) return;
+        
+        // Use Platform.runLater to ensure this happens after the stage is fully shown
+        Platform.runLater(() -> {
+            stage.setAlwaysOnTop(true);
+            stage.toFront();
+            stage.requestFocus();
+            
+            // Reset always on top after a brief delay
+            Platform.runLater(() -> {
+                stage.setAlwaysOnTop(false);
+            });
+        });
     }
 
     public static void main(String[] args) {
