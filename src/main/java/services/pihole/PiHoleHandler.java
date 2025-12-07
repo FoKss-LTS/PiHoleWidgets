@@ -21,10 +21,12 @@ package services.pihole;
 import domain.pihole.Gravity;
 import domain.pihole.PiHole;
 import domain.pihole.TopAd;
+import helpers.HelperService;
+import helpers.HttpClientUtil;
+import helpers.HttpClientUtil.HttpResponsePayload;
+
 import com.fasterxml.jackson.databind.JsonNode;
-import services.helpers.HelperService;
-import services.helpers.HttpClientUtil;
-import services.helpers.HttpClientUtil.HttpResponsePayload;
+
 import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
@@ -197,6 +199,7 @@ public class PiHoleHandler {
         if (!jsonOpt.isPresent()) {
             
         JsonNode json = jsonOpt.get();
+        System.out.println("json: " + json);
         if (json.has("sid")) {
             this.sessionId = json.get("sid").asText();
         }

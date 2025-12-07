@@ -39,6 +39,9 @@ tasks.withType(Javadoc).configureEach {
 application {
     mainModule = 'pihole'
     mainClass = 'controllers.WidgetApplication'
+    applicationDefaultJvmArgs = [
+        '--enable-native-access=javafx.base,javafx.graphics,javafx.controls,javafx.fxml,javafx.web,javafx.swing'
+    ]
 }
 
 javafx {
@@ -83,6 +86,9 @@ jlink {
 
     launcher {
         name = 'Pihole Widget'
+        jvmArgs = [
+            '--enable-native-access=javafx.base,javafx.graphics,javafx.controls,javafx.fxml,javafx.web,javafx.swing'
+        ]
     }
 
     version = "1.5.2"
@@ -102,11 +108,16 @@ jlink {
                 '--description', project.description,
                 '--copyright', 'Copyright (C) 2022.  Reda ELFARISSI aka foxy999'
         ]
+        
+        // Initialize imageOptions with JVM arguments for native access to JavaFX modules
+        imageOptions = [
+            '--java-options', '--enable-native-access=javafx.base,javafx.graphics,javafx.controls,javafx.fxml,javafx.web,javafx.swing'
+        ]
+        
         //if (org.gradle.internal.os.OperatingSystem.current().windows) {
         if (installerType == 'msi') {
             installerOptions += ['--win-per-user-install', '--win-dir-chooser', '--win-menu', '--win-shortcut']
             imageOptions += ['--icon','src/main/resources/media/icons/icon.ico']
-
         }
         if (installerType == 'pkg') {
             //imageOptions += ['--icon', 'src/main/resources/..../icon.icns']

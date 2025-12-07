@@ -27,6 +27,7 @@ import eu.hansolo.tilesfx.TileBuilder;
 import eu.hansolo.tilesfx.addons.Indicator;
 import eu.hansolo.tilesfx.skins.LeaderBoardItem;
 import eu.hansolo.tilesfx.tools.FlowGridPane;
+import helpers.HelperService;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -42,7 +43,6 @@ import javafx.scene.paint.Color;
 import javafx.stage.Screen;
 import javafx.util.Duration;
 import services.pihole.PiHoleHandler;
-import services.helpers.HelperService;
 
 import java.io.FileInputStream;
 import java.net.URL;

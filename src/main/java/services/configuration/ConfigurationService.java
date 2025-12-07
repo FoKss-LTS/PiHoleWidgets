@@ -20,10 +20,11 @@ package services.configuration;
 
 import domain.configuration.PiholeConfig;
 import domain.configuration.WidgetConfig;
+import helpers.HelperService;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import services.helpers.HelperService;
 
 import java.io.File;
 import java.io.IOException;

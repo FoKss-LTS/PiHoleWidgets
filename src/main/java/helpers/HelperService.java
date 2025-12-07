@@ -16,7 +16,7 @@
  *
  */
 
-package services.helpers;
+package helpers;
 
 import java.io.File;
 import java.io.IOException;
