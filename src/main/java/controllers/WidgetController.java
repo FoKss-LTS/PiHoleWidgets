@@ -245,6 +245,7 @@ public class WidgetController implements Initializable {
         if (configDNS1 != null) {
             log("Creating PiHoleHandler for DNS1: " + configDNS1.getIPAddress() + ":" + configDNS1.getPort());
             piholeDns1 = new PiHoleHandler(configDNS1.getIPAddress(), configDNS1.getPort(), configDNS1.getScheme(), configDNS1.getAUTH());
+            System.out.println("PiHole DNS1 version: " + piholeDns1.getVersion());
             log("PiHoleHandler DNS1 created");
         } else {
             log("ConfigDNS1 is null, skipping DNS1 handler creation");

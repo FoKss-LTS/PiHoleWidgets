@@ -178,12 +178,24 @@ public class PiHoleHandler {
         log("=== getVersion() called ===");
         try {
             String url = apiBaseUrl + "/info/version";
-            log("Version URL: " + url);
+            System.out.println("Version URL: " + url);
 
-            
+            System.out.println("sid: " + sessionId);
+            if (sessionId == null || sessionId.isBlank()) {
+                System.out.println("sessionId is required for authentication");
+                return "";
+            }
+
+            Map<String, String> requestBody = new HashMap<>();
+            requestBody.put("sid", sessionId);
+
+            Map<String, String> headers = new HashMap<>();
+            headers.put("Content-Type", "application/json");
+            headers.put("Accept", "application/json");
+
             HttpClientUtil httpClientUtil = new HttpClientUtil();
             log("Sending GET request for version...");
-            HttpResponsePayload response = httpClientUtil.get(url, Collections.emptyMap(), Collections.emptyMap());
+            HttpResponsePayload response = httpClientUtil.get(url, requestBody, Collections.emptyMap());
             
             log("Version response status: " + response.statusCode());
             if (!response.isSuccessful()) {
