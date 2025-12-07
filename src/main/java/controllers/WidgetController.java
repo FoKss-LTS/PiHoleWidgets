@@ -75,6 +75,15 @@ public class WidgetController implements Initializable {
     private PiholeConfig configDNS2 = null;
     private WidgetConfig widgetConfig = null;
     private int topX;
+    
+    // Enable verbose logging via system property: -Dpihole.verbose=true
+    private static final boolean VERBOSE = Boolean.parseBoolean(System.getProperty("pihole.verbose", "false"));
+    
+    private static void log(String message) {
+        if (VERBOSE) {
+            System.out.println("[Widget] " + java.time.LocalDateTime.now() + " - " + message);
+        }
+    }
 
 
     @FXML
@@ -87,47 +96,65 @@ public class WidgetController implements Initializable {
 
     @FXML
     public void openConfigurationWindow() {
+        log("openConfigurationWindow() called");
         WidgetApplication.openConfigurationWindow();
     }
 
     public WidgetController(PiholeConfig configDNS1, PiholeConfig configDNS2, WidgetConfig widgetConfig) {
+        log("=== WidgetController constructor called ===");
+        log("ConfigDNS1: " + (configDNS1 != null ? configDNS1.getIPAddress() + ":" + configDNS1.getPort() : "null"));
+        log("ConfigDNS2: " + (configDNS2 != null ? configDNS2.getIPAddress() + ":" + configDNS2.getPort() : "null"));
+        log("WidgetConfig: " + (widgetConfig != null ? "size=" + widgetConfig.getSize() + ", layout=" + widgetConfig.getLayout() : "null"));
+        
         this.configDNS1 = configDNS1;
         this.configDNS2 = configDNS2;
         this.widgetConfig = widgetConfig;
     }
 
     public void initialize(URL location, ResourceBundle resources) {
+        log("=== initialize() called ===");
+        log("Location: " + location);
+        log("ConfigDNS1 present: " + (configDNS1 != null));
+        log("ConfigDNS2 present: " + (configDNS2 != null));
 
         if (configDNS1 != null || configDNS2 != null) {
-
+            log("At least one config is present, proceeding with initialization...");
 
             topX = 5;
+            log("TopX set to: " + topX);
 
             if (widgetConfig != null) {
+                log("Widget config size: " + widgetConfig.getSize());
+                log("Widget config layout: " + widgetConfig.getLayout());
+                
                 switch (widgetConfig.getSize()) {
                     case "Small":
-                        System.out.println("Small");
+                        log("Setting tile size: Small (150x150)");
                         TILE_WIDTH = 150;
                         TILE_HEIGHT = 150;
                         break;
                     case "Medium":
+                        log("Setting tile size: Medium (200x200)");
                         TILE_WIDTH = 200;
                         TILE_HEIGHT = 200;
                         break;
                     case "Large":
+                        log("Setting tile size: Large (350x350)");
                         TILE_WIDTH = 350;
                         TILE_HEIGHT = 350;
                         break;
                     case "XXL":
-                        System.out.println("XL");
+                        log("Setting tile size: XXL (500x500)");
                         TILE_WIDTH = 500;
                         TILE_HEIGHT = 500;
                         break;
                     case "Full Screen":
                         TILE_WIDTH = Screen.getPrimary().getBounds().getMaxX() / 4;
                         TILE_HEIGHT = Screen.getPrimary().getBounds().getMaxX() / 4;
+                        log("Setting tile size: Full Screen (" + TILE_WIDTH + "x" + TILE_HEIGHT + ")");
                         break;
                     default:
+                        log("Setting tile size: Default (200x200)");
                         TILE_WIDTH = 200;
                         TILE_HEIGHT = 200;
                 }
@@ -136,6 +163,7 @@ public class WidgetController implements Initializable {
                     case "Horizontal":
                         cols = 4;
                         rows = 1;
+                        log("Setting layout: Horizontal (4x1)");
                         break;
                /* case "Vertical":
                     cols = 1;
@@ -144,22 +172,29 @@ public class WidgetController implements Initializable {
                     case "Square":
                         cols = 2;
                         rows = 2;
+                        log("Setting layout: Square (2x2)");
                         break;
                     default:
                         cols = 2;
                         rows = 2;
+                        log("Setting layout: Default (2x2)");
                 }
+            } else {
+                log("Widget config is null, using defaults");
             }
 
-
+            log("Calling refreshPihole()...");
             refreshPihole();
 
+            log("Calling initTiles()...");
             initTiles();
 
+            log("Starting schedulers...");
             initializeStatusScheduler();
             initializeActiveTileScheduler();
             initializeFluidTileScheduler();
             initializeTopXBlockedScheduler();
+            log("All schedulers started");
 
 
             //rootPane.setStyle("-fx-background-color: rgba(42, 42, 42, 1);");
@@ -175,6 +210,8 @@ public class WidgetController implements Initializable {
 
             //fluidTile.setBackgroundColor(new Color(42, 42, 42));
 
+            log("Creating FlowGridPane with " + cols + " cols x " + rows + " rows");
+            log("Adding tiles: ledTile, fluidTile, statusTile, topXTile");
             gridPane = new FlowGridPane(cols, rows, ledTile, fluidTile, statusTile, topXTile);
             gridPane.setHgap(5);
             gridPane.setVgap(5);
@@ -183,6 +220,7 @@ public class WidgetController implements Initializable {
             gridPane.setPadding(new Insets(5));
             //gridPane.setPrefSize(TILE_WIDTH*2, 600);
             gridPane.setBackground(new Background(new BackgroundFill(Color.web("#101214"), CornerRadii.EMPTY, Insets.EMPTY)));
+            log("FlowGridPane created with background color #101214");
 
             /*
             rootPane.getChildren().add(gridPane);
@@ -191,56 +229,89 @@ public class WidgetController implements Initializable {
             rootPane.getChildren().add(ledTile);
             rootPane.getChildren().add(statusTile);
             */
+            log("Initializing context menu...");
             initializeContextMenu();
+            log("=== Widget initialization complete ===");
         } else {
+            log("ERROR: Both configurations are null!");
             System.out.println("configurations are empty");
         }
 
     }
 
     public void refreshPihole() {
-        if (configDNS1 != null)
+        log("=== refreshPihole() called ===");
+        
+        if (configDNS1 != null) {
+            log("Creating PiHoleHandler for DNS1: " + configDNS1.getIPAddress() + ":" + configDNS1.getPort());
             piholeDns1 = new PiHoleHandler(configDNS1.getIPAddress(), configDNS1.getPort(), configDNS1.getScheme(), configDNS1.getAUTH());
+            log("PiHoleHandler DNS1 created");
+        } else {
+            log("ConfigDNS1 is null, skipping DNS1 handler creation");
+        }
 
-        if (configDNS2 != null)
+        if (configDNS2 != null) {
+            log("Creating PiHoleHandler for DNS2: " + configDNS2.getIPAddress() + ":" + configDNS2.getPort());
             piholeDns2 = new PiHoleHandler(configDNS2.getIPAddress(), configDNS2.getPort(), configDNS2.getScheme(), configDNS2.getAUTH());
+            log("PiHoleHandler DNS2 created");
+        } else {
+            log("ConfigDNS2 is null, skipping DNS2 handler creation");
+        }
 
+        log("Calling inflateAllData()...");
         inflateAllData();
     }
 
     private void inflateAllData() {
+        log("=== inflateAllData() called ===");
+        log("Inflating active data...");
         inflateActiveData();
+        log("Inflating fluid data...");
         inflateFluidData();
+        log("Inflating status data...");
         inflateStatusData();
+        log("Inflating topX data...");
         inflateTopXData();
+        log("inflateAllData() complete");
     }
 
     public FlowGridPane getGridPane() {
+        log("getGridPane() called - returning gridPane: " + (gridPane != null ? "exists" : "null"));
         return gridPane;
     }
 
     private void initializeStatusScheduler() {
+        log("Initializing Status scheduler (every 5 seconds)...");
         ScheduledExecutorService executorStatusService = Executors.newSingleThreadScheduledExecutor();
         executorStatusService.scheduleAtFixedRate(this::inflateStatusData, 0, 5, TimeUnit.SECONDS);
+        log("Status scheduler started");
     }
 
     private void initializeFluidTileScheduler() {
+        log("Initializing Fluid tile scheduler (every 15 seconds)...");
         ScheduledExecutorService executorFluidService = Executors.newSingleThreadScheduledExecutor();
         executorFluidService.scheduleAtFixedRate(this::inflateFluidData, 0, 15, TimeUnit.SECONDS);
+        log("Fluid tile scheduler started");
     }
 
     private void initializeActiveTileScheduler() {
+        log("Initializing Active tile scheduler (every 60 seconds)...");
         ScheduledExecutorService executorActiveService = Executors.newSingleThreadScheduledExecutor();
         executorActiveService.scheduleAtFixedRate(this::inflateActiveData, 0, 60, TimeUnit.SECONDS);
+        log("Active tile scheduler started");
     }
 
     private void initializeTopXBlockedScheduler() {
+        log("Initializing TopX Blocked scheduler (every 5 seconds)...");
         ScheduledExecutorService executorLeaderBoardService = Executors.newSingleThreadScheduledExecutor();
         executorLeaderBoardService.scheduleAtFixedRate(this::inflateTopXData, 0, 5, TimeUnit.SECONDS);
+        log("TopX Blocked scheduler started");
     }
 
     public void inflateStatusData() {
+        log("=== inflateStatusData() called ===");
         Platform.runLater(() -> {
+            log("inflateStatusData - runLater executing...");
 
             Long queries = 0L;
             Long blockedAds = 0L;
@@ -250,12 +321,18 @@ public class WidgetController implements Initializable {
 
             PiHole pihole1 = null;
 
-            if (piholeDns1 != null)
+            if (piholeDns1 != null) {
+                log("Fetching stats from DNS1...");
                 pihole1 = piholeDns1.getPiHoleStats();
+                log("DNS1 stats: " + (pihole1 != null ? "received" : "null"));
+            }
 
             PiHole pihole2 = null;
-            if (piholeDns2 != null)
+            if (piholeDns2 != null) {
+                log("Fetching stats from DNS2...");
                 pihole2 = piholeDns2.getPiHoleStats();
+                log("DNS2 stats: " + (pihole2 != null ? "received" : "null"));
+            }
 
 
             if (pihole1 != null) {
@@ -264,28 +341,34 @@ public class WidgetController implements Initializable {
                 queriesProcessed += pihole1.getQueries_forwarded();
                 queriesProcessed += pihole1.getQueries_cached();
                 domainsBlocked = pihole1.getDomains_being_blocked();
+                log("DNS1 data - Queries: " + queries + ", Blocked: " + blockedAds + ", Processed: " + queriesProcessed);
             }
             if (pihole2 != null) {
                 queries += pihole2.getDns_queries_today();
                 blockedAds += pihole2.getAds_blocked_today();
                 queriesProcessed += pihole2.getQueries_forwarded();
                 queriesProcessed += pihole2.getQueries_cached();
-
+                log("DNS2 data added - Total Queries: " + queries + ", Total Blocked: " + blockedAds);
             }
 
+            log("Updating status tile with values - Left: " + queries + ", Middle: " + blockedAds + ", Right: " + queriesProcessed);
             statusTile.setLeftValue(queries);
             statusTile.setMiddleValue(blockedAds);
             statusTile.setRightValue(queriesProcessed);
 
             statusTile.setDescription(HelperService.getHumanReadablePriceFromNumber(domainsBlocked));
 
-            statusTile.setText(piholeDns1.getLastBlocked());
-
+            String lastBlocked = piholeDns1.getLastBlocked();
+            log("Last blocked: " + lastBlocked);
+            statusTile.setText(lastBlocked);
+            log("inflateStatusData complete");
         });
     }
 
     public void inflateFluidData() {
+        log("=== inflateFluidData() called ===");
         Platform.runLater(() -> {
+            log("inflateFluidData - runLater executing...");
 
             /*
 
@@ -311,14 +394,19 @@ public class WidgetController implements Initializable {
 
             PiHole pihole1 = null;
 
-            if (piholeDns1 != null)
+            if (piholeDns1 != null) {
+                log("Fetching stats from DNS1 for fluid...");
                 pihole1 = piholeDns1.getPiHoleStats();
+            }
 
             PiHole pihole2 = null;
-            if (piholeDns2 != null)
+            if (piholeDns2 != null) {
+                log("Fetching stats from DNS2 for fluid...");
                 pihole2 = piholeDns2.getPiHoleStats();
+            }
 
             if ((pihole1 == null || !pihole1.isActive()) && (pihole2 == null || !pihole2.isActive())) {
+                log("WARNING: Both Pi-holes inactive, skipping fluid update");
                 return;
             }
 
@@ -336,24 +424,35 @@ public class WidgetController implements Initializable {
             if (queries != 0L && blockedAds != 0L)
                 adsPercentage = (Double.longBitsToDouble(blockedAds) / Double.longBitsToDouble(queries)) * 100;
 
+            log("Ads percentage calculated: " + adsPercentage + "% (queries: " + queries + ", blocked: " + blockedAds + ")");
             fluidTile.setValue(adsPercentage);
 
-            fluidTile.setText(piholeDns1.getGravityLastUpdate());
-
+            String gravityUpdate = piholeDns1.getGravityLastUpdate();
+            log("Gravity last update: " + gravityUpdate);
+            fluidTile.setText(gravityUpdate);
+            log("inflateFluidData complete");
         });
     }
 
     public void inflateActiveData() {
+        log("=== inflateActiveData() called ===");
         Platform.runLater(() -> {
+            log("inflateActiveData - runLater executing...");
             // PiHole pihole = fetchPiholeData();
             PiHole pihole1 = null;
 
-            if (piholeDns1 != null)
+            if (piholeDns1 != null) {
+                log("Fetching stats from DNS1 for active check...");
                 pihole1 = piholeDns1.getPiHoleStats();
+                log("DNS1 - Active: " + (pihole1 != null ? pihole1.isActive() : "null"));
+            }
 
             PiHole pihole2 = null;
-            if (piholeDns2 != null)
+            if (piholeDns2 != null) {
+                log("Fetching stats from DNS2 for active check...");
                 pihole2 = piholeDns2.getPiHoleStats();
+                log("DNS2 - Active: " + (pihole2 != null ? pihole2.isActive() : "null"));
+            }
 
 
             String IPS = "";
@@ -361,56 +460,76 @@ public class WidgetController implements Initializable {
 
 
             if ((pihole1 == null || !pihole1.isActive()) && (pihole2 == null || !pihole2.isActive())) {
+                log("WARNING: Both Pi-hole instances are inactive/unavailable - setting LED to RED");
                 ledTile.setActiveColor(Color.RED);
                 return;
             } else if ((pihole1 != null && pihole1.isActive()) && (pihole2 != null && pihole2.isActive())) {
+                log("Both Pi-hole instances are active - setting LED to GREEN");
                 ledTile.setActiveColor(Color.LIGHTGREEN);
                 IPS += piholeDns1.getIPAddress() + " \n " + piholeDns2.getIPAddress();
             } else if (pihole1 != null && pihole1.isActive() && ((pihole2 == null || !pihole2.isActive()) && piholeDns2 == null)
                     ||
                     (pihole2 != null && pihole2.isActive() && ((pihole1 == null || !pihole1.isActive()) && piholeDns1==null))) {
+                log("One Pi-hole instance is active - setting LED to GREEN");
                 ledTile.setActiveColor(Color.LIGHTGREEN);
                 if (pihole1 == null || !pihole1.isActive()) {
                     IPS += piholeDns2.getIPAddress();
+                    log("Getting version from DNS2...");
                     apiVersion = piholeDns2.getVersion();
                 }
 
                 if (pihole2 == null || !pihole2.isActive()) {
                     IPS += piholeDns1.getIPAddress();
+                    log("Getting version from DNS1...");
                     apiVersion = piholeDns1.getVersion();
                 }
             }
 
-
+            log("Updating LED tile - IPS: " + IPS + ", API Version: " + apiVersion);
             ledTile.setTitle("Widget Version: " + widgetVersion);
             ledTile.setDescription(IPS);
             ledTile.setText("API Version: " + apiVersion);
 
             ledTile.setTooltipText("Widget Version: " + widgetVersion);
-
+            log("inflateActiveData complete");
         });
 
     }
 
     public void inflateLeaderBoardData() {
+        log("=== inflateLeaderBoardData() called ===");
         Platform.runLater(() -> {
+            log("inflateLeaderBoardData - runLater executing...");
 
             PiHole pihole1 = null;
 
 
-            if (piholeDns1 != null)
+            if (piholeDns1 != null) {
+                log("Fetching stats from DNS1 for leaderboard...");
                 pihole1 = piholeDns1.getPiHoleStats();
+            }
 
             PiHole pihole2 = null;
-            if (piholeDns2 != null)
+            if (piholeDns2 != null) {
+                log("Fetching stats from DNS2 for leaderboard...");
                 pihole2 = piholeDns2.getPiHoleStats();
+            }
 
 
-            if ((pihole1 == null || !pihole1.isActive()) && (pihole2 == null || !pihole2.isActive()))
+            if ((pihole1 == null || !pihole1.isActive()) && (pihole2 == null || !pihole2.isActive())) {
+                log("WARNING: Both Pi-holes inactive, skipping leaderboard update");
                 return;
+            }
 
 
+            log("Fetching top 5 blocked for leaderboard...");
             List<TopAd> topBlocked = piholeDns1.getTopXBlocked(5);
+
+            if (topBlocked == null) {
+                log("WARNING: topBlocked is null, skipping leaderboard update");
+                return;
+            }
+            log("Received " + topBlocked.size() + " items for leaderboard");
 
             String stringToAddAtTheEnd = "..";
             int howMuchToRemove = 20;
@@ -430,38 +549,51 @@ public class WidgetController implements Initializable {
                 Tooltip.install(leaderBoardItem, t);
 
                 if (leaderBoardTile.getLeaderBoardItems().size() >= 0 && leaderBoardTile.getLeaderBoardItems().size() < topBlocked.size()) {
-
+                    log("Adding leaderboard item #" + (i+1) + ": " + domainEdited);
                     leaderBoardTile.addLeaderBoardItem(leaderBoardItem);
                 } else if (leaderBoardTile.getLeaderBoardItems().size() == topBlocked.size()) {
+                    log("Updating leaderboard item #" + (i+1) + ": " + domain);
                     leaderBoardTile.getLeaderBoardItems().get(i).setName(domain);
                     leaderBoardTile.getLeaderBoardItems().get(i).setValue(topBlocked.get(i).getNumberBlocked());
                 }
 
             }
-
+            log("inflateLeaderBoardData complete");
         });
     }
 
     public void inflateTopXData() {
+        log("=== inflateTopXData() called ===");
         Platform.runLater(() -> {
+            log("inflateTopXData - runLater executing...");
 
             PiHole pihole1 = null;
 
-            if (piholeDns1 != null)
+            if (piholeDns1 != null) {
+                log("Fetching stats from DNS1 for topX...");
                 pihole1 = piholeDns1.getPiHoleStats();
+            }
 
             PiHole pihole2 = null;
-            if (piholeDns2 != null)
+            if (piholeDns2 != null) {
+                log("Fetching stats from DNS2 for topX...");
                 pihole2 = piholeDns2.getPiHoleStats();
+            }
 
 
-            if ((pihole1 == null || !pihole1.isActive()) && (pihole2 == null || !pihole2.isActive()))
+            if ((pihole1 == null || !pihole1.isActive()) && (pihole2 == null || !pihole2.isActive())) {
+                log("WARNING: Both Pi-holes inactive, skipping topX update");
                 return;
+            }
 
+            log("Fetching top " + topX + " blocked domains...");
             List<TopAd> topBlocked = piholeDns1.getTopXBlocked(topX);
 
-            if (topBlocked == null)
+            if (topBlocked == null) {
+                log("WARNING: topBlocked is null, skipping update");
                 return;
+            }
+            log("Received " + topBlocked.size() + " blocked domains");
 
             String stringToAddAtTheEnd = "..";
             int howMuchToRemove = 20;
@@ -495,18 +627,22 @@ public class WidgetController implements Initializable {
 
 
             dataTable.getChildren().setAll(header, header2);
+            log("DataTable header set, processing " + topBlocked.size() + " blocked domains...");
 
             for (int i = 0; i < topBlocked.size(); i++) {
 
                 String domain = topBlocked.get(i).getDomain();
                 String domainEdited = domain.length() < howMuchToRemove ? domain : domain.substring(0, howMuchToRemove).concat(stringToAddAtTheEnd);
+                Long blockCount = topBlocked.get(i).getNumberBlocked();
+                log("Processing topX item " + (i+1) + "/" + topBlocked.size() + ": " + domainEdited + " (" + blockCount + " blocks)");
 
-                HBox domainHbox = getTopBlockedItem(i + 1, domain, domainEdited, topBlocked.get(i).getNumberBlocked().toString());
+                HBox domainHbox = getTopBlockedItem(i + 1, domain, domainEdited, blockCount.toString());
                 dataTable.getChildren().add(domainHbox);
             }
 
             topXTile.setGraphic(dataTable);
-
+            log("TopX tile graphic updated with " + topBlocked.size() + " items");
+            log("inflateTopXData complete");
         });
     }
 
@@ -601,18 +737,21 @@ public class WidgetController implements Initializable {
     }
 
     private HBox getTopBlockedItem(int num, final String domain, final String editedDomain, final String data) {
+        log("getTopBlockedItem() - Creating item #" + num + ": " + editedDomain + " (" + data + " blocks)");
 
         ImageView iv1 = null;
         try {
-
-
-            FileInputStream input = new FileInputStream(System.getProperty("user.dir") + "/src/main/resources/media/images/" + num + ".png");
+            String imagePath = System.getProperty("user.dir") + "/src/main/resources/media/images/" + num + ".png";
+            log("getTopBlockedItem() - Loading image from: " + imagePath);
+            FileInputStream input = new FileInputStream(imagePath);
             Image image = new Image(input);
             iv1 = new ImageView();
             iv1.setImage(image);
             iv1.setFitHeight(10);
             iv1.setFitWidth(10);
+            log("getTopBlockedItem() - Image loaded successfully");
         } catch (Exception e) {
+            log("getTopBlockedItem() - WARNING: Failed to load image: " + e.getMessage());
             System.out.println(e);
         }
 
@@ -644,19 +783,31 @@ public class WidgetController implements Initializable {
         hBox.setAlignment(Pos.CENTER_LEFT);
         hBox.setFillHeight(true);
 
+        log("getTopBlockedItem() - Item #" + num + " created");
         return hBox;
 
     }
 
     private void initTiles() {
+        log("=== initTiles() called ===");
 
+        log("Creating Fluid tile at (0, 0)...");
         initFluidTile(0, 0);
+        log("Fluid tile created");
 
+        log("Creating LED tile at (" + TILE_WIDTH + ", 0)...");
         initLEDTile(TILE_WIDTH, 0);
+        log("LED tile created");
 
+        log("Creating Status tile at (0, " + TILE_HEIGHT + ")...");
         initStatusTile(0, TILE_HEIGHT, "Nbr of domains blocked: ", "", "Processed", "Blocked", "Accepted", "Gravity");
+        log("Status tile created");
 
+        log("Creating Custom tile (TopX)...");
         initCustomTile();
+        log("Custom tile created");
+        
+        log("=== initTiles() complete ===");
     }
 
     private void initRadialTile() {
@@ -690,6 +841,7 @@ public class WidgetController implements Initializable {
     }
 
     private void initFluidTile(double x, double y) {
+        log("initFluidTile() - Building FLUID tile with size " + TILE_WIDTH + "x" + TILE_HEIGHT);
         /*--Fluid Percentage Tile--*/
         fluidTile = TileBuilder.create().skinType(Tile.SkinType.FLUID).prefSize(TILE_WIDTH, TILE_HEIGHT)
                 .title("Gravity last update: ")
@@ -700,9 +852,11 @@ public class WidgetController implements Initializable {
         //fluidTile.setLayoutX(x);
         //fluidTile.setLayoutY(y);
         fluidTile.setValue(0);
+        log("initFluidTile() - Fluid tile built, initial value set to 0");
     }
 
     private void initLEDTile(double x, double y) {
+        log("initLEDTile() - Building LED tile with size " + TILE_WIDTH + "x" + TILE_HEIGHT);
         /*--LED Tile--*/
         ledTile = TileBuilder.create().skinType(Tile.SkinType.LED).prefSize(TILE_WIDTH, TILE_HEIGHT)
                 .title("Version: ")
@@ -711,6 +865,7 @@ public class WidgetController implements Initializable {
         //ledTile.setLayoutX(x);
         // ledTile.setLayoutY(y);
         ledTile.setActive(true);
+        log("initLEDTile() - LED tile built, active set to true");
     }
 
     private void initLeaderBoard2(int TopX) {
@@ -807,6 +962,7 @@ public class WidgetController implements Initializable {
     }
 
     private void initCustomTile() {
+        log("initCustomTile() - Building CUSTOM tile for Top " + topX + " Blocked");
         /*
         Label name = new Label("Domain");
         name.setTextFill(Tile.FOREGROUND);
@@ -839,6 +995,7 @@ public class WidgetController implements Initializable {
         dataTable = new VBox();
         dataTable.setFillWidth(true);
         dataTable.setAlignment(Pos.CENTER_LEFT);
+        log("initCustomTile() - DataTable VBox created");
 
         topXTile = TileBuilder.create()
                 .skinType(Tile.SkinType.CUSTOM).prefSize(TILE_WIDTH, TILE_HEIGHT)
@@ -848,9 +1005,12 @@ public class WidgetController implements Initializable {
                 .build();
 
         topXTile.setTitle("Top " + String.valueOf(topX) + " Blocked");
+        log("initCustomTile() - TopX tile built with title 'Top " + topX + " Blocked'");
     }
 
     private void initStatusTile(double x, double y, String statusTitle, String notifications, String leftText, String middleText, String rightText, String text) {
+        log("initStatusTile() - Building STATUS tile with size " + TILE_WIDTH + "x" + TILE_HEIGHT);
+        log("initStatusTile() - Title: '" + statusTitle + "', Left: '" + leftText + "', Middle: '" + middleText + "', Right: '" + rightText + "'");
 
         Indicator leftGraphics;
         Indicator middleGraphics;
@@ -864,6 +1024,7 @@ public class WidgetController implements Initializable {
 
         rightGraphics = new Indicator(Tile.GREEN);
         rightGraphics.setOn(true);
+        log("initStatusTile() - Indicators created (Blue, Red, Green)");
 
         statusTile = TileBuilder.create().skinType(Tile.SkinType.STATUS).prefSize(TILE_WIDTH, TILE_HEIGHT).
                 title(statusTitle).
@@ -879,39 +1040,51 @@ public class WidgetController implements Initializable {
         statusTile.setLeftValue(0);
         statusTile.setMiddleValue(0);
         statusTile.setRightValue(0);
+        log("initStatusTile() - Status tile built, initial values set to 0");
     }
 
     private void initializeContextMenu() {
+        log("=== initializeContextMenu() called ===");
 
         MenuItem hideToTrayItem = new MenuItem("Hide to Tray");
         hideToTrayItem.setOnAction(event -> {
+            log("Context menu: 'Hide to Tray' clicked");
             WidgetApplication.hideToTray();
         });
 
         MenuItem exitItem = new MenuItem("Exit");
         exitItem.setOnAction(event -> {
+            log("Context menu: 'Exit' clicked - shutting down");
             System.exit(0);
         });
 
         MenuItem refreshItem = new MenuItem("Refresh All Now");
         refreshItem.setOnAction(event -> {
+            log("Context menu: 'Refresh All Now' clicked");
             inflateAllData();
         });
 
         MenuItem configItem = new MenuItem("Settings");
         configItem.setOnAction(event -> {
+            log("Context menu: 'Settings' clicked");
             WidgetApplication.openConfigurationWindow();
         });
 
         MenuItem testItem = new MenuItem("Test");
         testItem.setOnAction(event -> {
+            log("Context menu: 'Test' clicked");
         });
+
+        log("Menu items created: Hide to Tray, Exit, Refresh All Now, Settings");
 
         final ContextMenu contextMenu = new ContextMenu(hideToTrayItem, refreshItem, configItem, exitItem
                 //, testItem
         );
+        
+        log("Attaching context menu to gridPane...");
         gridPane.addEventHandler(MouseEvent.MOUSE_PRESSED, event -> {
             if (event.isSecondaryButtonDown()) {
+                log("Right-click detected on gridPane, showing context menu");
                 contextMenu.show(gridPane, event.getScreenX(), event.getScreenY());
             } else {
                 if (contextMenu.isShowing()) {
@@ -920,6 +1093,7 @@ public class WidgetController implements Initializable {
             }
         });
 
+        log("Attaching context menu to " + gridPane.getChildren().size() + " child nodes...");
         for (Node truc : gridPane.getChildren()) {
 
 
@@ -942,30 +1116,36 @@ public class WidgetController implements Initializable {
                 }
             });
         }
-
+        log("=== initializeContextMenu() complete ===");
     }
 
     public PiholeConfig getConfigDNS1() {
+        log("getConfigDNS1() - returning: " + (configDNS1 != null ? configDNS1.getIPAddress() : "null"));
         return configDNS1;
     }
 
     public PiholeConfig getConfigDNS2() {
+        log("getConfigDNS2() - returning: " + (configDNS2 != null ? configDNS2.getIPAddress() : "null"));
         return configDNS2;
     }
 
     public void setConfigDNS1(PiholeConfig configDNS1) {
+        log("setConfigDNS1() - setting to: " + (configDNS1 != null ? configDNS1.getIPAddress() + ":" + configDNS1.getPort() : "null"));
         this.configDNS1 = configDNS1;
     }
 
     public void setConfigDNS2(PiholeConfig configDNS2) {
+        log("setConfigDNS2() - setting to: " + (configDNS2 != null ? configDNS2.getIPAddress() + ":" + configDNS2.getPort() : "null"));
         this.configDNS2 = configDNS2;
     }
 
     public WidgetConfig getWidgetConfig() {
+        log("getWidgetConfig() - returning: " + (widgetConfig != null ? "size=" + widgetConfig.getSize() + ", layout=" + widgetConfig.getLayout() : "null"));
         return widgetConfig;
     }
 
     public void setWidgetConfig(WidgetConfig widgetConfig) {
+        log("setWidgetConfig() - setting to: " + (widgetConfig != null ? "size=" + widgetConfig.getSize() + ", layout=" + widgetConfig.getLayout() : "null"));
         this.widgetConfig = widgetConfig;
     }
 }

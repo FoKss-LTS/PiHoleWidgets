@@ -44,10 +44,19 @@ public class HttpClientUtil {
 
     private static final Duration DEFAULT_CONNECT_TIMEOUT = Duration.ofSeconds(5);
     private static final Duration DEFAULT_REQUEST_TIMEOUT = Duration.ofSeconds(10);
+    
+    // Enable verbose logging via system property: -Dpihole.verbose=true
+    public static final boolean VERBOSE = Boolean.parseBoolean(System.getProperty("pihole.verbose", "false"));
 
     private final HttpClient client;
     private final Duration defaultRequestTimeout;
     private final ObjectMapper mapper;
+    
+    private static void log(String message) {
+        if (VERBOSE) {
+            System.out.println("[HTTP] " + java.time.LocalDateTime.now() + " - " + message);
+        }
+    }
 
     public HttpClientUtil() {
         this(DEFAULT_CONNECT_TIMEOUT, DEFAULT_REQUEST_TIMEOUT, new ObjectMapper());
@@ -104,13 +113,38 @@ public class HttpClientUtil {
                                     Map<String, String> queryParams,
                                     Duration timeout) throws IOException, InterruptedException {
         URI uri = buildUri(url, queryParams);
+        
+        log(">>> " + method + " " + uri);
+        if (headers != null && !headers.isEmpty()) {
+            log("    Headers: " + headers);
+        }
+        if (body != null && !body.isBlank()) {
+            // Mask password in logs
+            String safeBody = body.replaceAll("\"password\"\\s*:\\s*\"[^\"]*\"", "\"password\":\"***\"");
+            log("    Body: " + safeBody);
+        }
+        
         HttpRequest.Builder builder = HttpRequest.newBuilder(uri)
                 .timeout(timeout == null ? defaultRequestTimeout : timeout);
 
         applyHeaders(builder, headers);
         builder.method(method.name(), buildBodyPublisher(method, body));
 
+        long startTime = System.currentTimeMillis();
         HttpResponse<String> response = client.send(builder.build(), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        long duration = System.currentTimeMillis() - startTime;
+        
+        log("<<< " + method + " " + uri + " -> " + response.statusCode() + " (" + duration + "ms)");
+        if (VERBOSE && response.body() != null) {
+            String responseBody = response.body();
+            // Truncate very long responses
+            if (responseBody.length() > 1000) {
+                log("    Response (truncated): " + responseBody.substring(0, 1000) + "...");
+            } else {
+                log("    Response: " + responseBody);
+            }
+        }
+        
         return new HttpResponsePayload(method, uri, response, mapper);
     }
 

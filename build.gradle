@@ -44,6 +44,12 @@ application {
     ]
 }
 
+// Pass pihole.verbose property to the running application
+tasks.named('run') {
+    def verboseFlag = project.findProperty('pihole.verbose') ?: 'false'
+    jvmArgs += ["-Dpihole.verbose=${verboseFlag}"]
+}
+
 javafx {
     version = '25-ea+21'
     modules = ['javafx.controls', 'javafx.fxml', 'javafx.web', 'javafx.swing']

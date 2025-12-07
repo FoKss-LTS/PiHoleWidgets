@@ -45,21 +45,45 @@ public class PiHoleHandler {
     private String sessionId;
     private static final String API_PATH = "/api";
     private static final String AUTH_QUERY_PARAM = "/auth";
+    
+    // Enable verbose logging via system property: -Dpihole.verbose=true
+    private static final boolean VERBOSE = Boolean.parseBoolean(System.getProperty("pihole.verbose", "false"));
+    
+    private static void log(String message) {
+        if (VERBOSE) {
+            System.out.println("[PiHole] " + java.time.LocalDateTime.now() + " - " + message);
+        }
+    }
 
     public PiHoleHandler(String IPAddress, int Port, String Scheme, String password) {
+        log("=== Initializing PiHoleHandler ===");
+        log("Input params - IP: " + IPAddress + ", Port: " + Port + ", Scheme: " + Scheme + ", Password: " + (password != null ? "***" : "null"));
+        
         ConfigurationService configurationService = new ConfigurationService();
         configurationService.readConfiguration();
+        
         this.IPAddress = configurationService.getConfigDNS1().getIPAddress();
         this.Port = configurationService.getConfigDNS1().getPort();
         this.Scheme = configurationService.getConfigDNS1().getScheme();
         this.password = configurationService.getConfigDNS1().getAUTH();
         this.apiBaseUrl = this.Scheme + "://" + this.IPAddress + ":" + this.Port + API_PATH;
+        
+        log("Loaded config - IP: " + this.IPAddress + ", Port: " + this.Port + ", Scheme: " + this.Scheme);
+        log("API Base URL: " + this.apiBaseUrl);
+        log("Password configured: " + (this.password != null && !this.password.isBlank()));
+        
         try {
+            log("Starting authentication...");
             this.authenticate();
         } catch (IOException e) {
             System.out.println("IOException: " + e.getMessage());
+            log("Authentication failed with IOException: " + e.getMessage());
+            if (VERBOSE) {
+                e.printStackTrace();
+            }
         } catch (InterruptedException e) {
             System.out.println("InterruptedException: " + e.getMessage());
+            log("Authentication failed with InterruptedException: " + e.getMessage());
         }
     }
 
@@ -84,6 +108,8 @@ public class PiHoleHandler {
     }
 
     public PiHole getPiHoleStats() {
+        log("=== getPiHoleStats() called ===");
+        log("Session ID: " + (sessionId != null ? sessionId.substring(0, Math.min(10, sessionId.length())) + "..." : "null"));
     /*
         JsonNode jsonResult = getApiResponseAsJson("summary", "");
         if (jsonResult != null) {
@@ -123,10 +149,12 @@ public class PiHoleHandler {
                 return null;
             }
         }*/
+        log("getPiHoleStats() returning null (stats implementation pending)");
         return null;
     }
 
     public String getLastBlocked() {
+        log("=== getLastBlocked() called ===");
         /*if (Auth != null && !Auth.isEmpty()) {
             HttpResponsePayload response = httpClientUtil.get(apiBaseUrl + "/api/recentBlocked");
             if (!response.isSuccessful()) {
@@ -142,17 +170,84 @@ public class PiHoleHandler {
             return output;
 
         } else return "Please verify your Authentication Token";*/
+        log("getLastBlocked() returning empty string (implementation pending)");
         return "";
     }
 
     public String getVersion() {
+        log("=== getVersion() called ===");
+        try {
+            String url = apiBaseUrl + "/info/version";
+            log("Version URL: " + url);
 
-        //JsonNode jsonResult = getApiResponseAsJson("type%20&%20version", "");
-        //if (jsonResult != null) return jsonResult.get("version").asText();
+            
+            HttpClientUtil httpClientUtil = new HttpClientUtil();
+            log("Sending GET request for version...");
+            HttpResponsePayload response = httpClientUtil.get(url, Collections.emptyMap(), Collections.emptyMap());
+            
+            log("Version response status: " + response.statusCode());
+            if (!response.isSuccessful()) {
+                log("ERROR: Failed to get version - HTTP " + response.statusCode());
+                System.out.println("Failed to get version: HTTP Error code: " + response.statusCode());
+                return "";
+            }
+            
+            var jsonOpt = response.bodyAsJson();
+            if (jsonOpt.isEmpty()) {
+                log("ERROR: Failed to parse version JSON response");
+                log("Raw response: " + response.bodyText());
+                System.out.println("Failed to parse version JSON response: " + response.bodyText());
+                return "";
+            }
+            
+            JsonNode json = jsonOpt.get();
+            log("Version JSON parsed successfully");
+            log("JSON structure: " + json.toString());
+            
+            if (json.has("version")) {
+                JsonNode versionNode = json.get("version");
+                log("Found 'version' node");
+                
+                // Return the FTL local version as the main Pi-hole version
+                if (versionNode.has("ftl") && versionNode.get("ftl").has("local")) {
+                    JsonNode ftlLocal = versionNode.get("ftl").get("local");
+                    if (ftlLocal.has("version")) {
+                        String version = ftlLocal.get("version").asText();
+                        log("Returning FTL version: " + version);
+                        return version;
+                    }
+                }
+                // Fallback to core version if FTL not available
+                if (versionNode.has("core") && versionNode.get("core").has("local")) {
+                    JsonNode coreLocal = versionNode.get("core").get("local");
+                    if (coreLocal.has("version")) {
+                        String version = coreLocal.get("version").asText();
+                        log("Returning core version: " + version);
+                        return version;
+                    }
+                }
+                log("WARNING: Could not extract version from response");
+            } else {
+                log("WARNING: No 'version' key in response");
+            }
+        } catch (IOException e) {
+            log("ERROR: IOException while fetching version: " + e.getMessage());
+            System.out.println("IOException while fetching version: " + e.getMessage());
+            if (VERBOSE) {
+                e.printStackTrace();
+            }
+        } catch (InterruptedException e) {
+            log("ERROR: InterruptedException while fetching version: " + e.getMessage());
+            System.out.println("InterruptedException while fetching version: " + e.getMessage());
+            Thread.currentThread().interrupt();
+        }
+        log("getVersion() returning empty string");
         return "";
     }
 
     public List<TopAd> getTopXBlocked(int x) {
+        log("=== getTopXBlocked(" + x + ") called ===");
+        log("getTopXBlocked() returning null (implementation pending)");
         return null;
         /*if (Auth != null && !Auth.isEmpty()) {
 
@@ -174,9 +269,11 @@ public class PiHoleHandler {
     }
 
     public String getGravityLastUpdate() {
+        log("=== getGravityLastUpdate() called ===");
 
         PiHole pihole1 = getPiHoleStats();
         if (pihole1 != null) {
+            log("Got PiHole stats, extracting gravity info...");
             String textToDisplay = "";
             long days = pihole1.getGravity().getDays();
             if (days <= 1) textToDisplay += days + " day";
@@ -190,30 +287,42 @@ public class PiHoleHandler {
             if (mins <= 1) textToDisplay += " " + mins + " min";
             else textToDisplay += " " + mins + " mins";
 
+            log("Gravity last update: " + textToDisplay);
             return textToDisplay;
         }
+        log("PiHole stats is null, returning empty string");
         return "";
     }
 
     private void authenticate() throws IOException, InterruptedException {
-        System.out.println("password: " + password);
+        log("=== authenticate() called ===");
+        log("Password present: " + (password != null && !password.isBlank()));
+        
         if (password == null || password.isBlank()) {
+            log("ERROR: Password is required for authentication");
             System.out.println("Password is required for authentication");
             return;
         }
         
         String url = apiBaseUrl + AUTH_QUERY_PARAM;
-        System.out.println("url: " + url);
+        log("Auth URL: " + url);
         
         // Create request body with password
         Map<String, String> requestBody = new HashMap<>();
         requestBody.put("password", password);
+        log("Request body prepared (password masked)");
         
         // Send POST request with JSON body
         HttpClientUtil httpClientUtil = new HttpClientUtil();
+        log("Sending POST request to " + url);
         HttpResponsePayload response = httpClientUtil.postJson(url, requestBody, Collections.emptyMap());
         
+        log("Response status code: " + response.statusCode());
+        log("Response successful: " + response.isSuccessful());
+        
         if (!response.isSuccessful()) {
+            log("ERROR: Authentication failed with HTTP " + response.statusCode());
+            log("Response body: " + response.bodyText());
             System.out.println("Failed : HTTP Error code : " + response.statusCode());
             System.out.println("Response body: " + response.bodyText());
             return;
@@ -221,29 +330,45 @@ public class PiHoleHandler {
         
         var jsonOpt = response.bodyAsJson();
         if (!jsonOpt.isPresent()) {
+            log("ERROR: Failed to parse JSON response");
+            log("Raw response: " + response.bodyText());
             System.out.println("Failed to parse JSON response: " + response.bodyText());
             return;
         }
         
         JsonNode json = jsonOpt.get();
-        System.out.println("json: " + json);
+        log("Parsed JSON response successfully");
+        log("JSON structure: " + json.toString());
         
         // Parse nested session object
         if (json.has("session")) {
             JsonNode session = json.get("session");
+            log("Found 'session' object in response");
+            
             if (session.has("sid") && !session.get("sid").isNull()) {
                 this.sessionId = session.get("sid").asText();
+                log("Session ID obtained: " + this.sessionId.substring(0, Math.min(10, this.sessionId.length())) + "...");
                 System.out.println("Session ID: " + this.sessionId);
+            } else {
+                log("WARNING: No 'sid' field in session object");
             }
+            
             if (session.has("valid")) {
                 boolean isValid = session.get("valid").asBoolean();
+                log("Session valid: " + isValid);
                 System.out.println("Session valid: " + isValid);
             }
+            
             if (session.has("message")) {
                 String message = session.get("message").asText();
+                log("Session message: " + message);
                 System.out.println("Session message: " + message);
             }
+        } else {
+            log("WARNING: No 'session' object in response. Available keys: " + json.fieldNames());
         }
+        
+        log("=== Authentication complete ===");
     }
 
 }

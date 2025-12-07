@@ -6,6 +6,13 @@
     "configurations": [
         {
             "type": "java",
+            "name": "WidgetApplication",
+            "request": "launch",
+            "mainClass": "pihole/controllers.WidgetApplication",
+            "projectName": "PiHoleWidgets"
+        },
+        {
+            "type": "java",
             "name": "Current File",
             "request": "launch",
             "mainClass": "${file}"
