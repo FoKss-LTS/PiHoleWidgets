@@ -16,6 +16,7 @@ module pihole {
     requires com.fasterxml.jackson.databind;
     requires java.net.http;
     requires java.desktop;
+    requires java.logging;
     requires jdk.httpserver;
 
     opens controllers to javafx.fxml;
