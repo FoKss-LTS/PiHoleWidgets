@@ -18,34 +18,79 @@
 
 package domain.configuration;
 
-public class PiholeConfig {
-
-    private String IPAddress;
-    private String AUTH;
-    private int Port;
-    private String Scheme;
-
-
-    public PiholeConfig(String IPAddress, int Port, String Scheme, String AUTH) {
-        this.IPAddress = IPAddress;
-        this.AUTH = AUTH;
-        this.Port = Port;
-        this.Scheme = Scheme;
+/**
+ * Immutable configuration record for Pi-hole DNS server connection.
+ * Uses Java record syntax for automatic generation of constructor, getters, equals, hashCode, and toString.
+ *
+ * @param ipAddress the IP address or hostname of the Pi-hole server
+ * @param port the port number for the Pi-hole API
+ * @param scheme the URL scheme (http or https)
+ * @param authToken the authentication token for the Pi-hole API
+ */
+public record PiholeConfig(
+        String ipAddress,
+        int port,
+        String scheme,
+        String authToken
+) {
+    
+    /**
+     * Compact constructor with validation.
+     */
+    public PiholeConfig {
+        // Provide defaults for null values
+        if (scheme == null || scheme.isBlank()) {
+            scheme = "http";
+        }
+        if (ipAddress == null) {
+            ipAddress = "";
+        }
+        if (authToken == null) {
+            authToken = "";
+        }
+        // Validate port range
+        if (port <= 0 || port > 65535) {
+            port = 80;
+        }
     }
-
+    
+    /**
+     * Creates a PiholeConfig with default port 80.
+     */
+    public PiholeConfig(String ipAddress, String scheme, String authToken) {
+        this(ipAddress, 80, scheme, authToken);
+    }
+    
+    // Legacy getter methods for backward compatibility
+    // These delegate to the record's accessor methods
+    
     public String getIPAddress() {
-        return IPAddress;
+        return ipAddress;
     }
-
-    public String getAUTH() {
-        return AUTH;
-    }
-
+    
     public int getPort() {
-        return Port;
+        return port;
     }
-
+    
     public String getScheme() {
-        return Scheme;
+        return scheme;
+    }
+    
+    public String getAUTH() {
+        return authToken;
+    }
+    
+    /**
+     * Checks if this configuration has a valid IP address.
+     */
+    public boolean hasValidAddress() {
+        return ipAddress != null && !ipAddress.isBlank();
+    }
+    
+    /**
+     * Builds the base URL for the Pi-hole API.
+     */
+    public String buildBaseUrl() {
+        return scheme + "://" + ipAddress + ":" + port;
     }
 }

@@ -18,211 +18,376 @@
 
 package domain.pihole;
 
+import java.util.StringJoiner;
+
+/**
+ * Represents Pi-hole statistics and status data.
+ * Mutable for Jackson deserialization compatibility.
+ */
 public class PiHole {
 
-	Long domains_being_blocked;
-	Long dns_queries_today;
-	Long ads_blocked_today;
-	Double ads_percentage_today;
-	Long unique_domains;
-	Long queries_forwarded;
-	Long queries_cached;
-	Long clients_ever_seen;
-	Long unique_clients;
-	Long dns_queries_all_types;
-	Long reply_NODATA;
-	Long reply_NXDOMAIN;
-	Long reply_CNAME;
-	Long reply_IP;
-	Long privacy_level;
-	String status;
-	Gravity gravity;
+    private static final String STATUS_ENABLED = "enabled";
+    
+    private long domainsBeingBlocked;
+    private long dnsQueriesToday;
+    private long adsBlockedToday;
+    private double adsPercentageToday;
+    private long uniqueDomains;
+    private long queriesForwarded;
+    private long queriesCached;
+    private long clientsEverSeen;
+    private long uniqueClients;
+    private long dnsQueriesAllTypes;
+    private long replyNodata;
+    private long replyNxdomain;
+    private long replyCname;
+    private long replyIp;
+    private long privacyLevel;
+    private String status;
+    private Gravity gravity;
 
-	public PiHole() {
+    /**
+     * Default constructor for Jackson deserialization.
+     */
+    public PiHole() {
+    }
 
-	}
-	
-	
+    /**
+     * Full constructor.
+     */
+    public PiHole(long domainsBeingBlocked, long dnsQueriesToday, long adsBlockedToday,
+                  double adsPercentageToday, long uniqueDomains, long queriesForwarded,
+                  long queriesCached, long clientsEverSeen, long uniqueClients,
+                  long dnsQueriesAllTypes, long replyNodata, long replyNxdomain,
+                  long replyCname, long replyIp, long privacyLevel, String status,
+                  Gravity gravity) {
+        this.domainsBeingBlocked = domainsBeingBlocked;
+        this.dnsQueriesToday = dnsQueriesToday;
+        this.adsBlockedToday = adsBlockedToday;
+        this.adsPercentageToday = adsPercentageToday;
+        this.uniqueDomains = uniqueDomains;
+        this.queriesForwarded = queriesForwarded;
+        this.queriesCached = queriesCached;
+        this.clientsEverSeen = clientsEverSeen;
+        this.uniqueClients = uniqueClients;
+        this.dnsQueriesAllTypes = dnsQueriesAllTypes;
+        this.replyNodata = replyNodata;
+        this.replyNxdomain = replyNxdomain;
+        this.replyCname = replyCname;
+        this.replyIp = replyIp;
+        this.privacyLevel = privacyLevel;
+        this.status = status;
+        this.gravity = gravity;
+    }
 
-	public PiHole(Long domains_being_blocked, Long dns_queries_today, Long ads_blocked_today,
-			Double ads_percentage_today, Long unique_domains, Long queries_forwarded, Long queries_cached,
-			Long clients_ever_seen, Long unique_clients, Long dns_queries_all_types, Long reply_NODATA,
-			Long reply_NXDOMAIN, Long reply_CNAME, Long reply_IP, Long privacy_level, String status,
-			Gravity gravity) {
-		super();
-		this.domains_being_blocked = domains_being_blocked;
-		this.dns_queries_today = dns_queries_today;
-		this.ads_blocked_today = ads_blocked_today;
-		this.ads_percentage_today = ads_percentage_today;
-		this.unique_domains = unique_domains;
-		this.queries_forwarded = queries_forwarded;
-		this.queries_cached = queries_cached;
-		this.clients_ever_seen = clients_ever_seen;
-		this.unique_clients = unique_clients;
-		this.dns_queries_all_types = dns_queries_all_types;
-		this.reply_NODATA = reply_NODATA;
-		this.reply_NXDOMAIN = reply_NXDOMAIN;
-		this.reply_CNAME = reply_CNAME;
-		this.reply_IP = reply_IP;
-		this.privacy_level = privacy_level;
-		this.status = status;
-		this.gravity = gravity;
-	}
+    // ==================== Getters ====================
 
+    public long getDomainsBeingBlocked() {
+        return domainsBeingBlocked;
+    }
 
+    // Legacy getter name for backward compatibility
+    public long getDomains_being_blocked() {
+        return domainsBeingBlocked;
+    }
 
-	public Long getDomains_being_blocked() {
-		return domains_being_blocked;
-	}
+    public long getDnsQueriesToday() {
+        return dnsQueriesToday;
+    }
 
-	public void setDomains_being_blocked(Long domains_being_blocked) {
-		this.domains_being_blocked = domains_being_blocked;
-	}
+    public long getDns_queries_today() {
+        return dnsQueriesToday;
+    }
 
-	public Long getDns_queries_today() {
-		return dns_queries_today;
-	}
+    public long getAdsBlockedToday() {
+        return adsBlockedToday;
+    }
 
-	public void setDns_queries_today(Long dns_queries_today) {
-		this.dns_queries_today = dns_queries_today;
-	}
+    public long getAds_blocked_today() {
+        return adsBlockedToday;
+    }
 
-	public Long getAds_blocked_today() {
-		return ads_blocked_today;
-	}
+    public double getAdsPercentageToday() {
+        return adsPercentageToday;
+    }
 
-	public void setAds_blocked_today(Long ads_blocked_today) {
-		this.ads_blocked_today = ads_blocked_today;
-	}
+    public double getAds_percentage_today() {
+        return adsPercentageToday;
+    }
 
-	public Double getAds_percentage_today() {
-		return ads_percentage_today;
-	}
+    public long getUniqueDomains() {
+        return uniqueDomains;
+    }
 
-	public void setAds_percentage_today(Double ads_percentage_today) {
-		this.ads_percentage_today = ads_percentage_today;
-	}
+    public long getUnique_domains() {
+        return uniqueDomains;
+    }
 
-	public Long getUnique_domains() {
-		return unique_domains;
-	}
+    public long getQueriesForwarded() {
+        return queriesForwarded;
+    }
 
-	public void setUnique_domains(Long unique_domains) {
-		this.unique_domains = unique_domains;
-	}
+    public long getQueries_forwarded() {
+        return queriesForwarded;
+    }
 
-	public Long getQueries_forwarded() {
-		return queries_forwarded;
-	}
+    public long getQueriesCached() {
+        return queriesCached;
+    }
 
-	public void setQueries_forwarded(Long queries_forwarded) {
-		this.queries_forwarded = queries_forwarded;
-	}
+    public long getQueries_cached() {
+        return queriesCached;
+    }
 
-	public Long getQueries_cached() {
-		return queries_cached;
-	}
+    public long getClientsEverSeen() {
+        return clientsEverSeen;
+    }
 
-	public void setQueries_cached(Long queries_cached) {
-		this.queries_cached = queries_cached;
-	}
+    public long getClients_ever_seen() {
+        return clientsEverSeen;
+    }
 
-	public Long getClients_ever_seen() {
-		return clients_ever_seen;
-	}
+    public long getUniqueClients() {
+        return uniqueClients;
+    }
 
-	public void setClients_ever_seen(Long clients_ever_seen) {
-		this.clients_ever_seen = clients_ever_seen;
-	}
+    public long getUnique_clients() {
+        return uniqueClients;
+    }
 
-	public Long getUnique_clients() {
-		return unique_clients;
-	}
+    public long getDnsQueriesAllTypes() {
+        return dnsQueriesAllTypes;
+    }
 
-	public void setUnique_clients(Long unique_clients) {
-		this.unique_clients = unique_clients;
-	}
+    public long getDns_queries_all_types() {
+        return dnsQueriesAllTypes;
+    }
 
-	public Long getDns_queries_all_types() {
-		return dns_queries_all_types;
-	}
+    public long getReplyNodata() {
+        return replyNodata;
+    }
 
-	public void setDns_queries_all_types(Long dns_queries_all_types) {
-		this.dns_queries_all_types = dns_queries_all_types;
-	}
+    public long getReply_NODATA() {
+        return replyNodata;
+    }
 
-	public Long getReply_NODATA() {
-		return reply_NODATA;
-	}
+    public long getReplyNxdomain() {
+        return replyNxdomain;
+    }
 
-	public void setReply_NODATA(Long reply_NODATA) {
-		this.reply_NODATA = reply_NODATA;
-	}
+    public long getReply_NXDOMAIN() {
+        return replyNxdomain;
+    }
 
-	public Long getReply_NXDOMAIN() {
-		return reply_NXDOMAIN;
-	}
+    public long getReplyCname() {
+        return replyCname;
+    }
 
-	public void setReply_NXDOMAIN(Long reply_NXDOMAIN) {
-		this.reply_NXDOMAIN = reply_NXDOMAIN;
-	}
+    public long getReply_CNAME() {
+        return replyCname;
+    }
 
-	public Long getReply_CNAME() {
-		return reply_CNAME;
-	}
+    public long getReplyIp() {
+        return replyIp;
+    }
 
-	public void setReply_CNAME(Long reply_CNAME) {
-		this.reply_CNAME = reply_CNAME;
-	}
+    public long getReply_IP() {
+        return replyIp;
+    }
 
-	public Long getReply_IP() {
-		return reply_IP;
-	}
+    public long getPrivacyLevel() {
+        return privacyLevel;
+    }
 
-	public void setReply_IP(Long reply_IP) {
-		this.reply_IP = reply_IP;
-	}
+    public long getPrivacy_level() {
+        return privacyLevel;
+    }
 
-	public Long getPrivacy_level() {
-		return privacy_level;
-	}
+    public String getStatus() {
+        return status;
+    }
 
-	public void setPrivacy_level(Long privacy_level) {
-		this.privacy_level = privacy_level;
-	}
+    public Gravity getGravity() {
+        return gravity;
+    }
 
-	public String getStatus() {
-		return status;
-	}
+    // ==================== Setters ====================
 
-	public void setStatus(String status) {
-		this.status = status;
-	}
+    public void setDomainsBeingBlocked(long domainsBeingBlocked) {
+        this.domainsBeingBlocked = domainsBeingBlocked;
+    }
 
-	public Gravity getGravity() {
-		return gravity;
-	}
+    public void setDomains_being_blocked(long domainsBeingBlocked) {
+        this.domainsBeingBlocked = domainsBeingBlocked;
+    }
 
-	public void setGravity(Gravity gravity) {
-		this.gravity = gravity;
-	}
+    public void setDnsQueriesToday(long dnsQueriesToday) {
+        this.dnsQueriesToday = dnsQueriesToday;
+    }
 
-	public boolean isActive(){
-		return getStatus().equals("enabled");
-	}
+    public void setDns_queries_today(long dnsQueriesToday) {
+        this.dnsQueriesToday = dnsQueriesToday;
+    }
 
-	@Override
-	public String toString() {
-		return "PiHole [domains_being_blocked=" + domains_being_blocked + ", dns_queries_today=" + dns_queries_today
-				+ ", ads_blocked_today=" + ads_blocked_today + ", ads_percentage_today=" + ads_percentage_today
-				+ ", unique_domains=" + unique_domains + ", queries_forwarded=" + queries_forwarded
-				+ ", queries_cached=" + queries_cached + ", clients_ever_seen=" + clients_ever_seen
-				+ ", unique_clients=" + unique_clients + ", dns_queries_all_types=" + dns_queries_all_types
-				+ ", reply_NODATA=" + reply_NODATA + ", reply_NXDOMAIN=" + reply_NXDOMAIN + ", reply_CNAME="
-				+ reply_CNAME + ", reply_IP=" + reply_IP + ", privacy_level=" + privacy_level + ", status=" + status
-				+ ", gravity=" + gravity + "]";
-	}
-	
-	
+    public void setAdsBlockedToday(long adsBlockedToday) {
+        this.adsBlockedToday = adsBlockedToday;
+    }
 
+    public void setAds_blocked_today(long adsBlockedToday) {
+        this.adsBlockedToday = adsBlockedToday;
+    }
+
+    public void setAdsPercentageToday(double adsPercentageToday) {
+        this.adsPercentageToday = adsPercentageToday;
+    }
+
+    public void setAds_percentage_today(double adsPercentageToday) {
+        this.adsPercentageToday = adsPercentageToday;
+    }
+
+    public void setUniqueDomains(long uniqueDomains) {
+        this.uniqueDomains = uniqueDomains;
+    }
+
+    public void setUnique_domains(long uniqueDomains) {
+        this.uniqueDomains = uniqueDomains;
+    }
+
+    public void setQueriesForwarded(long queriesForwarded) {
+        this.queriesForwarded = queriesForwarded;
+    }
+
+    public void setQueries_forwarded(long queriesForwarded) {
+        this.queriesForwarded = queriesForwarded;
+    }
+
+    public void setQueriesCached(long queriesCached) {
+        this.queriesCached = queriesCached;
+    }
+
+    public void setQueries_cached(long queriesCached) {
+        this.queriesCached = queriesCached;
+    }
+
+    public void setClientsEverSeen(long clientsEverSeen) {
+        this.clientsEverSeen = clientsEverSeen;
+    }
+
+    public void setClients_ever_seen(long clientsEverSeen) {
+        this.clientsEverSeen = clientsEverSeen;
+    }
+
+    public void setUniqueClients(long uniqueClients) {
+        this.uniqueClients = uniqueClients;
+    }
+
+    public void setUnique_clients(long uniqueClients) {
+        this.uniqueClients = uniqueClients;
+    }
+
+    public void setDnsQueriesAllTypes(long dnsQueriesAllTypes) {
+        this.dnsQueriesAllTypes = dnsQueriesAllTypes;
+    }
+
+    public void setDns_queries_all_types(long dnsQueriesAllTypes) {
+        this.dnsQueriesAllTypes = dnsQueriesAllTypes;
+    }
+
+    public void setReplyNodata(long replyNodata) {
+        this.replyNodata = replyNodata;
+    }
+
+    public void setReply_NODATA(long replyNodata) {
+        this.replyNodata = replyNodata;
+    }
+
+    public void setReplyNxdomain(long replyNxdomain) {
+        this.replyNxdomain = replyNxdomain;
+    }
+
+    public void setReply_NXDOMAIN(long replyNxdomain) {
+        this.replyNxdomain = replyNxdomain;
+    }
+
+    public void setReplyCname(long replyCname) {
+        this.replyCname = replyCname;
+    }
+
+    public void setReply_CNAME(long replyCname) {
+        this.replyCname = replyCname;
+    }
+
+    public void setReplyIp(long replyIp) {
+        this.replyIp = replyIp;
+    }
+
+    public void setReply_IP(long replyIp) {
+        this.replyIp = replyIp;
+    }
+
+    public void setPrivacyLevel(long privacyLevel) {
+        this.privacyLevel = privacyLevel;
+    }
+
+    public void setPrivacy_level(long privacyLevel) {
+        this.privacyLevel = privacyLevel;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public void setGravity(Gravity gravity) {
+        this.gravity = gravity;
+    }
+
+    // ==================== Utility Methods ====================
+
+    /**
+     * Checks if the Pi-hole is enabled and active.
+     */
+    public boolean isActive() {
+        return STATUS_ENABLED.equals(status);
+    }
+
+    /**
+     * Calculates the ads blocking percentage.
+     * This is a computed value based on queries and blocked ads.
+     */
+    public double calculateAdsPercentage() {
+        if (dnsQueriesToday <= 0) {
+            return 0.0;
+        }
+        return (adsBlockedToday / (double) dnsQueriesToday) * 100.0;
+    }
+
+    /**
+     * Gets the total processed queries (forwarded + cached).
+     */
+    public long getTotalProcessedQueries() {
+        return queriesForwarded + queriesCached;
+    }
+
+    @Override
+    public String toString() {
+        return new StringJoiner(", ", "PiHole[", "]")
+                .add("domainsBeingBlocked=" + domainsBeingBlocked)
+                .add("dnsQueriesToday=" + dnsQueriesToday)
+                .add("adsBlockedToday=" + adsBlockedToday)
+                .add("adsPercentageToday=" + adsPercentageToday)
+                .add("uniqueDomains=" + uniqueDomains)
+                .add("queriesForwarded=" + queriesForwarded)
+                .add("queriesCached=" + queriesCached)
+                .add("clientsEverSeen=" + clientsEverSeen)
+                .add("uniqueClients=" + uniqueClients)
+                .add("dnsQueriesAllTypes=" + dnsQueriesAllTypes)
+                .add("replyNodata=" + replyNodata)
+                .add("replyNxdomain=" + replyNxdomain)
+                .add("replyCname=" + replyCname)
+                .add("replyIp=" + replyIp)
+                .add("privacyLevel=" + privacyLevel)
+                .add("status='" + status + "'")
+                .add("gravity=" + gravity)
+                .toString();
+    }
 }

@@ -18,59 +18,101 @@
 
 package domain.configuration;
 
-public class WidgetConfig {
-
-
-    private String size;
-    private String layout;
-    private boolean show_live;
-    private boolean show_status;
-    private boolean show_fluid;
-    private int update_status_sec;
-    private int update_fluid_sec;
-    private int update_active_sec;
-
-    public WidgetConfig(String size, String layout, boolean show_live, boolean show_status, boolean show_fluid, int update_status_sec, int update_fluid_sec, int update_active_sec) {
-        this.size = size;
-        this.layout = layout;
-        this.show_live = show_live;
-        this.show_status = show_status;
-        this.show_fluid = show_fluid;
-        this.update_status_sec = update_status_sec;
-        this.update_fluid_sec = update_fluid_sec;
-        this.update_active_sec = update_active_sec;
+/**
+ * Immutable configuration record for widget display settings.
+ *
+ * @param size the widget size (Small, Medium, Large, XXL, Full Screen)
+ * @param layout the widget layout (Horizontal, Square)
+ * @param showLive whether to show live data tile
+ * @param showStatus whether to show status tile
+ * @param showFluid whether to show fluid percentage tile
+ * @param updateStatusSec status tile update interval in seconds
+ * @param updateFluidSec fluid tile update interval in seconds
+ * @param updateActiveSec active tile update interval in seconds
+ */
+public record WidgetConfig(
+        String size,
+        String layout,
+        boolean showLive,
+        boolean showStatus,
+        boolean showFluid,
+        int updateStatusSec,
+        int updateFluidSec,
+        int updateActiveSec
+) {
+    
+    // Default values
+    public static final String DEFAULT_SIZE = "Medium";
+    public static final String DEFAULT_LAYOUT = "Square";
+    public static final int DEFAULT_UPDATE_INTERVAL = 5;
+    
+    /**
+     * Compact constructor with validation and defaults.
+     */
+    public WidgetConfig {
+        if (size == null || size.isBlank()) {
+            size = DEFAULT_SIZE;
+        }
+        if (layout == null || layout.isBlank()) {
+            layout = DEFAULT_LAYOUT;
+        }
+        if (updateStatusSec <= 0) {
+            updateStatusSec = DEFAULT_UPDATE_INTERVAL;
+        }
+        if (updateFluidSec <= 0) {
+            updateFluidSec = DEFAULT_UPDATE_INTERVAL;
+        }
+        if (updateActiveSec <= 0) {
+            updateActiveSec = DEFAULT_UPDATE_INTERVAL;
+        }
     }
-
-
+    
+    /**
+     * Creates a WidgetConfig with default values for display options and intervals.
+     */
+    public WidgetConfig(String size, String layout) {
+        this(size, layout, true, true, true, 
+             DEFAULT_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL);
+    }
+    
+    /**
+     * Creates a default WidgetConfig.
+     */
+    public static WidgetConfig defaultConfig() {
+        return new WidgetConfig(DEFAULT_SIZE, DEFAULT_LAYOUT);
+    }
+    
+    // Legacy getter methods for backward compatibility
+    
     public String getSize() {
         return size;
     }
-
+    
     public String getLayout() {
         return layout;
     }
-
+    
     public boolean isShow_live() {
-        return show_live;
+        return showLive;
     }
-
+    
     public boolean isShow_status() {
-        return show_status;
+        return showStatus;
     }
-
+    
     public boolean isShow_fluid() {
-        return show_fluid;
+        return showFluid;
     }
-
+    
     public int getUpdate_status_sec() {
-        return update_status_sec;
+        return updateStatusSec;
     }
-
+    
     public int getUpdate_fluid_sec() {
-        return update_fluid_sec;
+        return updateFluidSec;
     }
-
+    
     public int getUpdate_active_sec() {
-        return update_active_sec;
+        return updateActiveSec;
     }
 }

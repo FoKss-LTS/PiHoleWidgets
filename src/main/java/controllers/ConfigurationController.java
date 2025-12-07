@@ -23,220 +23,403 @@ import domain.configuration.WidgetConfig;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.*;
+import javafx.scene.control.Accordion;
+import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.TextField;
+import javafx.scene.control.TitledPane;
 import services.configuration.ConfigurationService;
 
 import java.net.URL;
+import java.util.List;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-
+/**
+ * Controller for the configuration window.
+ * Handles Pi-hole DNS server configuration and widget display settings.
+ */
 public class ConfigurationController implements Initializable {
 
-    @FXML
-    private Button button_cancel, button_save, button_load, button_apply;
+    // ==================== Constants ====================
+    
+    private static final Logger LOGGER = Logger.getLogger(ConfigurationController.class.getName());
+    private static final boolean VERBOSE = Boolean.parseBoolean(System.getProperty("pihole.verbose", "false"));
+    
+    private static final List<String> SIZES = List.of("Small", "Medium", "Large", "XXL", "Full Screen");
+    private static final List<String> LAYOUTS = List.of("Horizontal", "Square");
+    private static final List<String> SCHEMES = List.of("http", "https");
+    
+    private static final String DEFAULT_SCHEME = "http";
+    private static final String DEFAULT_SIZE = "Medium";
+    private static final String DEFAULT_LAYOUT = "Square";
+    private static final int DEFAULT_PORT = 80;
+    
+    // Dark theme styling
+    private static final String DARK_COMBO_STYLE = 
+            "-fx-background-color: #2a2d32; " +
+            "-fx-text-fill: #e0e0e0; " +
+            "-fx-control-inner-background: #2a2d32; " +
+            "-fx-prompt-text-fill: #888888;";
+    
+    private static final String DARK_CELL_STYLE = 
+            "-fx-background-color: #2a2d32; -fx-text-fill: #e0e0e0;";
+    
+    // Button styles
+    private static final String APPLY_BTN_NORMAL = "-fx-background-color: #4a9eff; -fx-text-fill: white; -fx-background-radius: 5; -fx-padding: 8 16 8 16;";
+    private static final String APPLY_BTN_HOVER = "-fx-background-color: #5aaeff; -fx-text-fill: white; -fx-background-radius: 5; -fx-padding: 8 16 8 16;";
+    private static final String LOAD_BTN_NORMAL = "-fx-background-color: #6c757d; -fx-text-fill: white; -fx-background-radius: 5; -fx-padding: 8 16 8 16;";
+    private static final String LOAD_BTN_HOVER = "-fx-background-color: #7c858d; -fx-text-fill: white; -fx-background-radius: 5; -fx-padding: 8 16 8 16;";
+    private static final String SAVE_BTN_NORMAL = "-fx-background-color: #28a745; -fx-text-fill: white; -fx-background-radius: 5; -fx-padding: 8 16 8 16;";
+    private static final String SAVE_BTN_HOVER = "-fx-background-color: #38b755; -fx-text-fill: white; -fx-background-radius: 5; -fx-padding: 8 16 8 16;";
+    private static final String CANCEL_BTN_NORMAL = "-fx-background-color: #dc3545; -fx-text-fill: white; -fx-background-radius: 5; -fx-padding: 8 16 8 16;";
+    private static final String CANCEL_BTN_HOVER = "-fx-background-color: #ec4555; -fx-text-fill: white; -fx-background-radius: 5; -fx-padding: 8 16 8 16;";
 
-    @FXML
-    private TitledPane dns1TitledPane;
-    @FXML
-    private Accordion accord;
+    // ==================== FXML Injected Fields ====================
+    
+    @FXML private Button buttonCancel;
+    @FXML private Button buttonSave;
+    @FXML private Button buttonLoad;
+    @FXML private Button buttonApply;
+    
+    @FXML private TitledPane dns1TitledPane;
+    @FXML private Accordion accord;
+    
+    @FXML private TextField tfIp1;
+    @FXML private TextField tfPort1;
+    @FXML private TextField tfAuth1;
+    @FXML private TextField tfIp2;
+    @FXML private TextField tfPort2;
+    @FXML private TextField tfAuth2;
+    
+    @FXML private ComboBox<String> comboBoxSize;
+    @FXML private ComboBox<String> comboBoxLayout;
+    @FXML private ComboBox<String> comboBoxScheme1;
+    @FXML private ComboBox<String> comboBoxScheme2;
 
-    @FXML
-    private TextField TF_IP1,TF_Port1, TF_IP2,TF_Port2, TF_AUTH1, TG_AUTH2;
+    // Legacy FXML field names for backward compatibility with existing FXML
+    @FXML private Button button_cancel;
+    @FXML private Button button_save;
+    @FXML private Button button_load;
+    @FXML private Button button_apply;
+    @FXML private TextField TF_IP1;
+    @FXML private TextField TF_Port1;
+    @FXML private TextField TF_AUTH1;
+    @FXML private TextField TF_IP2;
+    @FXML private TextField TF_Port2;
+    @FXML private TextField TG_AUTH2;
+    @FXML private ComboBox<String> ComboBoxSize;
+    @FXML private ComboBox<String> ComboBoxLayout;
+    @FXML private ComboBox<String> ComboBox_Scheme1;
+    @FXML private ComboBox<String> ComboBox_Scheme2;
 
-    @FXML
-    private ComboBox<String> ComboBoxSize,ComboBoxLayout, ComboBox_Scheme1, ComboBox_Scheme2;
-
-
+    // ==================== Instance Fields ====================
+    
     private PiholeConfig configDNS1;
     private PiholeConfig configDNS2;
     private WidgetConfig widgetConfig;
+    
+    // ==================== Constructor ====================
 
-
-    public ConfigurationController(PiholeConfig configDNS1, PiholeConfig configDNS2,WidgetConfig widgetConfig) {
+    public ConfigurationController(PiholeConfig configDNS1, PiholeConfig configDNS2, WidgetConfig widgetConfig) {
+        log("ConfigurationController created");
         this.configDNS1 = configDNS1;
         this.configDNS2 = configDNS2;
         this.widgetConfig = widgetConfig;
     }
+    
+    // ==================== Logging ====================
+    
+    private static void log(String message) {
+        if (VERBOSE) {
+            LOGGER.log(Level.FINE, () -> "[Config] " + message);
+        }
+    }
 
+    // ==================== Initialization ====================
+    
+    @Override
     public void initialize(URL location, ResourceBundle resources) {
-        String sizes[] =
-                { "Small", "Medium", "Large",
-                        "XXL","Full Screen" };
-        ComboBoxSize.setItems(FXCollections
-                .observableArrayList(sizes));
-
-        String layouts[] =
-                { "Horizontal",/* "Vertical",*/ "Square" };
-        ComboBoxLayout.setItems(FXCollections
-                .observableArrayList(layouts));
-
-        // Initialize scheme ComboBoxes
-        String schemes[] = { "http", "https" };
-        ComboBox_Scheme1.setItems(FXCollections.observableArrayList(schemes));
-        ComboBox_Scheme2.setItems(FXCollections.observableArrayList(schemes));
-        ComboBox_Scheme1.setValue("http");
-        ComboBox_Scheme2.setValue("http");
+        log("Initializing ConfigurationController");
         
-        // Apply dark theme styling to all ComboBoxes
-        applyComboBoxDarkTheme(ComboBox_Scheme1);
-        applyComboBoxDarkTheme(ComboBox_Scheme2);
-        applyComboBoxDarkTheme(ComboBoxSize);
-        applyComboBoxDarkTheme(ComboBoxLayout);
-
-        accord.setExpandedPane(dns1TitledPane);
-        button_apply.setOnMouseClicked(event -> {
-            saveConfiguration();
-            WidgetApplication.applyAndCloseConfigurationWindow();
-        });
-        button_save.setOnMouseClicked(event -> saveConfiguration());
-        button_load.setOnMouseClicked(event -> loadConfiguration());
-        button_cancel.setOnMouseClicked(event -> WidgetApplication.closeConfigurationWindow());
-
-        // Add button hover effects
+        // Resolve legacy field names
+        resolveLegacyFields();
+        
+        // Initialize ComboBoxes
+        initializeComboBoxes();
+        
+        // Setup button actions
+        setupButtonActions();
+        
+        // Setup button hover effects
         setupButtonHoverEffects();
-
+        
+        // Expand DNS1 pane by default
+        if (accord != null && dns1TitledPane != null) {
+            accord.setExpandedPane(dns1TitledPane);
+        }
+        
+        // Load configuration
         loadConfiguration();
+        
+        log("ConfigurationController initialization complete");
     }
-
-    private void setupButtonHoverEffects() {
-        // Apply button
-        button_apply.setOnMouseEntered(e -> button_apply.setStyle("-fx-background-color: #5aaeff; -fx-text-fill: white; -fx-background-radius: 5; -fx-padding: 8 16 8 16;"));
-        button_apply.setOnMouseExited(e -> button_apply.setStyle("-fx-background-color: #4a9eff; -fx-text-fill: white; -fx-background-radius: 5; -fx-padding: 8 16 8 16;"));
-
-        // Load button
-        button_load.setOnMouseEntered(e -> button_load.setStyle("-fx-background-color: #7c858d; -fx-text-fill: white; -fx-background-radius: 5; -fx-padding: 8 16 8 16;"));
-        button_load.setOnMouseExited(e -> button_load.setStyle("-fx-background-color: #6c757d; -fx-text-fill: white; -fx-background-radius: 5; -fx-padding: 8 16 8 16;"));
-
-        // Save button
-        button_save.setOnMouseEntered(e -> button_save.setStyle("-fx-background-color: #38b755; -fx-text-fill: white; -fx-background-radius: 5; -fx-padding: 8 16 8 16;"));
-        button_save.setOnMouseExited(e -> button_save.setStyle("-fx-background-color: #28a745; -fx-text-fill: white; -fx-background-radius: 5; -fx-padding: 8 16 8 16;"));
-
-        // Cancel button
-        button_cancel.setOnMouseEntered(e -> button_cancel.setStyle("-fx-background-color: #ec4555; -fx-text-fill: white; -fx-background-radius: 5; -fx-padding: 8 16 8 16;"));
-        button_cancel.setOnMouseExited(e -> button_cancel.setStyle("-fx-background-color: #dc3545; -fx-text-fill: white; -fx-background-radius: 5; -fx-padding: 8 16 8 16;"));
+    
+    private void resolveLegacyFields() {
+        // Map legacy FXML field names to new names
+        if (buttonCancel == null) buttonCancel = button_cancel;
+        if (buttonSave == null) buttonSave = button_save;
+        if (buttonLoad == null) buttonLoad = button_load;
+        if (buttonApply == null) buttonApply = button_apply;
+        if (tfIp1 == null) tfIp1 = TF_IP1;
+        if (tfPort1 == null) tfPort1 = TF_Port1;
+        if (tfAuth1 == null) tfAuth1 = TF_AUTH1;
+        if (tfIp2 == null) tfIp2 = TF_IP2;
+        if (tfPort2 == null) tfPort2 = TF_Port2;
+        if (tfAuth2 == null) tfAuth2 = TG_AUTH2;
+        if (comboBoxSize == null) comboBoxSize = ComboBoxSize;
+        if (comboBoxLayout == null) comboBoxLayout = ComboBoxLayout;
+        if (comboBoxScheme1 == null) comboBoxScheme1 = ComboBox_Scheme1;
+        if (comboBoxScheme2 == null) comboBoxScheme2 = ComboBox_Scheme2;
     }
-
-    private void applyComboBoxDarkTheme(ComboBox<String> comboBox) {
-        if (comboBox != null) {
-            // Apply comprehensive dark theme styling for ComboBox
-            String darkStyle = 
-                "-fx-background-color: #2a2d32; " +
-                "-fx-text-fill: #e0e0e0; " +
-                "-fx-control-inner-background: #2a2d32; " +
-                "-fx-prompt-text-fill: #888888;";
-            comboBox.setStyle(darkStyle);
-            
-            // Set cell factory to ensure text is visible in dropdown
-            comboBox.setCellFactory(listView -> new ListCell<String>() {
-                @Override
-                protected void updateItem(String item, boolean empty) {
-                    super.updateItem(item, empty);
-                    if (empty || item == null) {
-                        setText(null);
-                        setStyle("-fx-background-color: #2a2d32; -fx-text-fill: #e0e0e0;");
-                    } else {
-                        setText(item);
-                        setStyle("-fx-background-color: #2a2d32; -fx-text-fill: #e0e0e0;");
-                    }
-                }
+    
+    private void initializeComboBoxes() {
+        // Size options
+        if (comboBoxSize != null) {
+            comboBoxSize.setItems(FXCollections.observableArrayList(SIZES));
+            applyDarkTheme(comboBoxSize);
+        }
+        
+        // Layout options
+        if (comboBoxLayout != null) {
+            comboBoxLayout.setItems(FXCollections.observableArrayList(LAYOUTS));
+            applyDarkTheme(comboBoxLayout);
+        }
+        
+        // Scheme options for DNS1
+        if (comboBoxScheme1 != null) {
+            comboBoxScheme1.setItems(FXCollections.observableArrayList(SCHEMES));
+            comboBoxScheme1.setValue(DEFAULT_SCHEME);
+            applyDarkTheme(comboBoxScheme1);
+        }
+        
+        // Scheme options for DNS2
+        if (comboBoxScheme2 != null) {
+            comboBoxScheme2.setItems(FXCollections.observableArrayList(SCHEMES));
+            comboBoxScheme2.setValue(DEFAULT_SCHEME);
+            applyDarkTheme(comboBoxScheme2);
+        }
+    }
+    
+    private void setupButtonActions() {
+        if (buttonApply != null) {
+            buttonApply.setOnMouseClicked(_ -> {
+                log("Apply button clicked");
+                saveConfiguration();
+                WidgetApplication.applyAndCloseConfigurationWindow();
             });
-            
-            // Set button cell factory to ensure selected text is visible
-            comboBox.setButtonCell(new ListCell<String>() {
-                @Override
-                protected void updateItem(String item, boolean empty) {
-                    super.updateItem(item, empty);
-                    if (empty || item == null) {
-                        setText(null);
-                    } else {
-                        setText(item);
-                    }
-                    setStyle("-fx-background-color: #2a2d32; -fx-text-fill: #e0e0e0;");
-                }
+        }
+        
+        if (buttonSave != null) {
+            buttonSave.setOnMouseClicked(_ -> {
+                log("Save button clicked");
+                saveConfiguration();
+            });
+        }
+        
+        if (buttonLoad != null) {
+            buttonLoad.setOnMouseClicked(_ -> {
+                log("Load button clicked");
+                loadConfiguration();
+            });
+        }
+        
+        if (buttonCancel != null) {
+            buttonCancel.setOnMouseClicked(_ -> {
+                log("Cancel button clicked");
+                WidgetApplication.closeConfigurationWindow();
             });
         }
     }
 
+    private void setupButtonHoverEffects() {
+        setupHoverEffect(buttonApply, APPLY_BTN_NORMAL, APPLY_BTN_HOVER);
+        setupHoverEffect(buttonLoad, LOAD_BTN_NORMAL, LOAD_BTN_HOVER);
+        setupHoverEffect(buttonSave, SAVE_BTN_NORMAL, SAVE_BTN_HOVER);
+        setupHoverEffect(buttonCancel, CANCEL_BTN_NORMAL, CANCEL_BTN_HOVER);
+    }
+    
+    private void setupHoverEffect(Button button, String normalStyle, String hoverStyle) {
+        if (button != null) {
+            button.setOnMouseEntered(_ -> button.setStyle(hoverStyle));
+            button.setOnMouseExited(_ -> button.setStyle(normalStyle));
+        }
+    }
+
+    private void applyDarkTheme(ComboBox<String> comboBox) {
+        if (comboBox == null) return;
+        
+        comboBox.setStyle(DARK_COMBO_STYLE);
+        
+        // Cell factory for dropdown items
+        comboBox.setCellFactory(_ -> new ListCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : item);
+                setStyle(DARK_CELL_STYLE);
+            }
+        });
+        
+        // Button cell for selected item display
+        comboBox.setButtonCell(new ListCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : item);
+                setStyle(DARK_CELL_STYLE);
+            }
+        });
+    }
+
+    // ==================== Configuration Management ====================
 
     @FXML
     public void saveConfiguration() {
-
-        ConfigurationService confService = new ConfigurationService();
-
-        int port1= TF_Port1.getText() != null && !TF_Port1.getText().isEmpty() ? Integer.parseInt(TF_Port1.getText()) :80;
-        int port2= TF_Port2.getText() != null && !TF_Port2.getText().isEmpty() ? Integer.parseInt(TF_Port2.getText()) :80;
-
-        // Get scheme from ComboBox, fallback to extracting from IP field for backward compatibility
-        String scheme1 = ComboBox_Scheme1.getValue() != null ? ComboBox_Scheme1.getValue() : extractSchemeOrDefault(TF_IP1.getText());
-        String scheme2 = ComboBox_Scheme2.getValue() != null ? ComboBox_Scheme2.getValue() : extractSchemeOrDefault(TF_IP2.getText());
+        log("Saving configuration...");
         
-        // Strip scheme from IP field if present (for backward compatibility)
-        String ip1 = stripScheme(TF_IP1.getText());
-        String ip2 = stripScheme(TF_IP2.getText());
-
-        confService.writeConfigFile(scheme1, ip1,port1, TF_AUTH1.getText(), scheme2, ip2,port2, TG_AUTH2.getText(),
-                ComboBoxSize.getValue()==null? "Medium" : ComboBoxSize.getValue().toString(), ComboBoxLayout.getValue()== null ? "Square" : ComboBoxLayout.getValue().toString(), true,true,true,5,5,5);
-
+        ConfigurationService configService = new ConfigurationService();
+        
+        // Parse ports with default fallback
+        int port1 = parsePort(tfPort1);
+        int port2 = parsePort(tfPort2);
+        
+        // Get schemes
+        String scheme1 = getSelectedOrDefault(comboBoxScheme1, DEFAULT_SCHEME);
+        String scheme2 = getSelectedOrDefault(comboBoxScheme2, DEFAULT_SCHEME);
+        
+        // Strip any scheme prefix from IP fields (backward compatibility)
+        String ip1 = stripScheme(getTextOrEmpty(tfIp1));
+        String ip2 = stripScheme(getTextOrEmpty(tfIp2));
+        
+        // Get widget settings
+        String size = getSelectedOrDefault(comboBoxSize, DEFAULT_SIZE);
+        String layout = getSelectedOrDefault(comboBoxLayout, DEFAULT_LAYOUT);
+        
+        log("Saving - DNS1: " + scheme1 + "://" + ip1 + ":" + port1);
+        log("Saving - DNS2: " + scheme2 + "://" + ip2 + ":" + port2);
+        log("Saving - Widget: size=" + size + ", layout=" + layout);
+        
+        configService.writeConfigFile(
+                scheme1, ip1, port1, getTextOrEmpty(tfAuth1),
+                scheme2, ip2, port2, getTextOrEmpty(tfAuth2),
+                size, layout, true, true, true, 5, 5, 5
+        );
+        
+        log("Configuration saved");
     }
 
     @FXML
     public void loadConfiguration() {
-        ConfigurationService confService = new ConfigurationService();
-        confService.readConfiguration();
-
-        configDNS1 = confService.getConfigDNS1();
-        configDNS2 = confService.getConfigDNS2();
-        widgetConfig=confService.getWidgetConfig();
-
-        if(configDNS1!=null) {
-            // Set scheme from config
-            String scheme1 = configDNS1.getScheme() != null && !configDNS1.getScheme().isEmpty() ? configDNS1.getScheme() : "http";
-            ComboBox_Scheme1.setValue(scheme1);
-            // Set IP address without scheme
-            TF_IP1.setText(configDNS1.getIPAddress() != null ? configDNS1.getIPAddress() : "");
-            TF_Port1.setText(String.valueOf((configDNS1.getPort())));
-            TF_AUTH1.setText(configDNS1.getAUTH());
+        log("Loading configuration...");
+        
+        ConfigurationService configService = new ConfigurationService();
+        configService.readConfiguration();
+        
+        configDNS1 = configService.getConfigDNS1();
+        configDNS2 = configService.getConfigDNS2();
+        widgetConfig = configService.getWidgetConfig();
+        
+        // Populate DNS1 fields
+        if (configDNS1 != null) {
+            log("Loading DNS1: " + configDNS1.getIPAddress());
+            setComboBoxValue(comboBoxScheme1, configDNS1.getScheme(), DEFAULT_SCHEME);
+            setTextFieldValue(tfIp1, configDNS1.getIPAddress());
+            setTextFieldValue(tfPort1, String.valueOf(configDNS1.getPort()));
+            setTextFieldValue(tfAuth1, configDNS1.getAUTH());
         } else {
-            ComboBox_Scheme1.setValue("http");
-            TF_IP1.setText("");
+            log("DNS1 config is null, using defaults");
+            setComboBoxValue(comboBoxScheme1, DEFAULT_SCHEME, DEFAULT_SCHEME);
+            setTextFieldValue(tfIp1, "");
         }
-
-        if(configDNS2!=null) {
-            // Set scheme from config
-            String scheme2 = configDNS2.getScheme() != null && !configDNS2.getScheme().isEmpty() ? configDNS2.getScheme() : "http";
-            ComboBox_Scheme2.setValue(scheme2);
-            // Set IP address without scheme
-            TF_IP2.setText(configDNS2.getIPAddress() != null ? configDNS2.getIPAddress() : "");
-            TF_Port2.setText(String.valueOf((configDNS2.getPort())));
-            TG_AUTH2.setText(configDNS2.getAUTH());
+        
+        // Populate DNS2 fields
+        if (configDNS2 != null) {
+            log("Loading DNS2: " + configDNS2.getIPAddress());
+            setComboBoxValue(comboBoxScheme2, configDNS2.getScheme(), DEFAULT_SCHEME);
+            setTextFieldValue(tfIp2, configDNS2.getIPAddress());
+            setTextFieldValue(tfPort2, String.valueOf(configDNS2.getPort()));
+            setTextFieldValue(tfAuth2, configDNS2.getAUTH());
         } else {
-            ComboBox_Scheme2.setValue("http");
-            TF_IP2.setText("");
+            log("DNS2 config is null, using defaults");
+            setComboBoxValue(comboBoxScheme2, DEFAULT_SCHEME, DEFAULT_SCHEME);
+            setTextFieldValue(tfIp2, "");
         }
-
-        if(widgetConfig!=null) {
-            ComboBoxSize.setValue(widgetConfig.getSize());
-            ComboBoxLayout.setValue(widgetConfig.getLayout());
+        
+        // Populate widget settings
+        if (widgetConfig != null) {
+            log("Loading widget config: size=" + widgetConfig.getSize() + ", layout=" + widgetConfig.getLayout());
+            setComboBoxValue(comboBoxSize, widgetConfig.getSize(), DEFAULT_SIZE);
+            setComboBoxValue(comboBoxLayout, widgetConfig.getLayout(), DEFAULT_LAYOUT);
         }
-
-
+        
+        log("Configuration loaded");
     }
 
-    private String extractSchemeOrDefault(String rawHost) {
-        if (rawHost == null) return "http";
-        String host = rawHost.trim().toLowerCase();
-        if (host.startsWith("https://")) return "https";
-        if (host.startsWith("http://")) return "http";
-        return "http";
+    // ==================== Utility Methods ====================
+    
+    private int parsePort(TextField field) {
+        if (field == null) return DEFAULT_PORT;
+        String text = field.getText();
+        if (text == null || text.isBlank()) return DEFAULT_PORT;
+        try {
+            int port = Integer.parseInt(text.trim());
+            return (port > 0 && port <= 65535) ? port : DEFAULT_PORT;
+        } catch (NumberFormatException e) {
+            return DEFAULT_PORT;
+        }
     }
-
+    
+    private String getTextOrEmpty(TextField field) {
+        return (field != null && field.getText() != null) ? field.getText().trim() : "";
+    }
+    
+    private String getSelectedOrDefault(ComboBox<String> comboBox, String defaultValue) {
+        if (comboBox == null || comboBox.getValue() == null) return defaultValue;
+        return comboBox.getValue();
+    }
+    
+    private void setComboBoxValue(ComboBox<String> comboBox, String value, String defaultValue) {
+        if (comboBox != null) {
+            comboBox.setValue(value != null && !value.isBlank() ? value : defaultValue);
+        }
+    }
+    
+    private void setTextFieldValue(TextField field, String value) {
+        if (field != null) {
+            field.setText(value != null ? value : "");
+        }
+    }
+    
+    /**
+     * Removes scheme prefix and trailing slash from a host string.
+     */
     private String stripScheme(String rawHost) {
         if (rawHost == null) return "";
         String host = rawHost.trim();
-        if (host.startsWith("https://")) host = host.substring("https://".length());
-        else if (host.startsWith("http://")) host = host.substring("http://".length());
-        if (host.endsWith("/")) host = host.substring(0, host.length() - 1);
+        
+        if (host.startsWith("https://")) {
+            host = host.substring("https://".length());
+        } else if (host.startsWith("http://")) {
+            host = host.substring("http://".length());
+        }
+        
+        if (host.endsWith("/")) {
+            host = host.substring(0, host.length() - 1);
+        }
+        
         return host;
     }
-
 }

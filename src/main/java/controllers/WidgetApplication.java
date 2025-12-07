@@ -31,136 +31,117 @@ import javafx.stage.StageStyle;
 import javafx.stage.WindowEvent;
 import services.configuration.ConfigurationService;
 
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.AWTException;
+import java.awt.Image;
+import java.awt.MediaTracker;
+import java.awt.MenuItem;
+import java.awt.PopupMenu;
+import java.awt.SystemTray;
+import java.awt.Toolkit;
+import java.awt.TrayIcon;
+import java.awt.image.BufferedImage;
+import java.awt.Graphics2D;
+import java.awt.Color;
 import java.io.IOException;
 import java.net.URL;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-
+/**
+ * Main JavaFX Application class for the Pi-hole Widget.
+ * Manages the widget window, configuration window, and system tray integration.
+ */
 public class WidgetApplication extends Application {
 
+    // ==================== Logging ====================
+    
+    private static final Logger LOGGER = Logger.getLogger(WidgetApplication.class.getName());
+    private static final boolean VERBOSE = Boolean.parseBoolean(System.getProperty("pihole.verbose", "false"));
+    
+    private static void log(String message) {
+        if (VERBOSE) {
+            LOGGER.log(Level.FINE, () -> "[App] " + message);
+        }
+    }
+    
+    private static void logInfo(String message) {
+        LOGGER.log(Level.INFO, () -> message);
+    }
+    
+    private static void logError(String message, Throwable t) {
+        LOGGER.log(Level.SEVERE, message, t);
+    }
+
+    // ==================== Instance Fields ====================
+    
     private double xOffset;
     private double yOffset;
 
-    static PiholeConfig configDNS1 ;
-    static PiholeConfig configDNS2 ;
-    static WidgetConfig widgetConfig;
-
-    static Parent root2;
-    static ConfigurationService confService;
-    static Stage configurationStage;
-    static Stage widgetStage;
-    static WidgetController widgetController;
+    // ==================== Static Application State ====================
+    
+    private static PiholeConfig configDNS1;
+    private static PiholeConfig configDNS2;
+    private static WidgetConfig widgetConfig;
+    
+    private static Parent configurationRoot;
+    private static ConfigurationService configService;
+    private static Stage configurationStage;
+    private static Stage widgetStage;
+    private static WidgetController widgetController;
     private static SystemTray systemTray;
     private static TrayIcon trayIcon;
 
+    // ==================== Application Lifecycle ====================
 
     @Override
     public void start(Stage primaryStage) throws IOException {
+        log("=== Starting WidgetApplication ===");
+        
         // Initialize system tray
         initializeSystemTray();
 
-        // Use primaryStage as widgetStage to show in taskbar
+        // Setup main widget stage
         widgetStage = primaryStage;
         widgetStage.setTitle("PiHole Widget");
         widgetStage.initStyle(StageStyle.UNDECORATED);
+        log("Widget stage created");
 
+        // Setup configuration stage
         configurationStage = new Stage();
         configurationStage.initOwner(widgetStage);
         configurationStage.initStyle(StageStyle.UNDECORATED);
+        log("Configuration stage created");
 
+        // Load configuration
+        configService = new ConfigurationService();
+        configService.readConfiguration();
 
-        confService = new ConfigurationService();
-        confService.readConfiguration();
+        configDNS1 = configService.getConfigDNS1();
+        configDNS2 = configService.getConfigDNS2();
+        widgetConfig = configService.getWidgetConfig();
+        log("Configuration loaded - DNS1: " + (configDNS1 != null ? configDNS1.getIPAddress() : "null"));
 
+        // Initialize configuration controller and view
+        ConfigurationController configurationController = new ConfigurationController(configDNS1, configDNS2, widgetConfig);
+        FXMLLoader configLoader = new FXMLLoader(getClass().getResource("Configuration.fxml"));
+        configLoader.setController(configurationController);
+        configurationRoot = configLoader.load();
+        log("Configuration view loaded");
 
+        // Initialize widget controller and view
+        widgetController = new WidgetController(configDNS1, configDNS2, widgetConfig);
+        FXMLLoader widgetLoader = new FXMLLoader(getClass().getResource("WidgetContainer.fxml"));
+        widgetLoader.setController(widgetController);
+        Parent widgetRoot = widgetLoader.load();
+        log("Widget view loaded");
 
-
-        configDNS1 = confService.getConfigDNS1();
-        configDNS2 = null;confService.getConfigDNS2();
-        widgetConfig= confService.getWidgetConfig();
-
-
-        ConfigurationController configurationController = new ConfigurationController(configDNS1, configDNS2,widgetConfig);
-
-        FXMLLoader loader2 = new FXMLLoader(getClass().getResource("Configuration.fxml"));
-        loader2.setController(configurationController);
-        root2 = loader2.load();
-
-        widgetController = new WidgetController(configDNS1, configDNS2,widgetConfig);
-
-
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("WidgetContainer.fxml"));
-        loader.setController(widgetController);
-        Parent root = loader.load();
-
-        Scene scene = new Scene(widgetController.getGridPane());
-
-        /*
-        for (Node truc : widgetController.rootPane.getChildren()) {
-
-            truc.setOnMousePressed(event -> {
-                xOffset = widgetStage.getX() - event.getScreenX();
-                yOffset = widgetStage.getY() - event.getScreenY();
-            });
-            truc.setOnMouseDragged(event -> {
-                widgetStage.setX(event.getScreenX() + xOffset);
-                widgetStage.setY(event.getScreenY() + yOffset);
-            });
-        }
-
-        root.setOnMousePressed(event -> {
-            xOffset = widgetStage.getX() - event.getScreenX();
-            yOffset = widgetStage.getY() - event.getScreenY();
-        });
-        root.setOnMouseDragged(event -> {
-            widgetStage.setX(event.getScreenX() + xOffset);
-            widgetStage.setY(event.getScreenY() + yOffset);
-        });
-
-        root.setOnMousePressed(event -> {
-            xOffset = widgetStage.getX() - event.getScreenX();
-            yOffset = widgetStage.getY() - event.getScreenY();
-        });
-        root.setOnMouseDragged(event -> {
-            widgetStage.setX(event.getScreenX() + xOffset);
-            widgetStage.setY(event.getScreenY() + yOffset);
-        });
-        */
-
-        for (Node truc : widgetController.getGridPane().getChildren()) {
-
-            truc.setOnMousePressed(event -> {
-                xOffset = widgetStage.getX() - event.getScreenX();
-                yOffset = widgetStage.getY() - event.getScreenY();
-            });
-            truc.setOnMouseDragged(event -> {
-                widgetStage.setX(event.getScreenX() + xOffset);
-                widgetStage.setY(event.getScreenY() + yOffset);
-            });
-        }
-
-        root.setOnMousePressed(event -> {
-            xOffset = widgetStage.getX() - event.getScreenX();
-            yOffset = widgetStage.getY() - event.getScreenY();
-        });
-        root.setOnMouseDragged(event -> {
-            widgetStage.setX(event.getScreenX() + xOffset);
-            widgetStage.setY(event.getScreenY() + yOffset);
-        });
-
-        root.setOnMousePressed(event -> {
-            xOffset = widgetStage.getX() - event.getScreenX();
-            yOffset = widgetStage.getY() - event.getScreenY();
-        });
-        root.setOnMouseDragged(event -> {
-            widgetStage.setX(event.getScreenX() + xOffset);
-            widgetStage.setY(event.getScreenY() + yOffset);
-        });
-
-
-        widgetStage.setScene(scene);
+        // Create widget scene
+        Scene widgetScene = new Scene(widgetController.getGridPane());
+        
+        // Setup drag handlers for widget
+        setupDragHandlers(widgetRoot);
+        
+        widgetStage.setScene(widgetScene);
         
         // Handle window close event to minimize to tray instead of exiting
         widgetStage.setOnCloseRequest((WindowEvent event) -> {
@@ -168,89 +149,146 @@ public class WidgetApplication extends Application {
             hideToTray();
         });
         
-        // Show the stage and ensure it's visible and focused (Windows workaround)
+        // Show the widget stage
         widgetStage.show();
         bringStageToFront(widgetStage);
+        log("Widget stage shown");
 
-        Scene scene2 = new Scene(root2);
-        configurationStage.setScene(scene2);
+        // Setup and show configuration stage (initially hidden)
+        Scene configScene = new Scene(configurationRoot);
+        configurationStage.setScene(configScene);
         configurationStage.setOpacity(0);
         configurationStage.setAlwaysOnTop(true);
         configurationStage.show();
 
-        if ((configDNS1==null || configDNS1.getIPAddress().isEmpty()) && (configDNS2==null ||configDNS2.getIPAddress().isEmpty()))
-        openConfigurationWindow();
+        // Open configuration if no valid DNS is configured
+        if (!hasValidDnsConfig()) {
+            log("No valid DNS configuration found, opening configuration window");
+            openConfigurationWindow();
+        }
+        
+        log("=== WidgetApplication started ===");
+    }
+    
+    private boolean hasValidDnsConfig() {
+        boolean dns1Valid = configDNS1 != null && configDNS1.hasValidAddress();
+        boolean dns2Valid = configDNS2 != null && configDNS2.hasValidAddress();
+        return dns1Valid || dns2Valid;
+    }
+    
+    private void setupDragHandlers(Parent root) {
+        // Setup drag handlers for grid pane children
+        for (Node node : widgetController.getGridPane().getChildren()) {
+            node.setOnMousePressed(event -> {
+                xOffset = widgetStage.getX() - event.getScreenX();
+                yOffset = widgetStage.getY() - event.getScreenY();
+            });
+            node.setOnMouseDragged(event -> {
+                widgetStage.setX(event.getScreenX() + xOffset);
+                widgetStage.setY(event.getScreenY() + yOffset);
+            });
+        }
 
-        /*} else {
-            configurationController = new ConfigurationController(configDNS1,configDNS2);
-
-            loader2 = new FXMLLoader(getClass().getResource("Configuration.fxml"));
-            loader2.setController(configurationController);
-            Parent root2 = loader2.load();
-            Scene scene2 = new Scene(root2);
-            configurationStage.setScene(scene2);
-            configurationStage.show();
-          /* Alert alert = new Alert(Alert.AlertType.ERROR, "Please input your configuration before opening the widget", ButtonType.OK);
-           alert.setHeaderText("Configuration Missing");
-           alert.showAndWait();
-
-            /*  if (alert.getResult() == ButtonType.OK) {
-                System.exit(0);
-            }
-            System.exit(0);*/
-    //}
-
+        // Setup drag handlers for root
+        root.setOnMousePressed(event -> {
+            xOffset = widgetStage.getX() - event.getScreenX();
+            yOffset = widgetStage.getY() - event.getScreenY();
+        });
+        root.setOnMouseDragged(event -> {
+            widgetStage.setX(event.getScreenX() + xOffset);
+            widgetStage.setY(event.getScreenY() + yOffset);
+        });
     }
 
-    public static void openConfigurationWindow()
-    {
-        configurationStage.setOpacity(1);
+    // ==================== Configuration Window Management ====================
+
+    public static void openConfigurationWindow() {
+        log("Opening configuration window");
+        if (configurationStage != null) {
+            configurationStage.setOpacity(1);
+        }
     }
 
-    public static void applyAndCloseConfigurationWindow()
-    {
-        configurationStage.setOpacity(0);
-        confService.readConfiguration();
-
-
-        configDNS1 = confService.getConfigDNS1();
-        configDNS2 = confService.getConfigDNS2();
-
-        widgetConfig=confService.getWidgetConfig();
-
-        widgetController.setConfigDNS1(configDNS1);
-        widgetController.setConfigDNS2(configDNS2);
-        widgetController.setWidgetConfig(widgetConfig);
-
-
-        widgetController.refreshPihole();
-
+    public static void applyAndCloseConfigurationWindow() {
+        log("Applying configuration and closing window");
+        
+        if (configurationStage != null) {
+            configurationStage.setOpacity(0);
+        }
+        
+        // Reload configuration
+        configService.readConfiguration();
+        configDNS1 = configService.getConfigDNS1();
+        configDNS2 = configService.getConfigDNS2();
+        widgetConfig = configService.getWidgetConfig();
+        
+        // Update widget controller
+        if (widgetController != null) {
+            widgetController.setConfigDNS1(configDNS1);
+            widgetController.setConfigDNS2(configDNS2);
+            widgetController.setWidgetConfig(widgetConfig);
+            widgetController.refreshPihole();
+        }
+        
+        log("Configuration applied");
     }
 
-    public static void closeConfigurationWindow(){
-        configurationStage.setOpacity(0);
+    public static void closeConfigurationWindow() {
+        log("Closing configuration window");
+        if (configurationStage != null) {
+            configurationStage.setOpacity(0);
+        }
     }
+
+    // ==================== System Tray ====================
 
     private static void initializeSystemTray() {
+        log("Initializing system tray");
+        
         if (!SystemTray.isSupported()) {
-            System.out.println("System tray is not supported on this platform");
+            logInfo("System tray is not supported on this platform");
             return;
         }
 
         Platform.setImplicitExit(false);
         systemTray = SystemTray.getSystemTray();
 
-        // Load icon for system tray
-        Image image = null;
+        // Load tray icon
+        Image trayImage = loadTrayIcon();
+        
+        // Create popup menu
+        PopupMenu popup = createTrayPopupMenu();
+
+        // Create and configure tray icon
+        trayIcon = new TrayIcon(trayImage, "PiHole Widget", popup);
+        trayIcon.setImageAutoSize(true);
+        
+        // Double-click to show window
+        trayIcon.addActionListener(_ -> Platform.runLater(() -> {
+            if (widgetStage != null) {
+                widgetStage.show();
+                bringStageToFront(widgetStage);
+            }
+        }));
+
         try {
-            // Try multiple possible paths
+            systemTray.add(trayIcon);
+            log("System tray icon added");
+        } catch (AWTException e) {
+            logError("Unable to add tray icon", e);
+        }
+    }
+    
+    private static Image loadTrayIcon() {
+        Image image = null;
+        
+        try {
+            // Try multiple possible resource paths
             URL iconUrl = WidgetApplication.class.getResource("/media/icons/icon.ico");
             if (iconUrl == null) {
-                // Try alternative path
                 iconUrl = WidgetApplication.class.getClassLoader().getResource("media/icons/icon.ico");
             }
             if (iconUrl == null) {
-                // Try without leading slash
                 iconUrl = WidgetApplication.class.getResource("media/icons/icon.ico");
             }
             
@@ -264,117 +302,79 @@ public class WidgetApplication extends Application {
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }
+                log("Tray icon loaded from " + iconUrl);
             } else {
-                System.err.println("Tray icon not found at /media/icons/icon.ico");
+                log("Tray icon not found at /media/icons/icon.ico");
             }
         } catch (Exception e) {
-            System.err.println("Could not load tray icon: " + e.getMessage());
-            e.printStackTrace();
+            logError("Could not load tray icon", e);
         }
         
-        // If icon loading failed, create a simple default icon
+        // Create fallback icon if loading failed
         if (image == null) {
-            System.err.println("Creating default tray icon");
-            // Create a simple 16x16 colored icon as fallback
-            java.awt.image.BufferedImage bufferedImage = new java.awt.image.BufferedImage(16, 16, java.awt.image.BufferedImage.TYPE_INT_RGB);
-            java.awt.Graphics2D g = bufferedImage.createGraphics();
-            g.setColor(java.awt.Color.BLUE);
-            g.fillRect(0, 0, 16, 16);
-            g.setColor(java.awt.Color.WHITE);
-            g.drawString("PH", 2, 12);
-            g.dispose();
-            image = bufferedImage;
+            log("Creating fallback tray icon");
+            image = createFallbackTrayIcon();
         }
-
-        // Create popup menu
+        
+        return image;
+    }
+    
+    private static Image createFallbackTrayIcon() {
+        BufferedImage bufferedImage = new BufferedImage(16, 16, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = bufferedImage.createGraphics();
+        g.setColor(Color.BLUE);
+        g.fillRect(0, 0, 16, 16);
+        g.setColor(Color.WHITE);
+        g.drawString("PH", 2, 12);
+        g.dispose();
+        return bufferedImage;
+    }
+    
+    private static PopupMenu createTrayPopupMenu() {
         PopupMenu popup = new PopupMenu();
         
         MenuItem showItem = new MenuItem("Show");
-        showItem.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                Platform.runLater(() -> {
-                    if (widgetStage != null) {
-                        widgetStage.show();
-                        bringStageToFront(widgetStage);
-                    }
-                });
+        showItem.addActionListener(_ -> Platform.runLater(() -> {
+            if (widgetStage != null) {
+                widgetStage.show();
+                bringStageToFront(widgetStage);
             }
-        });
+        }));
         popup.add(showItem);
 
         MenuItem hideItem = new MenuItem("Hide to Tray");
-        hideItem.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                Platform.runLater(() -> {
-                    hideToTray();
-                });
-            }
-        });
+        hideItem.addActionListener(_ -> Platform.runLater(WidgetApplication::hideToTray));
         popup.add(hideItem);
 
         popup.addSeparator();
 
         MenuItem settingsItem = new MenuItem("Settings");
-        settingsItem.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                Platform.runLater(() -> {
-                    openConfigurationWindow();
-                });
-            }
-        });
+        settingsItem.addActionListener(_ -> Platform.runLater(WidgetApplication::openConfigurationWindow));
         popup.add(settingsItem);
 
         popup.addSeparator();
 
         MenuItem exitItem = new MenuItem("Exit");
-        exitItem.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                Platform.runLater(() -> {
-                    if (systemTray != null && trayIcon != null) {
-                        systemTray.remove(trayIcon);
-                    }
-                    Platform.exit();
-                    System.exit(0);
-                });
-            }
-        });
+        exitItem.addActionListener(_ -> Platform.runLater(() -> {
+            log("Exit requested from tray");
+            cleanup();
+            Platform.exit();
+            System.exit(0);
+        }));
         popup.add(exitItem);
-
-        // Create tray icon
-        trayIcon = new TrayIcon(image, "PiHole Widget", popup);
-        trayIcon.setImageAutoSize(true);
         
-        // Add double-click listener to show window
-        trayIcon.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                Platform.runLater(() -> {
-                    if (widgetStage != null) {
-                        widgetStage.show();
-                        bringStageToFront(widgetStage);
-                    }
-                });
-            }
-        });
-
-        try {
-            systemTray.add(trayIcon);
-        } catch (AWTException e) {
-            System.err.println("Unable to add tray icon: " + e.getMessage());
-        }
+        return popup;
     }
 
     public static void hideToTray() {
+        log("Hiding to tray");
         if (widgetStage != null) {
             widgetStage.hide();
         }
     }
 
     public static void showFromTray() {
+        log("Showing from tray");
         if (widgetStage != null) {
             widgetStage.show();
             bringStageToFront(widgetStage);
@@ -388,18 +388,34 @@ public class WidgetApplication extends Application {
     private static void bringStageToFront(Stage stage) {
         if (stage == null) return;
         
-        // Use Platform.runLater to ensure this happens after the stage is fully shown
         Platform.runLater(() -> {
             stage.setAlwaysOnTop(true);
             stage.toFront();
             stage.requestFocus();
             
             // Reset always on top after a brief delay
-            Platform.runLater(() -> {
-                stage.setAlwaysOnTop(false);
-            });
+            Platform.runLater(() -> stage.setAlwaysOnTop(false));
         });
     }
+    
+    /**
+     * Cleanup resources before exit.
+     */
+    private static void cleanup() {
+        log("Cleaning up resources");
+        
+        // Shutdown widget controller schedulers
+        if (widgetController != null) {
+            widgetController.shutdown();
+        }
+        
+        // Remove tray icon
+        if (systemTray != null && trayIcon != null) {
+            systemTray.remove(trayIcon);
+        }
+    }
+
+    // ==================== Main Entry Point ====================
 
     public static void main(String[] args) {
         launch();

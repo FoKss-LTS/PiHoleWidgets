@@ -18,29 +18,33 @@
 
 package domain.pihole;
 
-public class TopAd {
-
-    String domain;
-    Long numberBlocked;
-
-    public TopAd(String domain, Long numberBlocked) {
-        this.domain = domain;
-        this.numberBlocked = numberBlocked;
+/**
+ * Immutable record representing a top blocked advertisement domain.
+ *
+ * @param domain the blocked domain name
+ * @param numberBlocked the count of times this domain was blocked
+ */
+public record TopAd(String domain, long numberBlocked) {
+    
+    /**
+     * Compact constructor with validation.
+     */
+    public TopAd {
+        if (domain == null) {
+            domain = "";
+        }
+        if (numberBlocked < 0) {
+            numberBlocked = 0;
+        }
     }
-
+    
+    // Legacy getter methods for backward compatibility
+    
     public String getDomain() {
         return domain;
     }
-
-    public void setDomain(String domain) {
-        this.domain = domain;
-    }
-
+    
     public Long getNumberBlocked() {
         return numberBlocked;
-    }
-
-    public void setNumberBlocked(Long numberBlocked) {
-        this.numberBlocked = numberBlocked;
     }
 }

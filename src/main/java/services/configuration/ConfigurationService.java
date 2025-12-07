@@ -18,118 +18,206 @@
 
 package services.configuration;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import domain.configuration.PiholeConfig;
 import domain.configuration.WidgetConfig;
 import helpers.HelperService;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
+/**
+ * Service for reading and writing application configuration.
+ * Configuration is stored as JSON in the user's home directory.
+ */
 public class ConfigurationService {
 
-    private File SETTTINGS_FILE = null;
-
-    private final String folder_name = "Pihole Widget";
-    private final String file_name = "settings.json";
-    private final String home = System.getProperty("user.home");
-    private final String file_path = home + "/" + folder_name + "/" + file_name;
-
-    private WidgetConfig widgetConfig=null;
-
+    private static final Logger LOGGER = Logger.getLogger(ConfigurationService.class.getName());
+    private static final boolean VERBOSE = Boolean.parseBoolean(System.getProperty("pihole.verbose", "false"));
+    
+    // Configuration file location
+    private static final String FOLDER_NAME = "Pihole Widget";
+    private static final String FILE_NAME = "settings.json";
+    private static final String HOME = System.getProperty("user.home");
+    
+    // Default values
+    private static final String DEFAULT_SCHEME = "http";
+    private static final String DEFAULT_IP = "pi.hole";
+    private static final int DEFAULT_PORT = 80;
+    private static final String DEFAULT_SIZE = "Medium";
+    private static final String DEFAULT_LAYOUT = "Square";
+    
+    // JSON keys
+    private static final String KEY_DNS1 = "DNS1";
+    private static final String KEY_DNS2 = "DNS2";
+    private static final String KEY_WIDGET = "Widget";
+    private static final String KEY_SCHEME = "Scheme";
+    private static final String KEY_IP = "IP";
+    private static final String KEY_PORT = "Port";
+    private static final String KEY_AUTH = "Authentication Token";
+    private static final String KEY_SIZE = "Size";
+    private static final String KEY_LAYOUT = "Layout";
+    
+    private final Path configFilePath;
+    private final ObjectMapper objectMapper;
+    
     private PiholeConfig configDNS1;
     private PiholeConfig configDNS2;
+    private WidgetConfig widgetConfig;
 
+    public ConfigurationService() {
+        this.configFilePath = Path.of(HOME, FOLDER_NAME, FILE_NAME);
+        this.objectMapper = new ObjectMapper();
+    }
+    
+    private static void log(String message) {
+        if (VERBOSE) {
+            LOGGER.log(Level.FINE, () -> "[ConfigService] " + message);
+        }
+    }
+
+    /**
+     * Reads the configuration from the settings file.
+     * If the file doesn't exist, creates it with default values.
+     */
     public void readConfiguration() {
-
-        SETTTINGS_FILE = new java.io.File(file_path);
-        if (SETTTINGS_FILE == null || (SETTTINGS_FILE != null && !SETTTINGS_FILE.exists()))
+        log("Reading configuration from: " + configFilePath);
+        
+        // Create config file if it doesn't exist
+        if (!Files.exists(configFilePath)) {
+            log("Configuration file not found, creating default");
             saveEmptyConfiguration();
-
-        ObjectMapper mapper = new ObjectMapper();
-        try {
-            JsonNode jsonObject = mapper.readTree(SETTTINGS_FILE);
-
-            JsonNode jsonWidget = jsonObject.get("Widget");
-            JsonNode jsonDNS1 = jsonObject.get("DNS1");
-            JsonNode jsonDNS2 = jsonObject.get("DNS2");
-
-            Long port1 = jsonDNS1.has("Port") && !jsonDNS1.get("Port").isNull() ? jsonDNS1.get("Port").asLong() : 80L;
-            Long port2 = jsonDNS2.has("Port") && !jsonDNS2.get("Port").isNull() ? jsonDNS2.get("Port").asLong() : 80L;
-            String scheme1 = jsonDNS1.has("Scheme") && !jsonDNS1.get("Scheme").isNull() ? jsonDNS1.get("Scheme").asText() : "http";
-            String scheme2 = jsonDNS2.has("Scheme") && !jsonDNS2.get("Scheme").isNull() ? jsonDNS2.get("Scheme").asText() : "http";
-
-            configDNS1 = new PiholeConfig(jsonDNS1.get("IP").asText(), Math.toIntExact(port1), scheme1, jsonDNS1.get("Authentication Token").asText());
-            configDNS2 = new PiholeConfig(jsonDNS2.get("IP").asText(), Math.toIntExact(port2), scheme2, jsonDNS2.get("Authentication Token").asText());
-            if (jsonWidget != null)
-                widgetConfig = new WidgetConfig(jsonWidget.get("Size").asText(), jsonWidget.get("Layout").asText(), true, true, true, 5, 5, 5);
-
-            /*
-            if(configDNS1.getIPAddress().isEmpty() && configDNS2.getIPAddress().isEmpty())
-            {
-                Alert alert = new Alert(Alert.AlertType.ERROR, "Please add an IP address to your configuration", ButtonType.OK);
-                alert.setHeaderText("No IP Found");
-                alert.showAndWait();
-            }
-            */
-
-        } catch (Exception e) {
-            System.out.println("readConfiguration error: "+e.getMessage());
         }
 
-    }
-
-    public boolean saveEmptyConfiguration() {
-
-        SETTTINGS_FILE = HelperService.createFile(home, file_name, folder_name);
-
-        return writeConfigFile("http", "pi.hole", 80, "", "http", "",80,"", "Medium", "Square", true, true, true,5,5,5);
-
-    }
-
-    public boolean writeConfigFile(String scheme1, String ip1, int port1, String auth1, String scheme2, String ip2, int port2, String auth2, String size, String layout, boolean show_live, boolean show_status, boolean show_fluid
-            , int update_status_sec, int update_fluid_sec, int update_active_sec) {
-
-        ObjectMapper mapper = new ObjectMapper();
-        ObjectNode jsonObject = mapper.createObjectNode();
-
-        ObjectNode jsonDNS1 = mapper.createObjectNode();
-        jsonDNS1.put("Scheme", scheme1);
-        jsonDNS1.put("IP", ip1);
-        jsonDNS1.put("Port", port1);
-        jsonDNS1.put("Authentication Token", auth1);
-
-        ObjectNode jsonDNS2 = mapper.createObjectNode();
-        jsonDNS2.put("Scheme", scheme2);
-        jsonDNS2.put("IP", ip2);
-        jsonDNS2.put("Port", port2);
-        jsonDNS2.put("Authentication Token", auth2);
-
-        ObjectNode jsonWidget = mapper.createObjectNode();
-        jsonWidget.put("Size", size);
-        jsonWidget.put("Layout", layout);
-        //jsonWidget.put("show_live", show_live);
-        //jsonWidget.put("show_status", show_status);
-        //jsonWidget.put("show_fluid", show_fluid);
-
-        jsonObject.set("DNS1", jsonDNS1);
-        jsonObject.set("DNS2", jsonDNS2);
-        jsonObject.set("Widget", jsonWidget);
-
         try {
-            mapper.writerWithDefaultPrettyPrinter().writeValue(new java.io.File(file_path), jsonObject);
-            System.out.println("JSON Written.");
-            return true;
+            JsonNode root = objectMapper.readTree(configFilePath.toFile());
+            
+            configDNS1 = parseDnsConfig(root.get(KEY_DNS1));
+            configDNS2 = parseDnsConfig(root.get(KEY_DNS2));
+            widgetConfig = parseWidgetConfig(root.get(KEY_WIDGET));
+            
+            log("Configuration loaded successfully");
+            log("DNS1: " + (configDNS1 != null ? configDNS1.getIPAddress() : "null"));
+            log("DNS2: " + (configDNS2 != null ? configDNS2.getIPAddress() : "null"));
+            
         } catch (IOException e) {
-            System.out.println("Couldn't write JSON.");
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Failed to read configuration", e);
         }
-
-        return false;
     }
+    
+    private PiholeConfig parseDnsConfig(JsonNode node) {
+        if (node == null) {
+            return null;
+        }
+        
+        String ip = getTextOrDefault(node, KEY_IP, "");
+        int port = getIntOrDefault(node, KEY_PORT, DEFAULT_PORT);
+        String scheme = getTextOrDefault(node, KEY_SCHEME, DEFAULT_SCHEME);
+        String auth = getTextOrDefault(node, KEY_AUTH, "");
+        
+        return new PiholeConfig(ip, port, scheme, auth);
+    }
+    
+    private WidgetConfig parseWidgetConfig(JsonNode node) {
+        if (node == null) {
+            return WidgetConfig.defaultConfig();
+        }
+        
+        String size = getTextOrDefault(node, KEY_SIZE, DEFAULT_SIZE);
+        String layout = getTextOrDefault(node, KEY_LAYOUT, DEFAULT_LAYOUT);
+        
+        return new WidgetConfig(size, layout);
+    }
+    
+    private String getTextOrDefault(JsonNode node, String key, String defaultValue) {
+        if (node == null || !node.has(key) || node.get(key).isNull()) {
+            return defaultValue;
+        }
+        return node.get(key).asText(defaultValue);
+    }
+    
+    private int getIntOrDefault(JsonNode node, String key, int defaultValue) {
+        if (node == null || !node.has(key) || node.get(key).isNull()) {
+            return defaultValue;
+        }
+        return node.get(key).asInt(defaultValue);
+    }
+
+    /**
+     * Creates the configuration file with default values.
+     */
+    public boolean saveEmptyConfiguration() {
+        log("Creating empty configuration file");
+        
+        // Ensure parent directory exists
+        HelperService.createFile(HOME, FILE_NAME, FOLDER_NAME);
+        
+        return writeConfigFile(
+                DEFAULT_SCHEME, DEFAULT_IP, DEFAULT_PORT, "",
+                DEFAULT_SCHEME, "", DEFAULT_PORT, "",
+                DEFAULT_SIZE, DEFAULT_LAYOUT,
+                true, true, true, 5, 5, 5
+        );
+    }
+
+    /**
+     * Writes configuration to the settings file.
+     */
+    public boolean writeConfigFile(
+            String scheme1, String ip1, int port1, String auth1,
+            String scheme2, String ip2, int port2, String auth2,
+            String size, String layout,
+            boolean showLive, boolean showStatus, boolean showFluid,
+            int updateStatusSec, int updateFluidSec, int updateActiveSec) {
+        
+        log("Writing configuration to: " + configFilePath);
+
+        ObjectNode root = objectMapper.createObjectNode();
+
+        // DNS1 configuration
+        ObjectNode dns1Node = objectMapper.createObjectNode();
+        dns1Node.put(KEY_SCHEME, scheme1);
+        dns1Node.put(KEY_IP, ip1);
+        dns1Node.put(KEY_PORT, port1);
+        dns1Node.put(KEY_AUTH, auth1);
+        root.set(KEY_DNS1, dns1Node);
+
+        // DNS2 configuration
+        ObjectNode dns2Node = objectMapper.createObjectNode();
+        dns2Node.put(KEY_SCHEME, scheme2);
+        dns2Node.put(KEY_IP, ip2);
+        dns2Node.put(KEY_PORT, port2);
+        dns2Node.put(KEY_AUTH, auth2);
+        root.set(KEY_DNS2, dns2Node);
+
+        // Widget configuration
+        ObjectNode widgetNode = objectMapper.createObjectNode();
+        widgetNode.put(KEY_SIZE, size);
+        widgetNode.put(KEY_LAYOUT, layout);
+        root.set(KEY_WIDGET, widgetNode);
+
+        try {
+            // Ensure parent directory exists
+            Files.createDirectories(configFilePath.getParent());
+            
+            objectMapper.writerWithDefaultPrettyPrinter()
+                    .writeValue(configFilePath.toFile(), root);
+            
+            log("Configuration written successfully");
+            return true;
+            
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Failed to write configuration", e);
+            return false;
+        }
+    }
+
+    // ==================== Getters ====================
 
     public PiholeConfig getConfigDNS1() {
         return configDNS1;
