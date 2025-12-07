@@ -32,20 +32,20 @@ import javafx.stage.WindowEvent;
 import services.configuration.ConfigurationService;
 
 import java.awt.AWTException;
+import java.awt.Color;
+import java.awt.Graphics2D;
 import java.awt.Image;
-import java.awt.MediaTracker;
 import java.awt.MenuItem;
 import java.awt.PopupMenu;
 import java.awt.SystemTray;
-import java.awt.Toolkit;
 import java.awt.TrayIcon;
 import java.awt.image.BufferedImage;
-import java.awt.Graphics2D;
-import java.awt.Color;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.imageio.ImageIO;
 
 /**
  * Main JavaFX Application class for the Pi-hole Widget.
@@ -280,53 +280,157 @@ public class WidgetApplication extends Application {
     }
     
     private static Image loadTrayIcon() {
-        Image image = null;
+        // Try multiple resource paths in order of preference
+        // PNG format is more reliably loaded than ICO
+        String[] iconPaths = {
+            "/controllers/icon.png",       // PNG version (preferred)
+            "/media/icons/icon.png",       // PNG in media folder
+            "/controllers/icon.ico",       // ICO version
+            "/media/icons/icon.ico",       // ICO in media folder
+            "icon.png",                    // Relative PNG
+            "icon.ico"                     // Relative ICO
+        };
         
-        try {
-            // Try multiple possible resource paths
-            URL iconUrl = WidgetApplication.class.getResource("/media/icons/icon.ico");
-            if (iconUrl == null) {
-                iconUrl = WidgetApplication.class.getClassLoader().getResource("media/icons/icon.ico");
+        logInfo("Attempting to load tray icon from " + iconPaths.length + " paths...");
+        
+        for (String path : iconPaths) {
+            Image image = tryLoadIcon(path);
+            if (image != null) {
+                logInfo("Tray icon loaded successfully from: " + path);
+                return image;
             }
-            if (iconUrl == null) {
-                iconUrl = WidgetApplication.class.getResource("media/icons/icon.ico");
+        }
+        
+        // Fallback to programmatic icon
+        logInfo("Could not load tray icon from any path, using programmatic fallback icon");
+        return createFallbackTrayIcon();
+    }
+    
+    private static Image tryLoadIcon(String resourcePath) {
+        // First, try ImageIO (works for PNG, GIF, JPEG)
+        Image image = tryLoadIconWithImageIO(resourcePath);
+        if (image != null) {
+            return image;
+        }
+        
+        // Fallback to AWT Toolkit (may work for ICO on Windows)
+        return tryLoadIconWithToolkit(resourcePath);
+    }
+    
+    private static Image tryLoadIconWithImageIO(String resourcePath) {
+        try {
+            InputStream stream = WidgetApplication.class.getResourceAsStream(resourcePath);
+            if (stream == null) {
+                log("ImageIO: Resource not found at: " + resourcePath);
+                return null;
             }
             
-            if (iconUrl != null) {
-                image = Toolkit.getDefaultToolkit().getImage(iconUrl);
-                // Wait for image to load
-                MediaTracker tracker = new MediaTracker(new java.awt.Container());
-                tracker.addImage(image, 0);
-                try {
-                    tracker.waitForAll();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
+            try (stream) {
+                BufferedImage image = ImageIO.read(stream);
+                if (image != null && image.getWidth() > 0 && image.getHeight() > 0) {
+                    logInfo("Loaded icon via ImageIO from: " + resourcePath + " (" + image.getWidth() + "x" + image.getHeight() + ")");
+                    return scaleImage(image, 16, 16);
+                } else {
+                    log("ImageIO: Image read returned null or invalid dimensions for: " + resourcePath);
                 }
-                log("Tray icon loaded from " + iconUrl);
-            } else {
-                log("Tray icon not found at /media/icons/icon.ico");
             }
+        } catch (IOException e) {
+            log("ImageIO failed for " + resourcePath + ": " + e.getMessage());
+        }
+        return null;
+    }
+    
+    private static Image tryLoadIconWithToolkit(String resourcePath) {
+        try {
+            URL iconUrl = WidgetApplication.class.getResource(resourcePath);
+            if (iconUrl == null) {
+                log("Toolkit: URL not found at: " + resourcePath);
+                return null;
+            }
+            
+            log("Toolkit: Attempting to load from URL: " + iconUrl);
+            Image image = java.awt.Toolkit.getDefaultToolkit().getImage(iconUrl);
+            
+            // Wait for image to fully load
+            java.awt.MediaTracker tracker = new java.awt.MediaTracker(new java.awt.Container());
+            tracker.addImage(image, 0);
+            tracker.waitForAll(2000); // 2 second timeout
+            
+            // Check if image loaded successfully
+            if (tracker.isErrorAny()) {
+                log("Toolkit: MediaTracker reported error for: " + resourcePath);
+                return null;
+            }
+            
+            // Verify the image has valid dimensions
+            int width = image.getWidth(null);
+            int height = image.getHeight(null);
+            if (width > 0 && height > 0) {
+                logInfo("Loaded icon via Toolkit from: " + resourcePath + " (" + width + "x" + height + ")");
+                return image;
+            } else {
+                log("Toolkit: Invalid dimensions (" + width + "x" + height + ") from: " + resourcePath);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log("Toolkit: Interrupted while loading from: " + resourcePath);
         } catch (Exception e) {
-            logError("Could not load tray icon", e);
+            log("Toolkit exception for " + resourcePath + ": " + e.getMessage());
         }
-        
-        // Create fallback icon if loading failed
-        if (image == null) {
-            log("Creating fallback tray icon");
-            image = createFallbackTrayIcon();
-        }
-        
-        return image;
+        return null;
+    }
+    
+    private static Image scaleImage(BufferedImage original, int width, int height) {
+        BufferedImage scaled = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = scaled.createGraphics();
+        g.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, 
+                          java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g.drawImage(original, 0, 0, width, height, null);
+        g.dispose();
+        return scaled;
     }
     
     private static Image createFallbackTrayIcon() {
-        BufferedImage bufferedImage = new BufferedImage(16, 16, BufferedImage.TYPE_INT_RGB);
+        // Use a larger size for better visibility on high-DPI displays
+        // Windows typically uses 16x16 or 32x32, but larger works better
+        int size = 32;
+        BufferedImage bufferedImage = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = bufferedImage.createGraphics();
-        g.setColor(Color.BLUE);
-        g.fillRect(0, 0, 16, 16);
+        
+        // Enable anti-aliasing for smoother rendering
+        g.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, 
+                          java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+        g.setRenderingHint(java.awt.RenderingHints.KEY_TEXT_ANTIALIASING, 
+                          java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        
+        // Fill background with Pi-hole red color
+        g.setColor(new Color(220, 53, 69)); // Pi-hole red
+        g.fillRect(0, 0, size, size);
+        
+        // Draw a white circle in the center (like Pi-hole logo)
+        int circleSize = size - 8;
+        int offset = 4;
         g.setColor(Color.WHITE);
-        g.drawString("PH", 2, 12);
+        g.fillOval(offset, offset, circleSize, circleSize);
+        
+        // Draw a smaller red circle inside (donut effect)
+        int innerSize = circleSize - 8;
+        int innerOffset = offset + 4;
+        g.setColor(new Color(220, 53, 69));
+        g.fillOval(innerOffset, innerOffset, innerSize, innerSize);
+        
+        // Draw "P" in the center
+        g.setColor(Color.WHITE);
+        g.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 14));
+        java.awt.FontMetrics fm = g.getFontMetrics();
+        String text = "P";
+        int x = (size - fm.stringWidth(text)) / 2;
+        int y = (size - fm.getHeight()) / 2 + fm.getAscent();
+        g.drawString(text, x, y);
+        
         g.dispose();
+        
+        logInfo("Created fallback tray icon: " + size + "x" + size);
         return bufferedImage;
     }
     
