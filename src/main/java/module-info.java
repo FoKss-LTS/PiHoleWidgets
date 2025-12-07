@@ -14,6 +14,7 @@ module pihole {
     requires com.fasterxml.jackson.core;
     requires com.fasterxml.jackson.databind;
     requires java.net.http;
+    requires java.desktop;
 
     opens controllers to javafx.fxml;
     exports controllers;

@@ -12,7 +12,7 @@ repositories {
     mavenCentral()
 }
 
-def junitVersion = '6.0.1'
+def junitVersion = '5.10.2'
 def javaRelease = 25
 
 java {
@@ -66,6 +66,7 @@ dependencies {
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:${junitVersion}")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:${junitVersion}")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.10.2")
 }
 
 test {

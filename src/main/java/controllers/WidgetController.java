@@ -200,10 +200,10 @@ public class WidgetController implements Initializable {
 
     public void refreshPihole() {
         if (configDNS1 != null)
-            piholeDns1 = new PiHoleHandler(configDNS1.getIPAddress(), configDNS1.getPort(), configDNS1.getScheme(), configDNS1.getAUTH());
+            piholeDns1 = new PiHoleHandler(configDNS1.getIPAddress(), configDNS1.getPort(), configDNS1.getScheme());
 
         if (configDNS2 != null)
-            piholeDns2 = new PiHoleHandler(configDNS2.getIPAddress(), configDNS2.getPort(), configDNS2.getScheme(), configDNS2.getAUTH());
+            piholeDns2 = new PiHoleHandler(configDNS2.getIPAddress(), configDNS2.getPort(), configDNS2.getScheme());
 
         inflateAllData();
     }
@@ -883,6 +883,11 @@ public class WidgetController implements Initializable {
 
     private void initializeContextMenu() {
 
+        MenuItem hideToTrayItem = new MenuItem("Hide to Tray");
+        hideToTrayItem.setOnAction(event -> {
+            WidgetApplication.hideToTray();
+        });
+
         MenuItem exitItem = new MenuItem("Exit");
         exitItem.setOnAction(event -> {
             System.exit(0);
@@ -902,7 +907,7 @@ public class WidgetController implements Initializable {
         testItem.setOnAction(event -> {
         });
 
-        final ContextMenu contextMenu = new ContextMenu(exitItem, refreshItem, configItem
+        final ContextMenu contextMenu = new ContextMenu(hideToTrayItem, refreshItem, configItem, exitItem
                 //, testItem
         );
         gridPane.addEventHandler(MouseEvent.MOUSE_PRESSED, event -> {

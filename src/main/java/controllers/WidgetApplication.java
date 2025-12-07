@@ -21,15 +21,21 @@ package controllers;
 import domain.configuration.PiholeConfig;
 import domain.configuration.WidgetConfig;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import javafx.stage.WindowEvent;
 import services.configuration.ConfigurationService;
 
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.IOException;
+import java.net.URL;
 
 
 public class WidgetApplication extends Application {
@@ -46,21 +52,22 @@ public class WidgetApplication extends Application {
     static Stage configurationStage;
     static Stage widgetStage;
     static WidgetController widgetController;
+    private static SystemTray systemTray;
+    private static TrayIcon trayIcon;
 
 
     @Override
     public void start(Stage primaryStage) throws IOException {
+        // Initialize system tray
+        initializeSystemTray();
 
-        primaryStage.initStyle(StageStyle.UTILITY);
-        primaryStage.setOpacity(0);
-        primaryStage.show();
-
-        widgetStage = new Stage();
+        // Use primaryStage as widgetStage to show in taskbar
+        widgetStage = primaryStage;
+        widgetStage.setTitle("PiHole Widget");
         widgetStage.initStyle(StageStyle.UNDECORATED);
-        widgetStage.initOwner(primaryStage);
 
         configurationStage = new Stage();
-        configurationStage.initOwner(primaryStage);
+        configurationStage.initOwner(widgetStage);
         configurationStage.initStyle(StageStyle.UNDECORATED);
 
 
@@ -154,6 +161,13 @@ public class WidgetApplication extends Application {
 
 
         widgetStage.setScene(scene);
+        
+        // Handle window close event to minimize to tray instead of exiting
+        widgetStage.setOnCloseRequest((WindowEvent event) -> {
+            event.consume();
+            hideToTray();
+        });
+        
         widgetStage.show();
 
         Scene scene2 = new Scene(root2);
@@ -215,6 +229,155 @@ public class WidgetApplication extends Application {
         configurationStage.setOpacity(0);
     }
 
+    private static void initializeSystemTray() {
+        if (!SystemTray.isSupported()) {
+            System.out.println("System tray is not supported on this platform");
+            return;
+        }
+
+        Platform.setImplicitExit(false);
+        systemTray = SystemTray.getSystemTray();
+
+        // Load icon for system tray
+        Image image = null;
+        try {
+            // Try multiple possible paths
+            URL iconUrl = WidgetApplication.class.getResource("/media/icons/icon.ico");
+            if (iconUrl == null) {
+                // Try alternative path
+                iconUrl = WidgetApplication.class.getClassLoader().getResource("media/icons/icon.ico");
+            }
+            if (iconUrl == null) {
+                // Try without leading slash
+                iconUrl = WidgetApplication.class.getResource("media/icons/icon.ico");
+            }
+            
+            if (iconUrl != null) {
+                image = Toolkit.getDefaultToolkit().getImage(iconUrl);
+                // Wait for image to load
+                MediaTracker tracker = new MediaTracker(new java.awt.Container());
+                tracker.addImage(image, 0);
+                try {
+                    tracker.waitForAll();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            } else {
+                System.err.println("Tray icon not found at /media/icons/icon.ico");
+            }
+        } catch (Exception e) {
+            System.err.println("Could not load tray icon: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        // If icon loading failed, create a simple default icon
+        if (image == null) {
+            System.err.println("Creating default tray icon");
+            // Create a simple 16x16 colored icon as fallback
+            java.awt.image.BufferedImage bufferedImage = new java.awt.image.BufferedImage(16, 16, java.awt.image.BufferedImage.TYPE_INT_RGB);
+            java.awt.Graphics2D g = bufferedImage.createGraphics();
+            g.setColor(java.awt.Color.BLUE);
+            g.fillRect(0, 0, 16, 16);
+            g.setColor(java.awt.Color.WHITE);
+            g.drawString("PH", 2, 12);
+            g.dispose();
+            image = bufferedImage;
+        }
+
+        // Create popup menu
+        PopupMenu popup = new PopupMenu();
+        
+        MenuItem showItem = new MenuItem("Show");
+        showItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Platform.runLater(() -> {
+                    if (widgetStage != null) {
+                        widgetStage.show();
+                        widgetStage.toFront();
+                    }
+                });
+            }
+        });
+        popup.add(showItem);
+
+        MenuItem hideItem = new MenuItem("Hide to Tray");
+        hideItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Platform.runLater(() -> {
+                    hideToTray();
+                });
+            }
+        });
+        popup.add(hideItem);
+
+        popup.addSeparator();
+
+        MenuItem settingsItem = new MenuItem("Settings");
+        settingsItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Platform.runLater(() -> {
+                    openConfigurationWindow();
+                });
+            }
+        });
+        popup.add(settingsItem);
+
+        popup.addSeparator();
+
+        MenuItem exitItem = new MenuItem("Exit");
+        exitItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Platform.runLater(() -> {
+                    if (systemTray != null && trayIcon != null) {
+                        systemTray.remove(trayIcon);
+                    }
+                    Platform.exit();
+                    System.exit(0);
+                });
+            }
+        });
+        popup.add(exitItem);
+
+        // Create tray icon
+        trayIcon = new TrayIcon(image, "PiHole Widget", popup);
+        trayIcon.setImageAutoSize(true);
+        
+        // Add double-click listener to show window
+        trayIcon.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Platform.runLater(() -> {
+                    if (widgetStage != null) {
+                        widgetStage.show();
+                        widgetStage.toFront();
+                    }
+                });
+            }
+        });
+
+        try {
+            systemTray.add(trayIcon);
+        } catch (AWTException e) {
+            System.err.println("Unable to add tray icon: " + e.getMessage());
+        }
+    }
+
+    public static void hideToTray() {
+        if (widgetStage != null) {
+            widgetStage.hide();
+        }
+    }
+
+    public static void showFromTray() {
+        if (widgetStage != null) {
+            widgetStage.show();
+            widgetStage.toFront();
+        }
+    }
 
     public static void main(String[] args) {
         launch();

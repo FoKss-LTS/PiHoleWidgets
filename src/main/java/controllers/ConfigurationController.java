@@ -44,7 +44,7 @@ public class ConfigurationController implements Initializable {
     private TextField TF_IP1,TF_Port1, TF_IP2,TF_Port2, TF_AUTH1, TG_AUTH2;
 
     @FXML
-    private ComboBox ComboBoxSize,ComboBoxLayout;
+    private ComboBox<String> ComboBoxSize,ComboBoxLayout;
 
 
     private PiholeConfig configDNS1;
