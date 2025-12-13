@@ -106,6 +106,18 @@ public class HttpClientUtil {
         return send(url, HttpMethod.POST, mergedHeaders, json, Collections.emptyMap(), null);
     }
 
+    public HttpResponsePayload postJson(String url,
+                                        Object body,
+                                        Map<String, String> queryParams,
+                                        Map<String, String> headers) throws IOException, InterruptedException {
+        Map<String, String> mergedHeaders = new HashMap<>();
+        if (headers != null) mergedHeaders.putAll(headers);
+        mergedHeaders.putIfAbsent("Content-Type", "application/json");
+        mergedHeaders.putIfAbsent("Accept", "application/json");
+        String json = body == null ? "" : mapper.writeValueAsString(body);
+        return send(url, HttpMethod.POST, mergedHeaders, json, queryParams == null ? Collections.emptyMap() : queryParams, null);
+    }
+
     public HttpResponsePayload send(String url,
                                     HttpMethod method,
                                     Map<String, String> headers,

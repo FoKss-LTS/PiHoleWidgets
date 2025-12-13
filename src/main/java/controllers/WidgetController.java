@@ -18,6 +18,8 @@
 
 package controllers;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import domain.configuration.PiholeConfig;
 import domain.configuration.WidgetConfig;
 import eu.hansolo.tilesfx.Tile;
@@ -37,6 +39,7 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
@@ -53,6 +56,8 @@ import services.pihole.PiHoleHandler;
 
 import java.net.URL;
 import java.time.Year;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.ResourceBundle;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -89,6 +94,7 @@ public class WidgetController implements Initializable {
     
     private static final Logger LOGGER = Logger.getLogger(WidgetController.class.getName());
     private static final boolean VERBOSE = Boolean.parseBoolean(System.getProperty("pihole.verbose", "false"));
+    private static final ObjectMapper JSON = new ObjectMapper();
     
     private static void log(String message) {
         if (VERBOSE) {
@@ -128,6 +134,10 @@ public class WidgetController implements Initializable {
     
     // Centralized scheduler for all periodic tasks
     private ScheduledExecutorService scheduler;
+    
+    private enum BlockingState { ENABLED, DISABLED, MIXED, UNKNOWN }
+    private volatile BlockingState blockingState = BlockingState.UNKNOWN;
+    private volatile boolean fallbackToggleFlag = false;
     
     // ==================== FXML Injected Fields ====================
     
@@ -175,6 +185,9 @@ public class WidgetController implements Initializable {
         
         log("Calling initTiles()...");
         initTiles();
+        
+        log("Wiring DNS blocking toggle (LED circle click)...");
+        setupDnsBlockingToggle();
         
         log("Starting schedulers...");
         initializeSchedulers();
@@ -306,6 +319,15 @@ public class WidgetController implements Initializable {
             "TopX: " + TOPX_REFRESH_INTERVAL + "s");
     }
     
+    private void runAsync(Runnable task) {
+        if (task == null) return;
+        if (scheduler != null && !scheduler.isShutdown()) {
+            scheduler.execute(task);
+        } else {
+            Thread.ofVirtual().name("pihole-widget-once-", 0).start(task);
+        }
+    }
+    
     /**
      * Shuts down the scheduler gracefully. Should be called when the widget is closed.
      */
@@ -409,163 +431,179 @@ public class WidgetController implements Initializable {
     
     public void inflateStatusData() {
         log("=== inflateStatusData() called ===");
-        Platform.runLater(() -> {
-            log("inflateStatusData - runLater executing...");
-            
+        runAsync(() -> {
             PiholeStats stats = fetchPiholeStats();
-            log("DNS1 stats: " + (stats.isActive1() ? "received" : "empty"));
-            log("DNS2 stats: " + (stats.isActive2() ? "received" : "empty"));
+            SummaryStats s1 = parseSummaryStats(stats.pihole1());
+            SummaryStats s2 = parseSummaryStats(stats.pihole2());
+            CombinedStats combined = combineStats(s1, s2);
             
-            // TODO: Parse JSON stats when API implementation is complete
-            // For now, using placeholder values
-            long queries = 0L;
-            long blockedAds = 0L;
-            long queriesProcessed = 0L;
-            long domainsBlocked = 0L;
-            
-            log("Updating status tile with values - Left: " + queries + ", Middle: " + blockedAds + ", Right: " + queriesProcessed);
-            statusTile.setLeftValue(queries);
-            statusTile.setMiddleValue(blockedAds);
-            statusTile.setRightValue(queriesProcessed);
-            statusTile.setDescription(HelperService.getHumanReadablePriceFromNumber(domainsBlocked));
-            
+            String lastBlocked = "";
             if (piholeDns1 != null) {
-                String lastBlocked = piholeDns1.getLastBlocked();
-                log("Last blocked: " + lastBlocked);
-                statusTile.setText(lastBlocked);
+                lastBlocked = piholeDns1.getLastBlocked();
             }
+            if ((lastBlocked == null || lastBlocked.isBlank()) && piholeDns2 != null) {
+                lastBlocked = piholeDns2.getLastBlocked();
+            }
+            String finalLastBlocked = lastBlocked == null ? "" : lastBlocked;
             
-            log("inflateStatusData complete");
+            Platform.runLater(() -> {
+                log("inflateStatusData - updating UI...");
+                
+                statusTile.setLeftValue(combined.totalQueries());
+                statusTile.setMiddleValue(combined.blockedQueries());
+                statusTile.setRightValue(combined.acceptedQueries());
+                statusTile.setDescription(HelperService.getHumanReadablePriceFromNumber(combined.domainsBlocked()));
+                statusTile.setText(finalLastBlocked);
+                
+                log("inflateStatusData complete");
+            });
         });
     }
     
     public void inflateFluidData() {
         log("=== inflateFluidData() called ===");
-        Platform.runLater(() -> {
-            log("inflateFluidData - runLater executing...");
-            
+        runAsync(() -> {
             PiholeStats stats = fetchPiholeStats();
-            
             if (stats.bothInactive()) {
                 log("WARNING: Both Pi-holes inactive, skipping fluid update");
                 return;
             }
             
-            // TODO: Parse JSON stats when API implementation is complete
-            // For now, using placeholder values
-            long queries = 0L;
-            long blockedAds = 0L;
+            SummaryStats s1 = parseSummaryStats(stats.pihole1());
+            SummaryStats s2 = parseSummaryStats(stats.pihole2());
+            CombinedStats combined = combineStats(s1, s2);
             
-            double adsPercentage = 0.0;
-            if (queries > 0L && blockedAds > 0L) {
-                adsPercentage = (blockedAds / (double) queries) * 100.0;
-            }
+            double adsPercentage = combined.percentBlocked();
             
-            log("Ads percentage calculated: " + adsPercentage + "% (queries: " + queries + ", blocked: " + blockedAds + ")");
-            fluidTile.setValue(adsPercentage);
+            String gravityUpdate = "";
+            if (piholeDns1 != null) gravityUpdate = piholeDns1.getGravityLastUpdate();
+            if ((gravityUpdate == null || gravityUpdate.isBlank()) && piholeDns2 != null) gravityUpdate = piholeDns2.getGravityLastUpdate();
+            String finalGravityUpdate = gravityUpdate == null ? "" : gravityUpdate;
             
-            if (piholeDns1 != null) {
-                String gravityUpdate = piholeDns1.getGravityLastUpdate();
-                log("Gravity last update: " + gravityUpdate);
-                fluidTile.setText(gravityUpdate);
-            }
-            
-            log("inflateFluidData complete");
+            Platform.runLater(() -> {
+                log("inflateFluidData - updating UI...");
+                fluidTile.setValue(adsPercentage);
+                fluidTile.setText(finalGravityUpdate);
+                log("inflateFluidData complete");
+            });
         });
     }
     
     public void inflateActiveData() {
         log("=== inflateActiveData() called ===");
-        Platform.runLater(() -> {
-            log("inflateActiveData - runLater executing...");
-            
+        runAsync(() -> {
             PiholeStats stats = fetchPiholeStats();
-            log("DNS1 - Active: " + stats.isActive1());
-            log("DNS2 - Active: " + stats.isActive2());
+            SummaryStats s1 = parseSummaryStats(stats.pihole1());
+            SummaryStats s2 = parseSummaryStats(stats.pihole2());
             
-            // Handle case where both are inactive
-            if (stats.bothInactive()) {
-                log("WARNING: Both Pi-hole instances are inactive/unavailable - setting LED to RED");
-                ledTile.setActiveColor(Color.RED);
-                ledTile.setTitle("Widget Version: " + WIDGET_VERSION);
-                ledTile.setDescription("No active Pi-hole");
-                ledTile.setText("API Version: N/A");
-                return;
-            }
-            
-            // At least one is active - set LED to green
-            log("At least one Pi-hole instance is active - setting LED to GREEN");
-            ledTile.setActiveColor(Color.LIGHTGREEN);
+            Boolean b1 = (stats.isActive1() && piholeDns1 != null) ? fetchDnsBlockingEnabled(piholeDns1) : null;
+            Boolean b2 = (stats.isActive2() && piholeDns2 != null) ? fetchDnsBlockingEnabled(piholeDns2) : null;
+            BlockingState state = computeBlockingState(stats, b1, b2, s1, s2);
+            this.blockingState = state;
             
             StringBuilder ips = new StringBuilder();
-            String apiVersion = "";
-            
-            // Build IPs string and get API version
-            if (stats.isActive1() && piholeDns1 != null) {
-                ips.append(piholeDns1.getIPAddress());
-                apiVersion = piholeDns1.getVersion();
-            }
-            
+            if (stats.isActive1() && piholeDns1 != null) ips.append(piholeDns1.getIPAddress());
             if (stats.isActive2() && piholeDns2 != null) {
-                if (!ips.isEmpty()) {
-                    ips.append(" \n ");
-                }
+                if (!ips.isEmpty()) ips.append(" \n ");
                 ips.append(piholeDns2.getIPAddress());
-                // Use second instance version if first was inactive
-                if (!stats.isActive1()) {
-                    apiVersion = piholeDns2.getVersion();
-                }
             }
             
-            log("Updating LED tile - IPS: " + ips + ", API Version: " + apiVersion);
-            ledTile.setTitle("Widget Version: " + WIDGET_VERSION);
-            ledTile.setDescription(ips.toString());
-            ledTile.setText("API Version: " + apiVersion);
-            ledTile.setTooltipText("Widget Version: " + WIDGET_VERSION);
+            String apiVersion = "";
+            if (stats.isActive1() && piholeDns1 != null) apiVersion = piholeDns1.getVersion();
+            if ((apiVersion == null || apiVersion.isBlank()) && stats.isActive2() && piholeDns2 != null) apiVersion = piholeDns2.getVersion();
+            String finalApiVersion = apiVersion == null ? "" : apiVersion;
+            String ipsText = ips.toString();
             
-            log("inflateActiveData complete");
+            Platform.runLater(() -> {
+                log("inflateActiveData - updating UI...");
+                
+                ledTile.setTitle("Widget Version: " + WIDGET_VERSION);
+                ledTile.setDescription(stats.bothInactive() ? "No active Pi-hole" : ipsText);
+                
+                if (stats.bothInactive()) {
+                    ledTile.setActiveColor(Color.RED);
+                    ledTile.setActive(false);
+                    ledTile.setText("API Version: N/A");
+                    ledTile.setTooltipText("No active Pi-hole");
+                    return;
+                }
+                
+                // Color reflects DNS blocking status (the LED “circle”)
+                switch (state) {
+                    case ENABLED -> {
+                        ledTile.setActiveColor(Color.LIGHTGREEN);
+                        ledTile.setActive(true);
+                        ledTile.setText("DNS: Enabled\nAPI Version: " + finalApiVersion);
+                        ledTile.setTooltipText("DNS blocking is ENABLED (click LED circle to disable)");
+                    }
+                    case DISABLED -> {
+                        ledTile.setActiveColor(Color.RED);
+                        ledTile.setActive(false);
+                        ledTile.setText("DNS: Disabled\nAPI Version: " + finalApiVersion);
+                        ledTile.setTooltipText("DNS blocking is DISABLED (click LED circle to enable)");
+                    }
+                    case MIXED -> {
+                        ledTile.setActiveColor(Color.ORANGE);
+                        ledTile.setActive(true);
+                        ledTile.setText("DNS: Mixed\nAPI Version: " + finalApiVersion);
+                        ledTile.setTooltipText("DNS blocking differs between instances (click LED circle to toggle)");
+                    }
+                    case UNKNOWN -> {
+                        ledTile.setActiveColor(Color.LIGHTGREEN);
+                        ledTile.setActive(true);
+                        ledTile.setText("API Version: " + finalApiVersion);
+                        ledTile.setTooltipText("Click LED circle to toggle DNS blocking");
+                    }
+                }
+                
+                log("inflateActiveData complete");
+            });
         });
     }
     
     public void inflateTopXData() {
         log("=== inflateTopXData() called ===");
-        Platform.runLater(() -> {
-            log("inflateTopXData - runLater executing...");
-            
+        runAsync(() -> {
             PiholeStats stats = fetchPiholeStats();
-            
             if (stats.bothInactive()) {
                 log("WARNING: Both Pi-holes inactive, skipping topX update");
                 return;
             }
             
-            if (piholeDns1 == null) {
-                log("WARNING: piholeDns1 is null, skipping topX update");
+            PiHoleHandler handler = stats.isActive1() ? piholeDns1 : piholeDns2;
+            if (handler == null) {
+                log("WARNING: No active handler available for topX update");
                 return;
             }
             
             log("Fetching top " + topX + " blocked domains...");
-            String topBlockedJson = piholeDns1.getTopXBlocked(topX);
+            String topBlockedJson = handler.getTopXBlocked(topX);
+            List<TopDomain> domains = parseTopBlockedDomains(topBlockedJson);
             
-            if (topBlockedJson == null || topBlockedJson.isBlank()) {
-                log("WARNING: topBlocked JSON is null or empty, skipping update");
-                return;
-            }
-            
-            // TODO: Parse JSON response when API implementation is complete
-            // For now, just showing header with no data
-            log("Received topBlocked JSON, parsing pending implementation");
-            
-            // Create header row
-            HBox header = createTopXHeader();
-            HBox spacerRow = createSpacerRow();
-            
-            dataTable.getChildren().setAll(header, spacerRow);
-            log("DataTable header set, JSON parsing pending implementation");
-            
-            topXTile.setGraphic(dataTable);
-            log("TopX tile graphic updated");
-            log("inflateTopXData complete");
+            Platform.runLater(() -> {
+                log("inflateTopXData - updating UI...");
+                
+                HBox header = createTopXHeader();
+                HBox spacerRow = createSpacerRow();
+                
+                List<Node> rows = new ArrayList<>();
+                rows.add(header);
+                rows.add(spacerRow);
+                
+                int rank = 1;
+                for (TopDomain d : domains) {
+                    String full = d.domain();
+                    String truncated = truncateDomain(full);
+                    String countText = HelperService.getHumanReadablePriceFromNumber(d.count());
+                    rows.add(createTopBlockedItem(rank, full, truncated, countText));
+                    rank++;
+                }
+                
+                dataTable.getChildren().setAll(rows);
+                topXTile.setGraphic(dataTable);
+                
+                log("inflateTopXData complete");
+            });
         });
     }
     
@@ -726,6 +764,278 @@ public class WidgetController implements Initializable {
         log("initLEDTile() - LED tile built, active set to true");
     }
     
+    private void setupDnsBlockingToggle() {
+        if (ledTile == null) return;
+        
+        ledTile.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+            if (event.getButton() != MouseButton.PRIMARY) return;
+            if (!wasLedCircleClicked(event)) return;
+            toggleDnsBlocking();
+            event.consume();
+        });
+        
+        // Hint for users
+        if (ledTile.getTooltipText() == null || ledTile.getTooltipText().isBlank()) {
+            ledTile.setTooltipText("Click LED circle to toggle DNS blocking");
+        }
+    }
+    
+    /**
+     * Best-effort detection: only toggle when the click originated on the LED “circle”.
+     * Falls back to allowing clicks on the tile if we can't identify the underlying node.
+     */
+    private boolean wasLedCircleClicked(MouseEvent event) {
+        if (event == null || event.getPickResult() == null) return true;
+        Node n = event.getPickResult().getIntersectedNode();
+        if (n == null) return true;
+        while (n != null) {
+            List<String> classes = n.getStyleClass();
+            if (classes != null) {
+                // TilesFX LED skin typically uses style classes like "led"
+                if (classes.contains("led") || classes.contains("led-frame") || classes.contains("indicator")) {
+                    return true;
+                }
+            }
+            n = n.getParent();
+        }
+        // If we couldn't confirm (CSS classes vary between TilesFX versions),
+        // allow toggling when the user clicks the LED tile.
+        return true;
+    }
+    
+    private void toggleDnsBlocking() {
+        log("toggleDnsBlocking() called");
+        runAsync(() -> {
+            // Determine target state based on last-known state; if uncertain, re-check via summary JSON.
+            Boolean currentEnabled = switch (blockingState) {
+                case ENABLED -> true;
+                case DISABLED -> false;
+                case MIXED, UNKNOWN -> null;
+            };
+            
+            if (currentEnabled == null) {
+                // Best-effort refresh from status endpoint (preferred) then summary fallback
+                PiHoleHandler handler = (piholeDns1 != null) ? piholeDns1 : piholeDns2;
+                if (handler != null) currentEnabled = fetchDnsBlockingEnabled(handler);
+            }
+            
+            // Toggle: if still unknown, alternate locally so clicks still toggle
+            boolean targetEnable;
+            if (currentEnabled != null) {
+                targetEnable = !currentEnabled;
+            } else {
+                fallbackToggleFlag = !fallbackToggleFlag;
+                targetEnable = fallbackToggleFlag;
+            }
+            
+            log("Toggling DNS blocking -> " + (targetEnable ? "ENABLED" : "DISABLED"));
+            
+            // Apply to all configured instances (best effort)
+            if (piholeDns1 != null) piholeDns1.setDnsBlocking(targetEnable, null);
+            if (piholeDns2 != null) piholeDns2.setDnsBlocking(targetEnable, null);
+            
+            // Refresh LED/status immediately after change
+            inflateActiveData();
+            inflateStatusData();
+        });
+    }
+    
+    // ==================== JSON Parsing ====================
+    
+    private record SummaryStats(boolean active, long totalQueries, long blockedQueries, double percentBlocked, long domainsBlocked, Boolean dnsBlockingEnabled) {
+        static SummaryStats inactive() { return new SummaryStats(false, 0L, 0L, 0.0, 0L, null); }
+    }
+    
+    private record CombinedStats(long totalQueries, long blockedQueries, long acceptedQueries, double percentBlocked, long domainsBlocked) { }
+    
+    private record TopDomain(String domain, long count) { }
+    
+    private SummaryStats parseSummaryStats(String json) {
+        if (json == null || json.isBlank()) return SummaryStats.inactive();
+        try {
+            JsonNode root = JSON.readTree(json);
+            
+            long total = firstLong(root,
+                    path("queries", "total"),
+                    path("queries", "total_queries"),
+                    path("dns_queries_today")
+            );
+            
+            long blocked = firstLong(root,
+                    path("queries", "blocked"),
+                    path("queries", "blocked_queries"),
+                    path("ads_blocked_today")
+            );
+            
+            double percent = firstDouble(root,
+                    path("queries", "percent_blocked"),
+                    path("ads_percentage_today")
+            );
+            if ((percent <= 0.0) && total > 0L && blocked >= 0L) {
+                percent = (blocked / (double) total) * 100.0;
+            }
+            
+            long domainsBlocked = firstLong(root,
+                    path("domains", "blocked"),
+                    path("domains_being_blocked"),
+                    path("gravity", "domains_being_blocked")
+            );
+            
+            Boolean dnsEnabled = parseDnsBlockingEnabled(root);
+            
+            return new SummaryStats(true, total, blocked, percent, domainsBlocked, dnsEnabled);
+        } catch (Exception e) {
+            log("WARNING: Failed to parse summary stats JSON: " + e.getMessage());
+            return SummaryStats.inactive();
+        }
+    }
+    
+    private CombinedStats combineStats(SummaryStats s1, SummaryStats s2) {
+        long total = 0L;
+        long blocked = 0L;
+        long domainsBlocked = 0L;
+        
+        if (s1 != null && s1.active()) {
+            total += s1.totalQueries();
+            blocked += s1.blockedQueries();
+            domainsBlocked = Math.max(domainsBlocked, s1.domainsBlocked());
+        }
+        if (s2 != null && s2.active()) {
+            total += s2.totalQueries();
+            blocked += s2.blockedQueries();
+            domainsBlocked = Math.max(domainsBlocked, s2.domainsBlocked());
+        }
+        
+        long accepted = Math.max(0L, total - blocked);
+        double percent = (total > 0L) ? (blocked / (double) total) * 100.0 : 0.0;
+        
+        return new CombinedStats(total, blocked, accepted, percent, domainsBlocked);
+    }
+    
+    private BlockingState computeBlockingState(PiholeStats stats, Boolean b1, Boolean b2, SummaryStats s1, SummaryStats s2) {
+        if (stats == null || stats.bothInactive()) return BlockingState.UNKNOWN;
+        // If status endpoint failed, fall back to any info we might have found in summary
+        if (b1 == null && stats.isActive1() && s1 != null) b1 = s1.dnsBlockingEnabled();
+        if (b2 == null && stats.isActive2() && s2 != null) b2 = s2.dnsBlockingEnabled();
+        
+        if (b1 == null && b2 == null) return BlockingState.UNKNOWN;
+        if (b1 != null && b2 == null) return b1 ? BlockingState.ENABLED : BlockingState.DISABLED;
+        if (b1 == null) return b2 ? BlockingState.ENABLED : BlockingState.DISABLED;
+        if (b1.equals(b2)) return b1 ? BlockingState.ENABLED : BlockingState.DISABLED;
+        return BlockingState.MIXED;
+    }
+    
+    private Boolean fetchDnsBlockingEnabled(PiHoleHandler handler) {
+        if (handler == null) return null;
+        
+        // Preferred: dedicated endpoint
+        String statusJson = handler.getDnsBlockingStatus();
+        Boolean enabled = parseDnsBlockingEnabledSafe(statusJson);
+        if (enabled != null) return enabled;
+        
+        // Fallback: summary (some versions include status info there)
+        String summaryJson = handler.getPiHoleStats();
+        return parseDnsBlockingEnabledSafe(summaryJson);
+    }
+    
+    private Boolean parseDnsBlockingEnabledSafe(String json) {
+        if (json == null || json.isBlank()) return null;
+        try {
+            JsonNode root = JSON.readTree(json);
+            return parseDnsBlockingEnabled(root);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+    
+    private Boolean parseDnsBlockingEnabled(JsonNode root) {
+        if (root == null) return null;
+        
+        // Common patterns across Pi-hole APIs:
+        // - status: "enabled" / "disabled"
+        // - blocking: "enabled" / "disabled"
+        // - blocking: true/false
+        JsonNode statusNode = firstNode(root,
+                path("status"),
+                path("blocking"),
+                path("dns", "blocking"),
+                path("dns", "status")
+        );
+        
+        if (statusNode == null || statusNode.isMissingNode() || statusNode.isNull()) return null;
+        
+        if (statusNode.isBoolean()) {
+            return statusNode.asBoolean();
+        }
+        
+        String txt = statusNode.asText("");
+        if (txt.equalsIgnoreCase("enabled")) return true;
+        if (txt.equalsIgnoreCase("disabled")) return false;
+        if (txt.equalsIgnoreCase("true")) return true;
+        if (txt.equalsIgnoreCase("false")) return false;
+        
+        return null;
+    }
+    
+    private List<TopDomain> parseTopBlockedDomains(String json) {
+        if (json == null || json.isBlank()) return List.of();
+        try {
+            JsonNode root = JSON.readTree(json);
+            JsonNode domains = root.path("domains");
+            if (!domains.isArray()) return List.of();
+            
+            List<TopDomain> result = new ArrayList<>();
+            for (JsonNode item : domains) {
+                String domain = item.path("domain").asText("");
+                long count = item.path("count").asLong(0L);
+                if (domain == null || domain.isBlank()) continue;
+                result.add(new TopDomain(domain, Math.max(0L, count)));
+            }
+            return result;
+        } catch (Exception e) {
+            log("WARNING: Failed to parse top domains JSON: " + e.getMessage());
+            return List.of();
+        }
+    }
+    
+    private static String[] path(String... parts) {
+        return parts;
+    }
+    
+    private static JsonNode nodeAt(JsonNode root, String[] path) {
+        JsonNode n = root;
+        for (String p : path) {
+            if (n == null) return null;
+            n = n.path(p);
+        }
+        return n;
+    }
+    
+    private static JsonNode firstNode(JsonNode root, String[]... paths) {
+        if (root == null || paths == null) return null;
+        for (String[] p : paths) {
+            JsonNode n = nodeAt(root, p);
+            if (n != null && !n.isMissingNode() && !n.isNull()) return n;
+        }
+        return null;
+    }
+    
+    private static long firstLong(JsonNode root, String[]... paths) {
+        JsonNode n = firstNode(root, paths);
+        if (n == null) return 0L;
+        if (n.isNumber()) return n.asLong(0L);
+        String txt = n.asText("");
+        try { return Long.parseLong(txt); } catch (Exception ignored) { return 0L; }
+    }
+    
+    private static double firstDouble(JsonNode root, String[]... paths) {
+        JsonNode n = firstNode(root, paths);
+        if (n == null) return 0.0;
+        if (n.isNumber()) return n.asDouble(0.0);
+        String txt = n.asText("");
+        try { return Double.parseDouble(txt); } catch (Exception ignored) { return 0.0; }
+    }
+    
     private void initStatusTile() {
         log("initStatusTile() - Building STATUS tile with size " + tileWidth + "x" + tileHeight);
         
@@ -869,7 +1179,7 @@ public class WidgetController implements Initializable {
         WidgetApplication.openConfigurationWindow();
     }
     
-    public FlowGridPane getGridPane() {
+    public Pane getGridPane() {
         log("getGridPane() called - returning gridPane: " + (gridPane != null ? "exists" : "null"));
         return gridPane;
     }
