@@ -501,18 +501,22 @@ public class WidgetController implements Initializable {
             BlockingState state = computeBlockingState(stats, b1, b2, s1, s2);
             this.blockingState = state;
             
-            StringBuilder ips = new StringBuilder();
-            if (stats.isActive1() && piholeDns1 != null) ips.append(piholeDns1.getIPAddress());
-            if (stats.isActive2() && piholeDns2 != null) {
-                if (!ips.isEmpty()) ips.append(" \n ");
-                ips.append(piholeDns2.getIPAddress());
+            // Build a unique, stable-ordered display list of IPs/hosts (prevents "localhost" showing twice)
+            java.util.LinkedHashSet<String> uniqueIps = new java.util.LinkedHashSet<>();
+            if (stats.isActive1() && piholeDns1 != null) {
+                String ip = piholeDns1.getIPAddress();
+                if (ip != null && !ip.isBlank()) uniqueIps.add(ip);
             }
+            if (stats.isActive2() && piholeDns2 != null) {
+                String ip = piholeDns2.getIPAddress();
+                if (ip != null && !ip.isBlank()) uniqueIps.add(ip);
+            }
+            String ipsText = String.join(" \n ", uniqueIps);
             
             String apiVersion = "";
             if (stats.isActive1() && piholeDns1 != null) apiVersion = piholeDns1.getVersion();
             if ((apiVersion == null || apiVersion.isBlank()) && stats.isActive2() && piholeDns2 != null) apiVersion = piholeDns2.getVersion();
             String finalApiVersion = apiVersion == null ? "" : apiVersion;
-            String ipsText = ips.toString();
             
             Platform.runLater(() -> {
                 log("inflateActiveData - updating UI...");
@@ -533,19 +537,19 @@ public class WidgetController implements Initializable {
                     case ENABLED -> {
                         ledTile.setActiveColor(Color.LIGHTGREEN);
                         ledTile.setActive(true);
-                        ledTile.setText("DNS: Enabled\nAPI Version: " + finalApiVersion);
+                        ledTile.setText("API Version: " + finalApiVersion);
                         ledTile.setTooltipText("DNS blocking is ENABLED (click LED circle to disable)");
                     }
                     case DISABLED -> {
                         ledTile.setActiveColor(Color.RED);
                         ledTile.setActive(false);
-                        ledTile.setText("DNS: Disabled\nAPI Version: " + finalApiVersion);
+                        ledTile.setText("API Version: " + finalApiVersion);
                         ledTile.setTooltipText("DNS blocking is DISABLED (click LED circle to enable)");
                     }
                     case MIXED -> {
                         ledTile.setActiveColor(Color.ORANGE);
                         ledTile.setActive(true);
-                        ledTile.setText("DNS: Mixed\nAPI Version: " + finalApiVersion);
+                        ledTile.setText("API Version: " + finalApiVersion);
                         ledTile.setTooltipText("DNS blocking differs between instances (click LED circle to toggle)");
                     }
                     case UNKNOWN -> {
@@ -737,7 +741,7 @@ public class WidgetController implements Initializable {
         fluidTile = TileBuilder.create()
                 .skinType(Tile.SkinType.FLUID)
                 .prefSize(tileWidth, tileHeight)
-                .title("Gravity last update: ")
+                .title("Gravity Status")
                 .text("ADS Blocked")
                 .unit("\u0025")
                 .decimals(0)
