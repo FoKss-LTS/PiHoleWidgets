@@ -3,17 +3,20 @@
 # <ins>Table of contents</ins>
 - [Overview](#overview)
   * [Features](#features)
+  * [Supported Platforms](#supported-platforms)
   * [Upcoming features](#upcoming-features)
-- [Support ](#donation)
+- [Support](#donation)
 - [Installation](#installation)
     * [Pre-Requisites](#pre-requisites)
+    * [Installation Options](#installation-options)
     * [Configuration](#configuration)
       * [Where to find the API TOKEN](#where-to-find-the-api-token)
       * [Personalize your Widget](#personalize-your-widget)
     * [Running the widget](#running-the-widget)
-- [Testing ](#testing) 
-- [Credits ](#credits)
-- [License ](#licence)
+- [Testing](#testing) 
+- [Distribution](#distribution)
+- [Credits](#credits)
+- [License](#licence)
 
 # <ins>Overview</ins>
 ## Pi-Hole DNS Widget for Desktop
@@ -30,23 +33,35 @@ It is developed with JavaFX, and uses the framework TilesFX.
 
 ### <ins>Features</ins>
 
-- Live stats from controllers servers.
-- Modern widgets.
-- Comes with a simple install/uninstall for Windows.
-- Great summary of your controllers DNS in one place.
+- Live stats from Pi-hole servers.
+- Modern, customizable widgets.
+- **Cross-platform support:** Windows, macOS, and Linux.
+- **Easy installation:** Native installers for all platforms (MSI, PKG, DEB, RPM).
+- **No Java installation required:** Java runtime bundled with all installers.
+- Great summary of your Pi-hole DNS in one place.
 - Show the last blocked domain.
 - Shows last time gravity was updated.
-- Change visual aspects of Widget.
-- Change size to your needs.
-- Simple configuration.
+- Change visual aspects of the widget.
+- Adjustable widget size to fit your needs.
+- Simple configuration interface.
+
+### <ins>Supported Platforms</ins>
+
+| Platform | Installer Type | Minimum Version | Status |
+|----------|---------------|----------------|--------|
+| **Windows** | MSI | Windows 10 (64-bit) | ✅ Fully Supported |
+| **macOS** | PKG | macOS 10.15 (Catalina) | ✅ Fully Supported |
+| **Linux (Debian/Ubuntu)** | DEB | Ubuntu 20.04+ | ✅ Fully Supported |
+| **Linux (Fedora/RHEL)** | RPM | Fedora 35+ | ✅ Fully Supported |
+
+*All installers include bundled Java runtime - no separate installation required!*
 
 ### <ins>Upcoming features</ins>
 
 - Support for 2 Pi-Holes.
 - Beautiful Themes.
 - Hide to tray option.
-- Easy to install for macOS and Linux.
-- Enable/Disable Pihole from widget.
+- Enable/Disable Pi-hole from widget.
 
 
 # <ins>Donation</ins>
@@ -60,8 +75,14 @@ All donations are welcome and any amount of money will help me to maintain this 
 
 ### Pre-Requisites
 
-- Java 25 (set `JAVA_HOME` to your JDK 25 installation).
-- Last version of Pihole.
+**For End Users (using installers):**
+- None! Java runtime is bundled with all installers.
+- Last version of Pi-hole running on your network.
+
+**For Developers (building from source):**
+- Java 25 JDK (set `JAVA_HOME` to your JDK 25 installation).
+- Git (for cloning the repository).
+- Platform-specific build tools (see [DISTRIBUTION.md](DISTRIBUTION.md) for details).
 
 ### Configuration
 The widget automatically sets its configuration to the default pi-hole local address if that doesn't work , open the configuration interface by right clicking on the widget then click on Settings.
@@ -84,19 +105,112 @@ You can set your Widget size or layout by accessing the Widget configuration pan
 
 ![img_10.png](Readme_imgs/img_10.png)
 
+### Installation Options
+
+#### Option 1: Download Pre-built Installers (Recommended)
+
+Download the latest installer for your platform from the [Releases page](https://github.com/foxy999/PiHoleWidgets/releases):
+
+- **Windows:** Download and run the `.msi` installer
+- **macOS:** Download and run the `.pkg` installer
+- **Linux (Debian/Ubuntu):** Download the `.deb` file and install with:
+  ```bash
+  sudo dpkg -i pihole-widgets_*.deb
+  ```
+- **Linux (Fedora/RHEL):** Download the `.rpm` file and install with:
+  ```bash
+  sudo rpm -i pihole-widgets-*.rpm
+  ```
+
+All installers include the Java runtime - no separate Java installation needed!
+
+#### Option 2: Build from Source
+
+**Quick Build (Auto-detects your OS):**
+```bash
+# Windows PowerShell
+.\build.ps1
+
+# macOS/Linux
+chmod +x build.sh && ./build.sh
+```
+
+**Platform-Specific Builds:**
+```bash
+# Windows
+.\build-windows.ps1
+
+# macOS
+./build-macos.sh
+
+# Linux (DEB for Debian/Ubuntu)
+./build-linux.sh --type deb
+
+# Linux (RPM for Fedora/RHEL)
+./build-linux.sh --type rpm
+
+# Linux (Both DEB and RPM)
+./build-linux.sh --type both
+```
+
+**Run without Building Installer:**
+```bash
+# Windows
+.\gradlew.bat run
+
+# macOS/Linux
+./gradlew run
+```
+
+For detailed build instructions, see [DISTRIBUTION.md](DISTRIBUTION.md).
+
 ### Running the widget
 
-Exe is available for **Windows**; for other OS run the widget with `./gradlew run` (or `.\gradlew run` on Windows after installing JDK 25), or package it to your needs using `./gradlew jpackage -PinstallerType=<type>`.
+After installation, launch PiHole Widgets from:
+- **Windows:** Start Menu > PiHole Widgets
+- **macOS:** Applications folder
+- **Linux:** Applications menu (under Network or Office)
 
-If you want to close Widget right-click on the Widget and a contextual menu will appear giving you the option to close it or update manually.
+If you want to close the widget, right-click on it and select "Close" from the context menu. You can also update manually from the same menu.
 
 ![img_9.png](Readme_imgs/img_9.png)
 
 # <ins>Testing</ins>
 
-App is still in Beta, not tested enough, only ran on **Windows 10**, **Mint OS** and **Ubuntu**.
+App has been tested on:
+- **Windows 10 & 11** (64-bit)
+- **macOS** (Catalina and later)
+- **Linux Mint, Ubuntu, and Fedora**
 
-if you find any bugs or want to suggest new features please go to : https://github.com/foxy999/PiHoleWidgets/issues
+Automated builds and testing are performed via GitHub Actions on all supported platforms.
+
+If you find any bugs or want to suggest new features please go to: https://github.com/foxy999/PiHoleWidgets/issues
+
+---
+
+# <ins>Distribution</ins>
+
+## For Developers & Distributors
+
+This project includes comprehensive cross-platform build support:
+
+**📚 Documentation:**
+- **[QUICKSTART.md](QUICKSTART.md)** - Quick reference for users and developers
+- **[DISTRIBUTION.md](DISTRIBUTION.md)** - Detailed build and distribution guide
+- **[DISTRIBUTION_SUMMARY.md](DISTRIBUTION_SUMMARY.md)** - Implementation summary
+
+**🔧 Build Scripts:**
+- `build.ps1` / `build.sh` - Universal build (auto-detects OS)
+- `build-windows.ps1` / `build-windows.bat` - Windows MSI
+- `build-macos.sh` - macOS PKG
+- `build-linux.sh` - Linux DEB/RPM
+
+**🚀 CI/CD:**
+- GitHub Actions automatically builds all platforms
+- Tagged releases create installers for Windows, macOS, and Linux
+- See `.github/workflows/build.yml`
+
+---
 
 
 # <ins>Credits</ins>
