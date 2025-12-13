@@ -19,8 +19,6 @@
 package services.pihole;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import domain.pihole.PiHole;
-import domain.pihole.TopAd;
 import helpers.HttpClientUtil;
 import helpers.HttpClientUtil.HttpResponsePayload;
 import services.configuration.ConfigurationService;
@@ -28,7 +26,6 @@ import services.configuration.ConfigurationService;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -197,16 +194,16 @@ public class PiHoleHandler {
     // ==================== API Methods ====================
 
     /**
-     * Retrieves Pi-hole statistics.
-     * Note: Implementation pending - returns null.
+     * Retrieves Pi-hole statistics as raw JSON string.
+     * Note: Implementation pending - returns empty string.
      */
-    public PiHole getPiHoleStats() {
+    public String getPiHoleStats() {
         log("=== getPiHoleStats() called ===");
         log("Session ID: " + maskSessionId(sessionId));
         
         // TODO: Implement stats retrieval using new Pi-hole API
-        log("getPiHoleStats() returning null (implementation pending)");
-        return null;
+        log("getPiHoleStats() returning empty string (implementation pending)");
+        return "";
     }
 
     /**
@@ -311,34 +308,27 @@ public class PiHoleHandler {
     }
 
     /**
-     * Retrieves top X blocked domains.
-     * Note: Implementation pending - returns null.
+     * Retrieves top X blocked domains as raw JSON string.
+     * Note: Implementation pending - returns empty string.
      */
-    public List<TopAd> getTopXBlocked(int count) {
+    public String getTopXBlocked(int count) {
         log("=== getTopXBlocked(" + count + ") called ===");
         
         // TODO: Implement top blocked retrieval using new Pi-hole API
-        log("getTopXBlocked() returning null (implementation pending)");
-        return null;
+        log("getTopXBlocked() returning empty string (implementation pending)");
+        return "";
     }
 
     /**
      * Retrieves the gravity last update time as a formatted string.
+     * Note: Implementation pending - returns empty string.
      */
     public String getGravityLastUpdate() {
         log("=== getGravityLastUpdate() called ===");
         
-        PiHole pihole = getPiHoleStats();
-        
-        if (pihole == null || pihole.getGravity() == null) {
-            log("PiHole stats or gravity is null");
-            return "";
-        }
-        
-        // Use the Gravity class's formatAge method
-        String formatted = pihole.getGravity().formatAge();
-        log("Gravity last update: " + formatted);
-        return formatted;
+        // TODO: Implement gravity last update retrieval using new Pi-hole API
+        log("getGravityLastUpdate() returning empty string (implementation pending)");
+        return "";
     }
 
     // ==================== Getters ====================

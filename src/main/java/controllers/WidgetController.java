@@ -20,8 +20,6 @@ package controllers;
 
 import domain.configuration.PiholeConfig;
 import domain.configuration.WidgetConfig;
-import domain.pihole.PiHole;
-import domain.pihole.TopAd;
 import eu.hansolo.tilesfx.Tile;
 import eu.hansolo.tilesfx.TileBuilder;
 import eu.hansolo.tilesfx.addons.Indicator;
@@ -55,7 +53,6 @@ import services.pihole.PiHoleHandler;
 
 import java.net.URL;
 import java.time.Year;
-import java.util.List;
 import java.util.ResourceBundle;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -378,25 +375,25 @@ public class WidgetController implements Initializable {
     }
     
     /**
-     * Fetches Pi-hole stats from both configured DNS handlers.
-     * @return a record containing stats from both Pi-holes (may be null)
+     * Fetches Pi-hole stats from both configured DNS handlers as JSON strings.
+     * @return a record containing stats JSON from both Pi-holes (may be empty)
      */
     private PiholeStats fetchPiholeStats() {
-        PiHole pihole1 = (piholeDns1 != null) ? piholeDns1.getPiHoleStats() : null;
-        PiHole pihole2 = (piholeDns2 != null) ? piholeDns2.getPiHoleStats() : null;
+        String pihole1 = (piholeDns1 != null) ? piholeDns1.getPiHoleStats() : "";
+        String pihole2 = (piholeDns2 != null) ? piholeDns2.getPiHoleStats() : "";
         return new PiholeStats(pihole1, pihole2);
     }
     
     /**
-     * Record to hold stats from both Pi-hole instances.
+     * Record to hold stats JSON from both Pi-hole instances.
      */
-    private record PiholeStats(PiHole pihole1, PiHole pihole2) {
+    private record PiholeStats(String pihole1, String pihole2) {
         boolean isActive1() {
-            return pihole1 != null && pihole1.isActive();
+            return pihole1 != null && !pihole1.isBlank();
         }
         
         boolean isActive2() {
-            return pihole2 != null && pihole2.isActive();
+            return pihole2 != null && !pihole2.isBlank();
         }
         
         boolean anyActive() {
@@ -416,30 +413,15 @@ public class WidgetController implements Initializable {
             log("inflateStatusData - runLater executing...");
             
             PiholeStats stats = fetchPiholeStats();
-            log("DNS1 stats: " + (stats.pihole1() != null ? "received" : "null"));
-            log("DNS2 stats: " + (stats.pihole2() != null ? "received" : "null"));
+            log("DNS1 stats: " + (stats.isActive1() ? "received" : "empty"));
+            log("DNS2 stats: " + (stats.isActive2() ? "received" : "empty"));
             
+            // TODO: Parse JSON stats when API implementation is complete
+            // For now, using placeholder values
             long queries = 0L;
             long blockedAds = 0L;
             long queriesProcessed = 0L;
             long domainsBlocked = 0L;
-            
-            if (stats.pihole1() != null) {
-                queries += stats.pihole1().getDns_queries_today();
-                blockedAds += stats.pihole1().getAds_blocked_today();
-                queriesProcessed += stats.pihole1().getQueries_forwarded();
-                queriesProcessed += stats.pihole1().getQueries_cached();
-                domainsBlocked = stats.pihole1().getDomains_being_blocked();
-                log("DNS1 data - Queries: " + queries + ", Blocked: " + blockedAds + ", Processed: " + queriesProcessed);
-            }
-            
-            if (stats.pihole2() != null) {
-                queries += stats.pihole2().getDns_queries_today();
-                blockedAds += stats.pihole2().getAds_blocked_today();
-                queriesProcessed += stats.pihole2().getQueries_forwarded();
-                queriesProcessed += stats.pihole2().getQueries_cached();
-                log("DNS2 data added - Total Queries: " + queries + ", Total Blocked: " + blockedAds);
-            }
             
             log("Updating status tile with values - Left: " + queries + ", Middle: " + blockedAds + ", Right: " + queriesProcessed);
             statusTile.setLeftValue(queries);
@@ -469,20 +451,11 @@ public class WidgetController implements Initializable {
                 return;
             }
             
+            // TODO: Parse JSON stats when API implementation is complete
+            // For now, using placeholder values
             long queries = 0L;
             long blockedAds = 0L;
             
-            if (stats.pihole1() != null) {
-                queries += stats.pihole1().getDns_queries_today();
-                blockedAds += stats.pihole1().getAds_blocked_today();
-            }
-            if (stats.pihole2() != null) {
-                queries += stats.pihole2().getDns_queries_today();
-                blockedAds += stats.pihole2().getAds_blocked_today();
-            }
-            
-            // FIX: Use proper numeric division instead of Double.longBitsToDouble
-            // which incorrectly interprets the bit pattern rather than converting the value
             double adsPercentage = 0.0;
             if (queries > 0L && blockedAds > 0L) {
                 adsPercentage = (blockedAds / (double) queries) * 100.0;
@@ -572,36 +545,26 @@ public class WidgetController implements Initializable {
             }
             
             log("Fetching top " + topX + " blocked domains...");
-            List<TopAd> topBlocked = piholeDns1.getTopXBlocked(topX);
+            String topBlockedJson = piholeDns1.getTopXBlocked(topX);
             
-            if (topBlocked == null || topBlocked.isEmpty()) {
-                log("WARNING: topBlocked is null or empty, skipping update");
+            if (topBlockedJson == null || topBlockedJson.isBlank()) {
+                log("WARNING: topBlocked JSON is null or empty, skipping update");
                 return;
             }
-            log("Received " + topBlocked.size() + " blocked domains");
+            
+            // TODO: Parse JSON response when API implementation is complete
+            // For now, just showing header with no data
+            log("Received topBlocked JSON, parsing pending implementation");
             
             // Create header row
             HBox header = createTopXHeader();
             HBox spacerRow = createSpacerRow();
             
             dataTable.getChildren().setAll(header, spacerRow);
-            log("DataTable header set, processing " + topBlocked.size() + " blocked domains...");
-            
-            // Add data rows
-            for (int i = 0; i < topBlocked.size(); i++) {
-                TopAd topAd = topBlocked.get(i);
-                String domain = topAd.getDomain();
-                String truncatedDomain = truncateDomain(domain);
-                long blockCount = topAd.getNumberBlocked();
-                
-                log("Processing topX item " + (i + 1) + "/" + topBlocked.size() + ": " + truncatedDomain + " (" + blockCount + " blocks)");
-                
-                HBox domainRow = createTopBlockedItem(i + 1, domain, truncatedDomain, String.valueOf(blockCount));
-                dataTable.getChildren().add(domainRow);
-            }
+            log("DataTable header set, JSON parsing pending implementation");
             
             topXTile.setGraphic(dataTable);
-            log("TopX tile graphic updated with " + topBlocked.size() + " items");
+            log("TopX tile graphic updated");
             log("inflateTopXData complete");
         });
     }
