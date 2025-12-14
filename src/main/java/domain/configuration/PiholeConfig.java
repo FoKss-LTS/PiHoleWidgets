@@ -20,26 +20,26 @@ package domain.configuration;
 
 /**
  * Immutable configuration record for Pi-hole DNS server connection.
- * Uses Java record syntax for automatic generation of constructor, getters, equals, hashCode, and toString.
+ * Uses Java record syntax for automatic generation of constructor, getters,
+ * equals, hashCode, and toString.
  *
  * @param ipAddress the IP address or hostname of the Pi-hole server
- * @param port the port number for the Pi-hole API
- * @param scheme the URL scheme (http or https)
+ * @param port      the port number for the Pi-hole API
+ * @param scheme    the URL scheme (http or https)
  * @param authToken the authentication token for the Pi-hole API
  */
 public record PiholeConfig(
         String ipAddress,
         int port,
         String scheme,
-        String authToken
-) {
-    
+        String authToken) {
+
     // Default configuration values
     public static final String DEFAULT_SCHEME = "http";
     public static final String DEFAULT_IP = "pi.hole";
     public static final int DEFAULT_PORT = 80;
     public static final String DEFAULT_AUTH_TOKEN = "";
-    
+
     /**
      * Compact constructor with validation.
      */
@@ -59,40 +59,54 @@ public record PiholeConfig(
             port = DEFAULT_PORT;
         }
     }
-    
+
     /**
      * Creates a PiholeConfig with default port.
      */
     public PiholeConfig(String ipAddress, String scheme, String authToken) {
         this(ipAddress, DEFAULT_PORT, scheme, authToken);
     }
-    
+
     // Legacy getter methods for backward compatibility
     // These delegate to the record's accessor methods
-    
+
     public String getIPAddress() {
         return ipAddress;
     }
-    
+
     public int getPort() {
         return port;
     }
-    
+
     public String getScheme() {
         return scheme;
     }
-    
+
     public String getAUTH() {
         return authToken;
     }
-    
+
     /**
      * Checks if this configuration has a valid IP address.
      */
     public boolean hasValidAddress() {
         return ipAddress != null && !ipAddress.isBlank();
     }
-    
+
+    /**
+     * Checks if this configuration has a valid auth token (app password).
+     */
+    public boolean hasValidAuthToken() {
+        return authToken != null && !authToken.isBlank();
+    }
+
+    /**
+     * Checks if this configuration is fully valid (both address and auth token).
+     */
+    public boolean isFullyValid() {
+        return hasValidAddress() && hasValidAuthToken();
+    }
+
     /**
      * Builds the base URL for the Pi-hole API.
      */

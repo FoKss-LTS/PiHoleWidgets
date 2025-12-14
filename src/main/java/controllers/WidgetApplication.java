@@ -55,34 +55,34 @@ import javax.imageio.ImageIO;
 public class WidgetApplication extends Application {
 
     // ==================== Logging ====================
-    
+
     private static final Logger LOGGER = Logger.getLogger(WidgetApplication.class.getName());
     private static final boolean VERBOSE = Boolean.parseBoolean(System.getProperty("pihole.verbose", "false"));
-    
+
     private static void log(String message) {
         if (VERBOSE) {
             LOGGER.log(Level.FINE, () -> "[App] " + message);
         }
     }
-    
+
     private static void logInfo(String message) {
         LOGGER.log(Level.INFO, () -> message);
     }
-    
+
     private static void logError(String message, Throwable t) {
         LOGGER.log(Level.SEVERE, message, t);
     }
 
     // ==================== Instance Fields ====================
-    
+
     private double xOffset;
     private double yOffset;
 
     // ==================== Static Application State ====================
-    
+
     private static PiholeConfig configDNS1;
     private static WidgetConfig widgetConfig;
-    
+
     private static Parent configurationRoot;
     private static ConfigurationService configService;
     private static Stage configurationStage;
@@ -96,7 +96,7 @@ public class WidgetApplication extends Application {
     @Override
     public void start(Stage primaryStage) throws IOException {
         log("=== Starting WidgetApplication ===");
-        
+
         // Initialize system tray
         initializeSystemTray();
 
@@ -137,23 +137,23 @@ public class WidgetApplication extends Application {
 
         // Create widget scene
         Scene widgetScene = new Scene(widgetController.getGridPane());
-        
+
         // Apply theme to widget scene
         String theme = widgetConfig != null ? widgetConfig.getTheme() : ThemeManager.DEFAULT_THEME;
         ThemeManager.applyTheme(widgetScene, theme);
         log("Applied theme: " + theme);
-        
+
         // Setup drag handlers for widget
         setupDragHandlers(widgetRoot);
-        
+
         widgetStage.setScene(widgetScene);
-        
+
         // Handle window close event to minimize to tray instead of exiting
         widgetStage.setOnCloseRequest((WindowEvent event) -> {
             event.consume();
             hideToTray();
         });
-        
+
         // Show the widget stage
         showWidget();
         log("Widget stage shown");
@@ -166,23 +166,68 @@ public class WidgetApplication extends Application {
         configurationStage.setAlwaysOnTop(true);
         configurationStage.show();
 
-        // Open configuration if no valid DNS is configured
+        // Show configuration alert if not fully configured, but don't open settings
+        // automatically
         if (!hasValidDnsConfig()) {
-            log("No valid DNS configuration found, opening configuration window");
-            openConfigurationWindow();
+            log("Invalid DNS configuration, showing alert");
+            showConfigurationRequiredAlert();
         }
-        
+
         log("=== WidgetApplication started ===");
     }
-    
+
     private boolean hasValidDnsConfig() {
-        boolean dns1Valid = configDNS1 != null && configDNS1.hasValidAddress();
+        // Check if DNS1 has both valid address AND auth token
+        boolean dns1Valid = configDNS1 != null && configDNS1.isFullyValid();
         // DNS2 support intentionally disabled.
-        // boolean dns2Valid = configDNS2 != null && configDNS2.hasValidAddress();
+        // boolean dns2Valid = configDNS2 != null && configDNS2.isFullyValid();
         // return dns1Valid || dns2Valid;
         return dns1Valid;
     }
-    
+
+    private void showConfigurationRequiredAlert() {
+        Platform.runLater(() -> {
+            var alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.WARNING);
+            alert.setTitle("Configuration Required");
+            alert.setHeaderText("Pi-hole Configuration Incomplete");
+
+            // Set the alert's owner to the widget stage so it appears on top
+            if (widgetStage != null) {
+                alert.initOwner(widgetStage);
+            }
+
+            // Determine what's missing
+            String message;
+            if (configDNS1 == null || !configDNS1.hasValidAddress()) {
+                message = "Please configure your Pi-hole IP address and app password to connect to your Pi-hole server.";
+            } else if (!configDNS1.hasValidAuthToken()) {
+                message = "App Password Required\n\nPlease configure your Pi-hole app password to connect to your Pi-hole server.";
+            } else {
+                message = "Please complete your Pi-hole configuration.";
+            }
+
+            alert.setContentText(message);
+
+            // Add custom buttons
+            var setPasswordButton = new javafx.scene.control.ButtonType("Set Password",
+                    javafx.scene.control.ButtonBar.ButtonData.OK_DONE);
+            var cancelButton = new javafx.scene.control.ButtonType("Cancel",
+                    javafx.scene.control.ButtonBar.ButtonData.CANCEL_CLOSE);
+
+            alert.getButtonTypes().setAll(setPasswordButton, cancelButton);
+
+            // Handle button clicks
+            alert.showAndWait().ifPresent(response -> {
+                if (response == setPasswordButton) {
+                    log("User clicked Set Password, opening configuration window");
+                    openConfigurationWindow();
+                } else {
+                    log("User cancelled configuration");
+                }
+            });
+        });
+    }
+
     private void setupDragHandlers(Parent root) {
         // Setup drag handlers for grid pane children
         for (Node node : widgetController.getGridPane().getChildren()) {
@@ -211,7 +256,8 @@ public class WidgetApplication extends Application {
 
     public static void openConfigurationWindow() {
         log("Opening configuration window");
-        if (configurationStage == null) return;
+        if (configurationStage == null)
+            return;
 
         configurationStage.setOpacity(1);
         configurationStage.show();
@@ -220,16 +266,16 @@ public class WidgetApplication extends Application {
 
     public static void applyAndCloseConfigurationWindow() {
         log("Applying configuration and closing window");
-        
+
         if (configurationStage != null) {
             configurationStage.setOpacity(0);
         }
-        
+
         // Reload configuration
         configService.readConfiguration();
         configDNS1 = configService.getConfigDNS1();
         widgetConfig = configService.getWidgetConfig();
-        
+
         // Apply theme to both scenes
         String theme = widgetConfig != null ? widgetConfig.getTheme() : ThemeManager.DEFAULT_THEME;
         if (widgetStage != null && widgetStage.getScene() != null) {
@@ -238,12 +284,12 @@ public class WidgetApplication extends Application {
         if (configurationStage != null && configurationStage.getScene() != null) {
             ThemeManager.applyTheme(configurationStage.getScene(), theme);
         }
-        
+
         // Update widget controller
         if (widgetController != null) {
             widgetController.applyConfiguration(configDNS1, widgetConfig);
         }
-        
+
         log("Configuration applied with theme: " + theme);
     }
 
@@ -258,7 +304,7 @@ public class WidgetApplication extends Application {
 
     private static void initializeSystemTray() {
         log("Initializing system tray");
-        
+
         if (!SystemTray.isSupported()) {
             logInfo("System tray is not supported on this platform");
             return;
@@ -269,14 +315,14 @@ public class WidgetApplication extends Application {
 
         // Load tray icon
         Image trayImage = loadTrayIcon();
-        
+
         // Create popup menu
         PopupMenu popup = createTrayPopupMenu();
 
         // Create and configure tray icon
         trayIcon = new TrayIcon(trayImage, "PiHole Widget", popup);
         trayIcon.setImageAutoSize(true);
-        
+
         // Double-click to show window
         trayIcon.addActionListener(_ -> Platform.runLater(WidgetApplication::showWidget));
 
@@ -287,21 +333,21 @@ public class WidgetApplication extends Application {
             logError("Unable to add tray icon", e);
         }
     }
-    
+
     private static Image loadTrayIcon() {
         // Try multiple resource paths in order of preference
         // PNG format is more reliably loaded than ICO
         String[] iconPaths = {
-            "/controllers/icon.png",       // PNG version (preferred)
-            "/media/icons/icon.png",       // PNG in media folder
-            "/controllers/icon.ico",       // ICO version
-            "/media/icons/icon.ico",       // ICO in media folder
-            "icon.png",                    // Relative PNG
-            "icon.ico"                     // Relative ICO
+                "/controllers/icon.png", // PNG version (preferred)
+                "/media/icons/icon.png", // PNG in media folder
+                "/controllers/icon.ico", // ICO version
+                "/media/icons/icon.ico", // ICO in media folder
+                "icon.png", // Relative PNG
+                "icon.ico" // Relative ICO
         };
-        
+
         logInfo("Attempting to load tray icon from " + iconPaths.length + " paths...");
-        
+
         for (String path : iconPaths) {
             Image image = tryLoadIcon(path);
             if (image != null) {
@@ -309,23 +355,23 @@ public class WidgetApplication extends Application {
                 return image;
             }
         }
-        
+
         // Fallback to programmatic icon
         logInfo("Could not load tray icon from any path, using programmatic fallback icon");
         return createFallbackTrayIcon();
     }
-    
+
     private static Image tryLoadIcon(String resourcePath) {
         // First, try ImageIO (works for PNG, GIF, JPEG)
         Image image = tryLoadIconWithImageIO(resourcePath);
         if (image != null) {
             return image;
         }
-        
+
         // Fallback to AWT Toolkit (may work for ICO on Windows)
         return tryLoadIconWithToolkit(resourcePath);
     }
-    
+
     private static Image tryLoadIconWithImageIO(String resourcePath) {
         try {
             InputStream stream = WidgetApplication.class.getResourceAsStream(resourcePath);
@@ -333,11 +379,12 @@ public class WidgetApplication extends Application {
                 log("ImageIO: Resource not found at: " + resourcePath);
                 return null;
             }
-            
+
             try (stream) {
                 BufferedImage image = ImageIO.read(stream);
                 if (image != null && image.getWidth() > 0 && image.getHeight() > 0) {
-                    logInfo("Loaded icon via ImageIO from: " + resourcePath + " (" + image.getWidth() + "x" + image.getHeight() + ")");
+                    logInfo("Loaded icon via ImageIO from: " + resourcePath + " (" + image.getWidth() + "x"
+                            + image.getHeight() + ")");
                     return scaleImage(image, 16, 16);
                 } else {
                     log("ImageIO: Image read returned null or invalid dimensions for: " + resourcePath);
@@ -348,7 +395,7 @@ public class WidgetApplication extends Application {
         }
         return null;
     }
-    
+
     private static Image tryLoadIconWithToolkit(String resourcePath) {
         try {
             URL iconUrl = WidgetApplication.class.getResource(resourcePath);
@@ -356,21 +403,21 @@ public class WidgetApplication extends Application {
                 log("Toolkit: URL not found at: " + resourcePath);
                 return null;
             }
-            
+
             log("Toolkit: Attempting to load from URL: " + iconUrl);
             Image image = java.awt.Toolkit.getDefaultToolkit().getImage(iconUrl);
-            
+
             // Wait for image to fully load
             java.awt.MediaTracker tracker = new java.awt.MediaTracker(new java.awt.Container());
             tracker.addImage(image, 0);
             tracker.waitForAll(2000); // 2 second timeout
-            
+
             // Check if image loaded successfully
             if (tracker.isErrorAny()) {
                 log("Toolkit: MediaTracker reported error for: " + resourcePath);
                 return null;
             }
-            
+
             // Verify the image has valid dimensions
             int width = image.getWidth(null);
             int height = image.getHeight(null);
@@ -388,46 +435,46 @@ public class WidgetApplication extends Application {
         }
         return null;
     }
-    
+
     private static Image scaleImage(BufferedImage original, int width, int height) {
         BufferedImage scaled = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = scaled.createGraphics();
-        g.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, 
-                          java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
+                java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
         g.drawImage(original, 0, 0, width, height, null);
         g.dispose();
         return scaled;
     }
-    
+
     private static Image createFallbackTrayIcon() {
         // Use a larger size for better visibility on high-DPI displays
         // Windows typically uses 16x16 or 32x32, but larger works better
         int size = 32;
         BufferedImage bufferedImage = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = bufferedImage.createGraphics();
-        
+
         // Enable anti-aliasing for smoother rendering
-        g.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, 
-                          java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
-        g.setRenderingHint(java.awt.RenderingHints.KEY_TEXT_ANTIALIASING, 
-                          java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-        
+        g.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+        g.setRenderingHint(java.awt.RenderingHints.KEY_TEXT_ANTIALIASING,
+                java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
         // Fill background with Pi-hole red color
         g.setColor(new Color(220, 53, 69)); // Pi-hole red
         g.fillRect(0, 0, size, size);
-        
+
         // Draw a white circle in the center (like Pi-hole logo)
         int circleSize = size - 8;
         int offset = 4;
         g.setColor(Color.WHITE);
         g.fillOval(offset, offset, circleSize, circleSize);
-        
+
         // Draw a smaller red circle inside (donut effect)
         int innerSize = circleSize - 8;
         int innerOffset = offset + 4;
         g.setColor(new Color(220, 53, 69));
         g.fillOval(innerOffset, innerOffset, innerSize, innerSize);
-        
+
         // Draw "P" in the center
         g.setColor(Color.WHITE);
         g.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 14));
@@ -436,16 +483,16 @@ public class WidgetApplication extends Application {
         int x = (size - fm.stringWidth(text)) / 2;
         int y = (size - fm.getHeight()) / 2 + fm.getAscent();
         g.drawString(text, x, y);
-        
+
         g.dispose();
-        
+
         logInfo("Created fallback tray icon: " + size + "x" + size);
         return bufferedImage;
     }
-    
+
     private static PopupMenu createTrayPopupMenu() {
         PopupMenu popup = new PopupMenu();
-        
+
         MenuItem showItem = new MenuItem("Show");
         showItem.addActionListener(_ -> Platform.runLater(WidgetApplication::showWidget));
         popup.add(showItem);
@@ -470,7 +517,7 @@ public class WidgetApplication extends Application {
             System.exit(0);
         }));
         popup.add(exitItem);
-        
+
         return popup;
     }
 
@@ -485,48 +532,50 @@ public class WidgetApplication extends Application {
         log("Showing from tray");
         showWidget();
     }
-    
+
     private static void showWidget() {
         if (widgetStage != null) {
             widgetStage.show();
             bringStageToFront(widgetStage);
         }
     }
-    
+
     private static void refreshWidgetTiles() {
         if (widgetController != null) {
             widgetController.refreshAllTiles();
         }
     }
-    
+
     /**
      * Reliably brings a stage to the front on Windows.
-     * Windows doesn't always honor toFront() calls, so we use the "always on top" trick.
+     * Windows doesn't always honor toFront() calls, so we use the "always on top"
+     * trick.
      */
     private static void bringStageToFront(Stage stage) {
-        if (stage == null) return;
-        
+        if (stage == null)
+            return;
+
         Platform.runLater(() -> {
             stage.setAlwaysOnTop(true);
             stage.toFront();
             stage.requestFocus();
-            
+
             // Reset always on top after a brief delay
             Platform.runLater(() -> stage.setAlwaysOnTop(false));
         });
     }
-    
+
     /**
      * Cleanup resources before exit.
      */
     private static void cleanup() {
         log("Cleaning up resources");
-        
+
         // Shutdown widget controller schedulers
         if (widgetController != null) {
             widgetController.shutdown();
         }
-        
+
         // Remove tray icon
         if (systemTray != null && trayIcon != null) {
             systemTray.remove(trayIcon);
