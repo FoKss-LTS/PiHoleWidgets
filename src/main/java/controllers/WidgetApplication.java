@@ -241,10 +241,7 @@ public class WidgetApplication extends Application {
         
         // Update widget controller
         if (widgetController != null) {
-            widgetController.setConfigDNS1(configDNS1);
-            widgetController.setWidgetConfig(widgetConfig);
-            widgetController.refreshPihole();
-            widgetController.applyTheme(theme);
+            widgetController.applyConfiguration(configDNS1, widgetConfig);
         }
         
         log("Configuration applied with theme: " + theme);

@@ -45,12 +45,7 @@ public class ConfigurationService {
     private static final String FILE_NAME = "settings.json";
     private static final String HOME = System.getProperty("user.home");
     
-    // Default values
-    private static final String DEFAULT_SCHEME = "http";
-    private static final String DEFAULT_IP = "pi.hole";
-    private static final int DEFAULT_PORT = 80;
-    private static final String DEFAULT_SIZE = "Medium";
-    private static final String DEFAULT_LAYOUT = "Square";
+    // Default values are now consolidated in domain configuration classes
     
     // JSON keys
     private static final String KEY_DNS1 = "DNS1";
@@ -65,7 +60,10 @@ public class ConfigurationService {
     private static final String KEY_SIZE = "Size";
     private static final String KEY_LAYOUT = "Layout";
     private static final String KEY_THEME = "Theme";
-    private static final String DEFAULT_THEME = "Dark";
+    private static final String KEY_UPDATE_STATUS = "UpdateStatusSec";
+    private static final String KEY_UPDATE_FLUID = "UpdateFluidSec";
+    private static final String KEY_UPDATE_ACTIVE = "UpdateActiveSec";
+    private static final String KEY_UPDATE_TOPX = "UpdateTopXSec";
     
     private final Path configFilePath;
     private final ObjectMapper objectMapper;
@@ -123,8 +121,8 @@ public class ConfigurationService {
         }
         
         String ip = getTextOrDefault(node, KEY_IP, "");
-        int port = getIntOrDefault(node, KEY_PORT, DEFAULT_PORT);
-        String scheme = getTextOrDefault(node, KEY_SCHEME, DEFAULT_SCHEME);
+        int port = getIntOrDefault(node, KEY_PORT, PiholeConfig.DEFAULT_PORT);
+        String scheme = getTextOrDefault(node, KEY_SCHEME, PiholeConfig.DEFAULT_SCHEME);
         String auth = getTextOrDefault(node, KEY_AUTH, "");
         
         return new PiholeConfig(ip, port, scheme, auth);
@@ -135,11 +133,15 @@ public class ConfigurationService {
             return WidgetConfig.defaultConfig();
         }
         
-        String size = getTextOrDefault(node, KEY_SIZE, DEFAULT_SIZE);
-        String layout = getTextOrDefault(node, KEY_LAYOUT, DEFAULT_LAYOUT);
-        String theme = getTextOrDefault(node, KEY_THEME, DEFAULT_THEME);
+        String size = getTextOrDefault(node, KEY_SIZE, WidgetConfig.DEFAULT_SIZE);
+        String layout = getTextOrDefault(node, KEY_LAYOUT, WidgetConfig.DEFAULT_LAYOUT);
+        String theme = getTextOrDefault(node, KEY_THEME, WidgetConfig.DEFAULT_THEME);
+        int updateStatus = getIntOrDefault(node, KEY_UPDATE_STATUS, WidgetConfig.DEFAULT_STATUS_UPDATE_SEC);
+        int updateFluid = getIntOrDefault(node, KEY_UPDATE_FLUID, WidgetConfig.DEFAULT_FLUID_UPDATE_SEC);
+        int updateActive = getIntOrDefault(node, KEY_UPDATE_ACTIVE, WidgetConfig.DEFAULT_ACTIVE_UPDATE_SEC);
+        int updateTopX = getIntOrDefault(node, KEY_UPDATE_TOPX, WidgetConfig.DEFAULT_TOPX_UPDATE_SEC);
         
-        return new WidgetConfig(size, layout, theme);
+        return new WidgetConfig(size, layout, theme, true, true, true, updateStatus, updateFluid, updateActive, updateTopX);
     }
     
     private String getTextOrDefault(JsonNode node, String key, String defaultValue) {
@@ -166,10 +168,14 @@ public class ConfigurationService {
         HelperService.createFile(HOME, FILE_NAME, FOLDER_NAME);
         
         return writeConfigFile(
-                DEFAULT_SCHEME, DEFAULT_IP, DEFAULT_PORT, "",
-                DEFAULT_SCHEME, "", DEFAULT_PORT, "",
-                DEFAULT_SIZE, DEFAULT_LAYOUT, DEFAULT_THEME,
-                true, true, true, 5, 5, 5
+                PiholeConfig.DEFAULT_SCHEME, PiholeConfig.DEFAULT_IP, PiholeConfig.DEFAULT_PORT, "",
+                PiholeConfig.DEFAULT_SCHEME, "", PiholeConfig.DEFAULT_PORT, "",
+                WidgetConfig.DEFAULT_SIZE, WidgetConfig.DEFAULT_LAYOUT, WidgetConfig.DEFAULT_THEME,
+                true, true, true,
+                WidgetConfig.DEFAULT_STATUS_UPDATE_SEC,
+                WidgetConfig.DEFAULT_FLUID_UPDATE_SEC,
+                WidgetConfig.DEFAULT_ACTIVE_UPDATE_SEC,
+                WidgetConfig.DEFAULT_TOPX_UPDATE_SEC
         );
     }
 
@@ -181,7 +187,7 @@ public class ConfigurationService {
             String scheme2, String ip2, int port2, String auth2,
             String size, String layout, String theme,
             boolean showLive, boolean showStatus, boolean showFluid,
-            int updateStatusSec, int updateFluidSec, int updateActiveSec) {
+            int updateStatusSec, int updateFluidSec, int updateActiveSec, int updateTopXSec) {
         
         log("Writing configuration to: " + configFilePath);
 
@@ -212,7 +218,11 @@ public class ConfigurationService {
         ObjectNode widgetNode = objectMapper.createObjectNode();
         widgetNode.put(KEY_SIZE, size);
         widgetNode.put(KEY_LAYOUT, layout);
-        widgetNode.put(KEY_THEME, theme != null ? theme : DEFAULT_THEME);
+        widgetNode.put(KEY_THEME, theme != null ? theme : WidgetConfig.DEFAULT_THEME);
+        widgetNode.put(KEY_UPDATE_STATUS, updateStatusSec);
+        widgetNode.put(KEY_UPDATE_FLUID, updateFluidSec);
+        widgetNode.put(KEY_UPDATE_ACTIVE, updateActiveSec);
+        widgetNode.put(KEY_UPDATE_TOPX, updateTopXSec);
         root.set(KEY_WIDGET, widgetNode);
 
         try {

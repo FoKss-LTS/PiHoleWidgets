@@ -30,6 +30,7 @@ package domain.configuration;
  * @param updateStatusSec status tile update interval in seconds
  * @param updateFluidSec fluid tile update interval in seconds
  * @param updateActiveSec active tile update interval in seconds
+ * @param updateTopXSec Top X tile update interval in seconds
  */
 public record WidgetConfig(
         String size,
@@ -40,14 +41,18 @@ public record WidgetConfig(
         boolean showFluid,
         int updateStatusSec,
         int updateFluidSec,
-        int updateActiveSec
+        int updateActiveSec,
+        int updateTopXSec
 ) {
     
-    // Default values
+    // Default values aligned with legacy scheduler behaviour
     public static final String DEFAULT_SIZE = "Medium";
     public static final String DEFAULT_LAYOUT = "Square";
     public static final String DEFAULT_THEME = "Dark";
-    public static final int DEFAULT_UPDATE_INTERVAL = 5;
+    public static final int DEFAULT_STATUS_UPDATE_SEC = 5;
+    public static final int DEFAULT_FLUID_UPDATE_SEC = 15;
+    public static final int DEFAULT_ACTIVE_UPDATE_SEC = 60;
+    public static final int DEFAULT_TOPX_UPDATE_SEC = 5;
     
     /**
      * Compact constructor with validation and defaults.
@@ -63,13 +68,16 @@ public record WidgetConfig(
             theme = DEFAULT_THEME;
         }
         if (updateStatusSec <= 0) {
-            updateStatusSec = DEFAULT_UPDATE_INTERVAL;
+            updateStatusSec = DEFAULT_STATUS_UPDATE_SEC;
         }
         if (updateFluidSec <= 0) {
-            updateFluidSec = DEFAULT_UPDATE_INTERVAL;
+            updateFluidSec = DEFAULT_FLUID_UPDATE_SEC;
         }
         if (updateActiveSec <= 0) {
-            updateActiveSec = DEFAULT_UPDATE_INTERVAL;
+            updateActiveSec = DEFAULT_ACTIVE_UPDATE_SEC;
+        }
+        if (updateTopXSec <= 0) {
+            updateTopXSec = DEFAULT_TOPX_UPDATE_SEC;
         }
     }
     
@@ -77,16 +85,16 @@ public record WidgetConfig(
      * Creates a WidgetConfig with default values for display options and intervals.
      */
     public WidgetConfig(String size, String layout) {
-        this(size, layout, DEFAULT_THEME, true, true, true, 
-             DEFAULT_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL);
+        this(size, layout, DEFAULT_THEME, true, true, true,
+             DEFAULT_STATUS_UPDATE_SEC, DEFAULT_FLUID_UPDATE_SEC, DEFAULT_ACTIVE_UPDATE_SEC, DEFAULT_TOPX_UPDATE_SEC);
     }
     
     /**
      * Creates a WidgetConfig with size, layout, and theme.
      */
     public WidgetConfig(String size, String layout, String theme) {
-        this(size, layout, theme, true, true, true, 
-             DEFAULT_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL);
+        this(size, layout, theme, true, true, true,
+             DEFAULT_STATUS_UPDATE_SEC, DEFAULT_FLUID_UPDATE_SEC, DEFAULT_ACTIVE_UPDATE_SEC, DEFAULT_TOPX_UPDATE_SEC);
     }
     
     /**
@@ -132,5 +140,9 @@ public record WidgetConfig(
     
     public int getUpdate_active_sec() {
         return updateActiveSec;
+    }
+    
+    public int getUpdate_topx_sec() {
+        return updateTopXSec;
     }
 }

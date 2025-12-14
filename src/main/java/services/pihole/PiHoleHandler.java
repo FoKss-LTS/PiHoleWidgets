@@ -19,6 +19,7 @@
 package services.pihole;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import domain.configuration.PiholeConfig;
 import helpers.HttpClientUtil;
 import helpers.HttpClientUtil.HttpResponsePayload;
 import services.configuration.ConfigurationService;
@@ -104,7 +105,7 @@ public class PiHoleHandler {
             } else {
                 this.ipAddress = ipAddress;
                 this.port = port;
-                this.scheme = scheme != null ? scheme : "http";
+                this.scheme = scheme != null ? scheme : PiholeConfig.DEFAULT_SCHEME;
                 this.password = password;
             }
         } else {

@@ -73,9 +73,9 @@
          DNS 2 support intentionally disabled.
          User request: "no need for 2 DNS management, comment all code related to 2 DNSs"
        -->
-       <TitledPane text="Widget Settings">
+      <TitledPane text="Widget Settings">
          <content>
-           <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0" styleClass="config-content">
+          <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="230.0" prefWidth="200.0" styleClass="config-content">
                   <children>
                      <Label layoutX="32.0" layoutY="29.0" text="Size:">
                         <font>
@@ -105,6 +105,30 @@
                         </font>
                      </Label>
                      <ComboBox fx:id="ComboBoxTheme" layoutX="93.0" layoutY="113.0" prefWidth="150.0" />
+                     <Label layoutX="276.0" layoutY="29.0" text="Status update (s):">
+                        <font>
+                           <Font size="12.0" />
+                        </font>
+                     </Label>
+                     <TextField fx:id="tfUpdateStatus" layoutX="410.0" layoutY="24.0" prefWidth="70.0" promptText="5" />
+                     <Label layoutX="276.0" layoutY="73.0" text="Fluid update (s):">
+                        <font>
+                           <Font size="12.0" />
+                        </font>
+                     </Label>
+                     <TextField fx:id="tfUpdateFluid" layoutX="410.0" layoutY="68.0" prefWidth="70.0" promptText="15" />
+                     <Label layoutX="276.0" layoutY="117.0" text="Active update (s):">
+                        <font>
+                           <Font size="12.0" />
+                        </font>
+                     </Label>
+                     <TextField fx:id="tfUpdateActive" layoutX="410.0" layoutY="112.0" prefWidth="70.0" promptText="60" />
+                     <Label layoutX="276.0" layoutY="161.0" text="Top domains update (s):">
+                        <font>
+                           <Font size="12.0" />
+                        </font>
+                     </Label>
+                     <TextField fx:id="tfUpdateTopX" layoutX="410.0" layoutY="156.0" prefWidth="70.0" promptText="5" />
                   </children>
                </AnchorPane>
          </content>

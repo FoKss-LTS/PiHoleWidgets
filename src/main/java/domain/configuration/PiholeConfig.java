@@ -34,31 +34,37 @@ public record PiholeConfig(
         String authToken
 ) {
     
+    // Default configuration values
+    public static final String DEFAULT_SCHEME = "http";
+    public static final String DEFAULT_IP = "pi.hole";
+    public static final int DEFAULT_PORT = 80;
+    public static final String DEFAULT_AUTH_TOKEN = "";
+    
     /**
      * Compact constructor with validation.
      */
     public PiholeConfig {
         // Provide defaults for null values
         if (scheme == null || scheme.isBlank()) {
-            scheme = "http";
+            scheme = DEFAULT_SCHEME;
         }
         if (ipAddress == null) {
             ipAddress = "";
         }
         if (authToken == null) {
-            authToken = "";
+            authToken = DEFAULT_AUTH_TOKEN;
         }
         // Validate port range
         if (port <= 0 || port > 65535) {
-            port = 80;
+            port = DEFAULT_PORT;
         }
     }
     
     /**
-     * Creates a PiholeConfig with default port 80.
+     * Creates a PiholeConfig with default port.
      */
     public PiholeConfig(String ipAddress, String scheme, String authToken) {
-        this(ipAddress, 80, scheme, authToken);
+        this(ipAddress, DEFAULT_PORT, scheme, authToken);
     }
     
     // Legacy getter methods for backward compatibility

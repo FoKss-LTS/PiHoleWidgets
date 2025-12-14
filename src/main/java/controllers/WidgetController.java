@@ -86,11 +86,11 @@ public class WidgetController implements Initializable {
     private static final int TOOLTIP_DELAY_MS = 200;
     private static final DateTimeFormatter STATS_TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
     
-    // Scheduler intervals in seconds
-    private static final long STATUS_REFRESH_INTERVAL = 5;
-    private static final long FLUID_REFRESH_INTERVAL = 15;
-    private static final long ACTIVE_REFRESH_INTERVAL = 60;
-    private static final long TOPX_REFRESH_INTERVAL = 5;
+    // Scheduler defaults in seconds (aligned with legacy behaviour)
+    private static final long DEFAULT_STATUS_REFRESH_INTERVAL = WidgetConfig.DEFAULT_STATUS_UPDATE_SEC;
+    private static final long DEFAULT_FLUID_REFRESH_INTERVAL = WidgetConfig.DEFAULT_FLUID_UPDATE_SEC;
+    private static final long DEFAULT_ACTIVE_REFRESH_INTERVAL = WidgetConfig.DEFAULT_ACTIVE_UPDATE_SEC;
+    private static final long DEFAULT_TOPX_REFRESH_INTERVAL = WidgetConfig.DEFAULT_TOPX_UPDATE_SEC;
     
     // Default tile dimensions
     private static final double DEFAULT_TILE_WIDTH = 200;
@@ -145,6 +145,10 @@ public class WidgetController implements Initializable {
      * private PiholeConfig configDNS2;
      */
     private WidgetConfig widgetConfig;
+    private long statusRefreshIntervalSec = DEFAULT_STATUS_REFRESH_INTERVAL;
+    private long fluidRefreshIntervalSec = DEFAULT_FLUID_REFRESH_INTERVAL;
+    private long activeRefreshIntervalSec = DEFAULT_ACTIVE_REFRESH_INTERVAL;
+    private long topXRefreshIntervalSec = DEFAULT_TOPX_REFRESH_INTERVAL;
     
     // Centralized scheduler for all periodic tasks
     private ScheduledExecutorService scheduler;
@@ -201,6 +205,7 @@ public class WidgetController implements Initializable {
         setupDnsBlockingToggle();
         
         log("Starting schedulers...");
+        applyIntervalsFromConfig();
         initializeSchedulers();
         log("All schedulers started");
         
@@ -315,6 +320,28 @@ public class WidgetController implements Initializable {
     
     // ==================== Scheduler Management ====================
     
+    private void applyIntervalsFromConfig() {
+        if (widgetConfig == null) {
+            statusRefreshIntervalSec = DEFAULT_STATUS_REFRESH_INTERVAL;
+            fluidRefreshIntervalSec = DEFAULT_FLUID_REFRESH_INTERVAL;
+            activeRefreshIntervalSec = DEFAULT_ACTIVE_REFRESH_INTERVAL;
+            topXRefreshIntervalSec = DEFAULT_TOPX_REFRESH_INTERVAL;
+            return;
+        }
+        
+        statusRefreshIntervalSec = positiveOrDefault(widgetConfig.updateStatusSec(), DEFAULT_STATUS_REFRESH_INTERVAL);
+        fluidRefreshIntervalSec = positiveOrDefault(widgetConfig.updateFluidSec(), DEFAULT_FLUID_REFRESH_INTERVAL);
+        activeRefreshIntervalSec = positiveOrDefault(widgetConfig.updateActiveSec(), DEFAULT_ACTIVE_REFRESH_INTERVAL);
+        topXRefreshIntervalSec = positiveOrDefault(widgetConfig.updateTopXSec(), DEFAULT_TOPX_REFRESH_INTERVAL);
+        
+        log("Scheduler intervals applied from config - status: " + statusRefreshIntervalSec + "s, active: " + activeRefreshIntervalSec
+                + "s, fluid: " + fluidRefreshIntervalSec + "s, topX: " + topXRefreshIntervalSec + "s");
+    }
+    
+    private long positiveOrDefault(int candidate, long defaultValue) {
+        return candidate > 0 ? candidate : defaultValue;
+    }
+    
     private void initializeSchedulers() {
         log("Initializing centralized scheduler with virtual threads...");
         
@@ -323,15 +350,15 @@ public class WidgetController implements Initializable {
                 .name("pihole-widget-", 0)
                 .factory());
         
-        scheduler.scheduleAtFixedRate(this::inflateStatusData, 0, STATUS_REFRESH_INTERVAL, TimeUnit.SECONDS);
-        scheduler.scheduleAtFixedRate(this::inflateActiveData, 0, ACTIVE_REFRESH_INTERVAL, TimeUnit.SECONDS);
-        scheduler.scheduleAtFixedRate(this::inflateFluidData, 0, FLUID_REFRESH_INTERVAL, TimeUnit.SECONDS);
-        scheduler.scheduleAtFixedRate(this::inflateTopXData, 0, TOPX_REFRESH_INTERVAL, TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(this::inflateStatusData, 0, statusRefreshIntervalSec, TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(this::inflateActiveData, 0, activeRefreshIntervalSec, TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(this::inflateFluidData, 0, fluidRefreshIntervalSec, TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(this::inflateTopXData, 0, topXRefreshIntervalSec, TimeUnit.SECONDS);
         
-        log("All schedulers initialized - Status: " + STATUS_REFRESH_INTERVAL + "s, " +
-            "Active: " + ACTIVE_REFRESH_INTERVAL + "s, " +
-            "Fluid: " + FLUID_REFRESH_INTERVAL + "s, " +
-            "TopX: " + TOPX_REFRESH_INTERVAL + "s");
+        log("All schedulers initialized - Status: " + statusRefreshIntervalSec + "s, " +
+            "Active: " + activeRefreshIntervalSec + "s, " +
+            "Fluid: " + fluidRefreshIntervalSec + "s, " +
+            "TopX: " + topXRefreshIntervalSec + "s");
     }
     
     private void runAsync(Runnable task) {
@@ -360,6 +387,13 @@ public class WidgetController implements Initializable {
             }
         }
         log("Schedulers shut down");
+        scheduler = null;
+    }
+    
+    private void restartSchedulers() {
+        shutdown();
+        initializeSchedulers();
+        inflateAllData();
     }
     
     // ==================== Pi-hole Data Management ====================
@@ -1261,6 +1295,21 @@ public class WidgetController implements Initializable {
     public void setWidgetConfig(WidgetConfig widgetConfig) {
         log("setWidgetConfig() - setting to: " + formatWidgetConfig(widgetConfig));
         this.widgetConfig = widgetConfig;
+        applyIntervalsFromConfig();
+        if (scheduler != null) {
+            restartSchedulers();
+        }
+    }
+
+    /**
+     * Applies new DNS and widget configuration values and refreshes the UI.
+     */
+    public void applyConfiguration(PiholeConfig newConfigDNS1, WidgetConfig newWidgetConfig) {
+        setConfigDNS1(newConfigDNS1);
+        setWidgetConfig(newWidgetConfig);
+        refreshPihole();
+        String theme = newWidgetConfig != null ? newWidgetConfig.getTheme() : ThemeManager.DEFAULT_THEME;
+        applyTheme(theme);
     }
 
     /**

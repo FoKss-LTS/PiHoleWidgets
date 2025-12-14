@@ -55,11 +55,16 @@ public class ConfigurationController implements Initializable {
     private static final List<String> SCHEMES = List.of("http", "https");
     private static final List<String> THEMES = List.of("Dark", "Light");
     
-    private static final String DEFAULT_SCHEME = "http";
-    private static final String DEFAULT_SIZE = "Medium";
-    private static final String DEFAULT_LAYOUT = "Square";
-    private static final String DEFAULT_THEME = "Dark";
-    private static final int DEFAULT_PORT = 80;
+    // Default values are now consolidated in domain configuration classes
+    private static final String DEFAULT_SCHEME = PiholeConfig.DEFAULT_SCHEME;
+    private static final String DEFAULT_SIZE = WidgetConfig.DEFAULT_SIZE;
+    private static final String DEFAULT_LAYOUT = WidgetConfig.DEFAULT_LAYOUT;
+    private static final String DEFAULT_THEME = WidgetConfig.DEFAULT_THEME;
+    private static final int DEFAULT_PORT = PiholeConfig.DEFAULT_PORT;
+    private static final int DEFAULT_UPDATE_STATUS_SEC = WidgetConfig.DEFAULT_STATUS_UPDATE_SEC;
+    private static final int DEFAULT_UPDATE_FLUID_SEC = WidgetConfig.DEFAULT_FLUID_UPDATE_SEC;
+    private static final int DEFAULT_UPDATE_ACTIVE_SEC = WidgetConfig.DEFAULT_ACTIVE_UPDATE_SEC;
+    private static final int DEFAULT_UPDATE_TOPX_SEC = WidgetConfig.DEFAULT_TOPX_UPDATE_SEC;
     
     
     // Button styles
@@ -85,6 +90,10 @@ public class ConfigurationController implements Initializable {
     @FXML private TextField tfIp1;
     @FXML private TextField tfPort1;
     @FXML private TextField tfAuth1;
+    @FXML private TextField tfUpdateStatus;
+    @FXML private TextField tfUpdateFluid;
+    @FXML private TextField tfUpdateActive;
+    @FXML private TextField tfUpdateTopX;
     // DNS2 support intentionally disabled.
     // @FXML private TextField tfIp2;
     // @FXML private TextField tfPort2;
@@ -300,6 +309,10 @@ public class ConfigurationController implements Initializable {
         String size = getSelectedOrDefault(comboBoxSize, DEFAULT_SIZE);
         String layout = getSelectedOrDefault(comboBoxLayout, DEFAULT_LAYOUT);
         String theme = getSelectedOrDefault(comboBoxTheme, DEFAULT_THEME);
+        int updateStatusSec = parseInterval(tfUpdateStatus, DEFAULT_UPDATE_STATUS_SEC);
+        int updateFluidSec = parseInterval(tfUpdateFluid, DEFAULT_UPDATE_FLUID_SEC);
+        int updateActiveSec = parseInterval(tfUpdateActive, DEFAULT_UPDATE_ACTIVE_SEC);
+        int updateTopXSec = parseInterval(tfUpdateTopX, DEFAULT_UPDATE_TOPX_SEC);
         
         log("Saving - DNS1: " + scheme1 + "://" + ip1 + ":" + port1);
         // DNS2 support intentionally disabled.
@@ -309,8 +322,9 @@ public class ConfigurationController implements Initializable {
         configService.writeConfigFile(
                 scheme1, ip1, port1, getTextOrEmpty(tfAuth1),
                 // DNS2 support intentionally disabled - parameters kept for backward compatible signature.
-                DEFAULT_SCHEME, "", DEFAULT_PORT, "",
-                size, layout, theme, true, true, true, 5, 5, 5
+                PiholeConfig.DEFAULT_SCHEME, "", PiholeConfig.DEFAULT_PORT, "",
+                size, layout, theme, true, true, true,
+                updateStatusSec, updateFluidSec, updateActiveSec, updateTopXSec
         );
         
         log("Configuration saved");
@@ -363,6 +377,15 @@ public class ConfigurationController implements Initializable {
             setComboBoxValue(comboBoxSize, widgetConfig.getSize(), DEFAULT_SIZE);
             setComboBoxValue(comboBoxLayout, widgetConfig.getLayout(), DEFAULT_LAYOUT);
             setComboBoxValue(comboBoxTheme, widgetConfig.getTheme(), DEFAULT_THEME);
+            setTextFieldValue(tfUpdateStatus, String.valueOf(widgetConfig.getUpdate_status_sec()));
+            setTextFieldValue(tfUpdateFluid, String.valueOf(widgetConfig.getUpdate_fluid_sec()));
+            setTextFieldValue(tfUpdateActive, String.valueOf(widgetConfig.getUpdate_active_sec()));
+            setTextFieldValue(tfUpdateTopX, String.valueOf(widgetConfig.getUpdate_topx_sec()));
+        } else {
+            setTextFieldValue(tfUpdateStatus, String.valueOf(DEFAULT_UPDATE_STATUS_SEC));
+            setTextFieldValue(tfUpdateFluid, String.valueOf(DEFAULT_UPDATE_FLUID_SEC));
+            setTextFieldValue(tfUpdateActive, String.valueOf(DEFAULT_UPDATE_ACTIVE_SEC));
+            setTextFieldValue(tfUpdateTopX, String.valueOf(DEFAULT_UPDATE_TOPX_SEC));
         }
         
         log("Configuration loaded");
@@ -419,6 +442,18 @@ public class ConfigurationController implements Initializable {
             return (port > 0 && port <= 65535) ? port : DEFAULT_PORT;
         } catch (NumberFormatException e) {
             return DEFAULT_PORT;
+        }
+    }
+    
+    private int parseInterval(TextField field, int defaultValue) {
+        if (field == null) return defaultValue;
+        String text = field.getText();
+        if (text == null || text.isBlank()) return defaultValue;
+        try {
+            int interval = Integer.parseInt(text.trim());
+            return interval > 0 ? interval : defaultValue;
+        } catch (NumberFormatException e) {
+            return defaultValue;
         }
     }
     
