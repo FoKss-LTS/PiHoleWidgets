@@ -128,13 +128,21 @@ public class WidgetController implements Initializable {
     private VBox dataTable;
     private FlowGridPane gridPane;
     
-    // Pi-hole handlers
+    // Pi-hole handler
     private PiHoleHandler piholeDns1;
-    private PiHoleHandler piholeDns2;
+    /*
+     * DNS2 support intentionally disabled.
+     * User request: "no need for 2 DNS management, comment all code related to 2 DNSs"
+     *
+     * private PiHoleHandler piholeDns2;
+     */
     
     // Configuration
     private PiholeConfig configDNS1;
-    private PiholeConfig configDNS2;
+    /*
+     * DNS2 support intentionally disabled.
+     * private PiholeConfig configDNS2;
+     */
     private WidgetConfig widgetConfig;
     
     // Centralized scheduler for all periodic tasks
@@ -154,14 +162,12 @@ public class WidgetController implements Initializable {
     
     // ==================== Constructor ====================
     
-    public WidgetController(PiholeConfig configDNS1, PiholeConfig configDNS2, WidgetConfig widgetConfig) {
+    public WidgetController(PiholeConfig configDNS1, WidgetConfig widgetConfig) {
         log("=== WidgetController constructor called ===");
         log("ConfigDNS1: " + formatConfig(configDNS1));
-        log("ConfigDNS2: " + formatConfig(configDNS2));
         log("WidgetConfig: " + formatWidgetConfig(widgetConfig));
         
         this.configDNS1 = configDNS1;
-        this.configDNS2 = configDNS2;
         this.widgetConfig = widgetConfig;
     }
     
@@ -172,10 +178,9 @@ public class WidgetController implements Initializable {
         log("=== initialize() called ===");
         log("Location: " + location);
         log("ConfigDNS1 present: " + (configDNS1 != null));
-        log("ConfigDNS2 present: " + (configDNS2 != null));
         
-        if (configDNS1 == null && configDNS2 == null) {
-            log("ERROR: Both configurations are null!");
+        if (configDNS1 == null) {
+            log("ERROR: DNS1 configuration is null!");
             logInfo("configurations are empty");
             return;
         }
@@ -370,19 +375,23 @@ public class WidgetController implements Initializable {
         } else {
             log("ConfigDNS1 is null, skipping DNS1 handler creation");
         }
-        
-        if (configDNS2 != null) {
-            log("Creating PiHoleHandler for DNS2: " + configDNS2.getIPAddress() + ":" + configDNS2.getPort());
-            piholeDns2 = new PiHoleHandler(
-                configDNS2.getIPAddress(), 
-                configDNS2.getPort(), 
-                configDNS2.getScheme(), 
-                configDNS2.getAUTH()
-            );
-            log("PiHoleHandler DNS2 created");
-        } else {
-            log("ConfigDNS2 is null, skipping DNS2 handler creation");
-        }
+        /*
+         * DNS2 support intentionally disabled.
+         * User request: "no need for 2 DNS management, comment all code related to 2 DNSs"
+         *
+         * if (configDNS2 != null) {
+         *     log("Creating PiHoleHandler for DNS2: " + configDNS2.getIPAddress() + ":" + configDNS2.getPort());
+         *     piholeDns2 = new PiHoleHandler(
+         *         configDNS2.getIPAddress(),
+         *         configDNS2.getPort(),
+         *         configDNS2.getScheme(),
+         *         configDNS2.getAUTH()
+         *     );
+         *     log("PiHoleHandler DNS2 created");
+         * } else {
+         *     log("ConfigDNS2 is null, skipping DNS2 handler creation");
+         * }
+         */
         
         log("Calling inflateAllData()...");
         inflateAllData();
@@ -402,34 +411,11 @@ public class WidgetController implements Initializable {
     }
     
     /**
-     * Fetches Pi-hole stats from both configured DNS handlers as JSON strings.
-     * @return a record containing stats JSON from both Pi-holes (may be empty)
+     * Fetches Pi-hole stats from the single configured instance as a JSON string.
+     * DNS2 support intentionally disabled.
      */
-    private PiholeStats fetchPiholeStats() {
-        String pihole1 = (piholeDns1 != null) ? piholeDns1.getPiHoleStats() : "";
-        String pihole2 = (piholeDns2 != null) ? piholeDns2.getPiHoleStats() : "";
-        return new PiholeStats(pihole1, pihole2);
-    }
-    
-    /**
-     * Record to hold stats JSON from both Pi-hole instances.
-     */
-    private record PiholeStats(String pihole1, String pihole2) {
-        boolean isActive1() {
-            return pihole1 != null && !pihole1.isBlank();
-        }
-        
-        boolean isActive2() {
-            return pihole2 != null && !pihole2.isBlank();
-        }
-        
-        boolean anyActive() {
-            return isActive1() || isActive2();
-        }
-        
-        boolean bothInactive() {
-            return !anyActive();
-        }
+    private String fetchPiholeStatsJson() {
+        return (piholeDns1 != null) ? piholeDns1.getPiHoleStats() : "";
     }
     
     // ==================== Data Inflation Methods ====================
@@ -447,17 +433,13 @@ public class WidgetController implements Initializable {
     public void inflateStatusData() {
         log("=== inflateStatusData() called ===");
         runAsync(() -> {
-            PiholeStats stats = fetchPiholeStats();
-            SummaryStats s1 = parseSummaryStats(stats.pihole1());
-            SummaryStats s2 = parseSummaryStats(stats.pihole2());
-            CombinedStats combined = combineStats(s1, s2);
+            String statsJson = fetchPiholeStatsJson();
+            SummaryStats s1 = parseSummaryStats(statsJson);
+            CombinedStats combined = combineStats(s1, SummaryStats.inactive());
             
             String lastBlocked = "";
             if (piholeDns1 != null) {
                 lastBlocked = piholeDns1.getLastBlocked();
-            }
-            if ((lastBlocked == null || lastBlocked.isBlank()) && piholeDns2 != null) {
-                lastBlocked = piholeDns2.getLastBlocked();
             }
             String finalLastBlocked = lastBlocked == null ? "" : lastBlocked;
             
@@ -478,22 +460,20 @@ public class WidgetController implements Initializable {
     public void inflateFluidData() {
         log("=== inflateFluidData() called ===");
         runAsync(() -> {
-            PiholeStats stats = fetchPiholeStats();
-            if (stats.bothInactive()) {
-                log("WARNING: Both Pi-holes inactive, skipping fluid update");
+            String statsJson = fetchPiholeStatsJson();
+            if (statsJson == null || statsJson.isBlank()) {
+                log("WARNING: Pi-hole inactive, skipping fluid update");
                 return;
             }
             final Instant fetchedAt = Instant.now();
             
-            SummaryStats s1 = parseSummaryStats(stats.pihole1());
-            SummaryStats s2 = parseSummaryStats(stats.pihole2());
-            CombinedStats combined = combineStats(s1, s2);
+            SummaryStats s1 = parseSummaryStats(statsJson);
+            CombinedStats combined = combineStats(s1, SummaryStats.inactive());
             
             double adsPercentage = combined.percentBlocked();
             
             String gravityUpdate = "";
             if (piholeDns1 != null) gravityUpdate = piholeDns1.getGravityLastUpdate();
-            if ((gravityUpdate == null || gravityUpdate.isBlank()) && piholeDns2 != null) gravityUpdate = piholeDns2.getGravityLastUpdate();
             String finalGravityUpdate = gravityUpdate == null ? "" : gravityUpdate;
             String statsFetchedText = formatStatsFetchedAt(fetchedAt);
             
@@ -510,39 +490,28 @@ public class WidgetController implements Initializable {
     public void inflateActiveData() {
         log("=== inflateActiveData() called ===");
         runAsync(() -> {
-            PiholeStats stats = fetchPiholeStats();
-            SummaryStats s1 = parseSummaryStats(stats.pihole1());
-            SummaryStats s2 = parseSummaryStats(stats.pihole2());
+            String statsJson = fetchPiholeStatsJson();
+            SummaryStats s1 = parseSummaryStats(statsJson);
             
-            Boolean b1 = (stats.isActive1() && piholeDns1 != null) ? fetchDnsBlockingEnabled(piholeDns1) : null;
-            Boolean b2 = (stats.isActive2() && piholeDns2 != null) ? fetchDnsBlockingEnabled(piholeDns2) : null;
-            BlockingState state = computeBlockingState(stats, b1, b2, s1, s2);
+            Boolean b1 = (piholeDns1 != null && statsJson != null && !statsJson.isBlank()) ? fetchDnsBlockingEnabled(piholeDns1) : null;
+            BlockingState state = computeBlockingStateSingle(b1, s1);
             this.blockingState = state;
             
-            // Build a unique, stable-ordered display list of IPs/hosts (prevents "localhost" showing twice)
-            java.util.LinkedHashSet<String> uniqueIps = new java.util.LinkedHashSet<>();
-            if (stats.isActive1() && piholeDns1 != null) {
-                String ip = piholeDns1.getIPAddress();
-                if (ip != null && !ip.isBlank()) uniqueIps.add(ip);
-            }
-            if (stats.isActive2() && piholeDns2 != null) {
-                String ip = piholeDns2.getIPAddress();
-                if (ip != null && !ip.isBlank()) uniqueIps.add(ip);
-            }
-            String ipsText = String.join(" \n ", uniqueIps);
+            final String ipsText = (piholeDns1 != null && piholeDns1.getIPAddress() != null)
+                    ? piholeDns1.getIPAddress()
+                    : "";
             
             String apiVersion = "";
-            if (stats.isActive1() && piholeDns1 != null) apiVersion = piholeDns1.getVersion();
-            if ((apiVersion == null || apiVersion.isBlank()) && stats.isActive2() && piholeDns2 != null) apiVersion = piholeDns2.getVersion();
+            if (piholeDns1 != null) apiVersion = piholeDns1.getVersion();
             String finalApiVersion = apiVersion == null ? "" : apiVersion;
             
             Platform.runLater(() -> {
                 log("inflateActiveData - updating UI...");
                 
                 ledTile.setTitle("Widget Version: " + WIDGET_VERSION);
-                ledTile.setDescription(stats.bothInactive() ? "No active Pi-hole" : ipsText);
+                ledTile.setDescription((statsJson == null || statsJson.isBlank()) ? "No active Pi-hole" : ipsText);
                 
-                if (stats.bothInactive()) {
+                if (statsJson == null || statsJson.isBlank()) {
                     ledTile.setActiveColor(Color.RED);
                     ledTile.setActive(false);
                     ledTile.setText("API Version: N/A");
@@ -565,10 +534,11 @@ public class WidgetController implements Initializable {
                         ledTile.setTooltipText("DNS blocking is DISABLED (click LED circle to enable)");
                     }
                     case MIXED -> {
+                        // DNS2 support intentionally disabled: MIXED state cannot happen with a single instance.
                         ledTile.setActiveColor(Color.ORANGE);
                         ledTile.setActive(true);
                         ledTile.setText("API Version: " + finalApiVersion);
-                        ledTile.setTooltipText("DNS blocking differs between instances (click LED circle to toggle)");
+                        ledTile.setTooltipText("Click LED circle to toggle DNS blocking");
                     }
                     case UNKNOWN -> {
                         ledTile.setActiveColor(Color.LIGHTGREEN);
@@ -586,17 +556,12 @@ public class WidgetController implements Initializable {
     public void inflateTopXData() {
         log("=== inflateTopXData() called ===");
         runAsync(() -> {
-            PiholeStats stats = fetchPiholeStats();
-            if (stats.bothInactive()) {
-                log("WARNING: Both Pi-holes inactive, skipping topX update");
+            if (piholeDns1 == null) {
+                log("WARNING: Pi-hole inactive, skipping topX update");
                 return;
             }
             
-            PiHoleHandler handler = stats.isActive1() ? piholeDns1 : piholeDns2;
-            if (handler == null) {
-                log("WARNING: No active handler available for topX update");
-                return;
-            }
+            PiHoleHandler handler = piholeDns1;
             
             log("Fetching top " + topX + " blocked domains...");
             String topBlockedJson = handler.getTopXBlocked(topX);
@@ -837,8 +802,7 @@ public class WidgetController implements Initializable {
             
             if (currentEnabled == null) {
                 // Best-effort refresh from status endpoint (preferred) then summary fallback
-                PiHoleHandler handler = (piholeDns1 != null) ? piholeDns1 : piholeDns2;
-                if (handler != null) currentEnabled = fetchDnsBlockingEnabled(handler);
+                if (piholeDns1 != null) currentEnabled = fetchDnsBlockingEnabled(piholeDns1);
             }
             
             // Toggle: if still unknown, alternate locally so clicks still toggle
@@ -854,7 +818,8 @@ public class WidgetController implements Initializable {
             
             // Apply to all configured instances (best effort)
             if (piholeDns1 != null) piholeDns1.setDnsBlocking(targetEnable, null);
-            if (piholeDns2 != null) piholeDns2.setDnsBlocking(targetEnable, null);
+            // DNS2 support intentionally disabled.
+            // if (piholeDns2 != null) piholeDns2.setDnsBlocking(targetEnable, null);
             
             // Refresh LED/status immediately after change
             inflateActiveData();
@@ -934,17 +899,29 @@ public class WidgetController implements Initializable {
         return new CombinedStats(total, blocked, accepted, percent, domainsBlocked);
     }
     
-    private BlockingState computeBlockingState(PiholeStats stats, Boolean b1, Boolean b2, SummaryStats s1, SummaryStats s2) {
-        if (stats == null || stats.bothInactive()) return BlockingState.UNKNOWN;
-        // If status endpoint failed, fall back to any info we might have found in summary
-        if (b1 == null && stats.isActive1() && s1 != null) b1 = s1.dnsBlockingEnabled();
-        if (b2 == null && stats.isActive2() && s2 != null) b2 = s2.dnsBlockingEnabled();
-        
-        if (b1 == null && b2 == null) return BlockingState.UNKNOWN;
-        if (b1 != null && b2 == null) return b1 ? BlockingState.ENABLED : BlockingState.DISABLED;
-        if (b1 == null) return b2 ? BlockingState.ENABLED : BlockingState.DISABLED;
-        if (b1.equals(b2)) return b1 ? BlockingState.ENABLED : BlockingState.DISABLED;
-        return BlockingState.MIXED;
+    /*
+     * DNS2 support intentionally disabled.
+     * User request: "no need for 2 DNS management, comment all code related to 2 DNSs"
+     *
+     * private BlockingState computeBlockingState(PiholeStats stats, Boolean b1, Boolean b2, SummaryStats s1, SummaryStats s2) {
+     *     if (stats == null || stats.bothInactive()) return BlockingState.UNKNOWN;
+     *     // If status endpoint failed, fall back to any info we might have found in summary
+     *     if (b1 == null && stats.isActive1() && s1 != null) b1 = s1.dnsBlockingEnabled();
+     *     if (b2 == null && stats.isActive2() && s2 != null) b2 = s2.dnsBlockingEnabled();
+     *
+     *     if (b1 == null && b2 == null) return BlockingState.UNKNOWN;
+     *     if (b1 != null && b2 == null) return b1 ? BlockingState.ENABLED : BlockingState.DISABLED;
+     *     if (b1 == null) return b2 ? BlockingState.ENABLED : BlockingState.DISABLED;
+     *     if (b1.equals(b2)) return b1 ? BlockingState.ENABLED : BlockingState.DISABLED;
+     *     return BlockingState.MIXED;
+     * }
+     */
+
+    private BlockingState computeBlockingStateSingle(Boolean enabled, SummaryStats summary) {
+        // If status endpoint failed, fall back to any info we might have found in summary JSON.
+        if (enabled == null && summary != null) enabled = summary.dnsBlockingEnabled();
+        if (enabled == null) return BlockingState.UNKNOWN;
+        return enabled ? BlockingState.ENABLED : BlockingState.DISABLED;
     }
     
     private Boolean fetchDnsBlockingEnabled(PiHoleHandler handler) {
@@ -1216,15 +1193,19 @@ public class WidgetController implements Initializable {
         this.configDNS1 = configDNS1;
     }
     
-    public PiholeConfig getConfigDNS2() {
-        log("getConfigDNS2() - returning: " + formatConfig(configDNS2));
-        return configDNS2;
-    }
-    
-    public void setConfigDNS2(PiholeConfig configDNS2) {
-        log("setConfigDNS2() - setting to: " + formatConfig(configDNS2));
-        this.configDNS2 = configDNS2;
-    }
+    /*
+     * DNS2 support intentionally disabled.
+     *
+     * public PiholeConfig getConfigDNS2() {
+     *     log("getConfigDNS2() - returning: " + formatConfig(configDNS2));
+     *     return configDNS2;
+     * }
+     *
+     * public void setConfigDNS2(PiholeConfig configDNS2) {
+     *     log("setConfigDNS2() - setting to: " + formatConfig(configDNS2));
+     *     this.configDNS2 = configDNS2;
+     * }
+     */
     
     public WidgetConfig getWidgetConfig() {
         log("getWidgetConfig() - returning: " + formatWidgetConfig(widgetConfig));

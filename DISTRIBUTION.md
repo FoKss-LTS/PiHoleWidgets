@@ -34,9 +34,7 @@ This guide provides comprehensive instructions for building and distributing PiH
 
 #### Windows
 - **Windows 10 or later** (64-bit)
-- **WiX Toolset 3.11+** (for MSI installers)
-  - Download from [WiX Toolset](https://wixtoolset.org/releases/)
-  - Add WiX bin directory to PATH
+- *(Portable builds do not require WiX / installer toolchains)*
 - **PowerShell 5.1+** or **PowerShell Core 7+**
 
 #### macOS
@@ -122,17 +120,17 @@ chmod +x build.sh
 # Build the application
 .\gradlew.bat build
 
-# Create MSI installer
-.\gradlew.bat jpackage -PinstallerType=msi
+# Create portable app-image (folder with launcher .exe)
+.\gradlew.bat jpackageImage -PinstallerType=app-image
 ```
 
 #### Output
-- **MSI Installer:** `build/jpackage/PiHole-Widgets-{version}.msi`
-- **Installation Location:** `C:\Users\{username}\AppData\Local\PiHole-Widgets\`
+- **Portable app-image folder:** `build/jpackage/PiHole-Widgets/` (contains `PiHole-Widgets.exe`)
+- **Portable ZIP (from script):** `build/portable/PiHole-Widgets-windows-portable.zip`
 
 #### Distribution Notes
-- MSI installers can be distributed directly
-- No code signing required for personal use
+- Portable ZIP can be distributed directly (unzip and run)
+- No code signing required for personal use (Windows may show SmartScreen for unsigned apps)
 - For public distribution, consider signing with a code signing certificate
 
 ---
@@ -261,8 +259,9 @@ sudo rpm -e pihole-widgets
 
 | Platform | Installer Type | Command |
 |----------|---------------|---------|
-| Windows  | MSI           | `./gradlew jpackage -PinstallerType=msi` |
-| Windows  | EXE           | `./gradlew jpackage -PinstallerType=exe` |
+| Windows  | app-image (portable) | `./gradlew jpackageImage -PinstallerType=app-image` |
+| Windows  | MSI (installer, optional) | `./gradlew jpackage -PinstallerType=msi` |
+| Windows  | EXE (installer, optional) | `./gradlew jpackage -PinstallerType=exe` |
 | macOS    | PKG           | `./gradlew jpackage -PinstallerType=pkg` |
 | macOS    | DMG           | `./gradlew jpackage -PinstallerType=dmg` |
 | Linux    | DEB           | `./gradlew jpackage -PinstallerType=deb` |
@@ -288,7 +287,7 @@ git tag -a v1.5.2 -m "Release version 1.5.2"
 git push origin v1.5.2
 
 # GitHub Actions will automatically:
-# 1. Build Windows MSI
+# 1. Build Windows portable app-image
 # 2. Build macOS PKG
 # 3. Build Linux DEB and RPM
 # 4. Create a GitHub release with all artifacts
@@ -312,13 +311,13 @@ All installers include:
 - Java runtime (bundled)
 - Required JavaFX libraries
 - Application icon
-- Desktop shortcuts (platform-dependent)
-- Start menu entries (Windows)
+- Desktop shortcuts (platform-dependent; Windows installers only)
+- Start menu entries (Windows installers only)
 
 ### Package Sizes
 
 Approximate installer sizes:
-- **Windows MSI:** ~80-100 MB
+- **Windows portable (app-image):** ~80-100 MB
 - **macOS PKG:** ~80-100 MB
 - **Linux DEB/RPM:** ~80-100 MB
 
@@ -330,14 +329,14 @@ Approximate installer sizes:
 
 ### Windows Code Signing
 
-To sign Windows MSI installers:
+To sign the Windows portable launcher executable:
 
 ```powershell
 # Using signtool from Windows SDK
-signtool sign /f certificate.pfx /p password /tr http://timestamp.digicert.com build/jpackage/*.msi
+signtool sign /f certificate.pfx /p password /tr http://timestamp.digicert.com build/jpackage/PiHole-Widgets/*.exe
 
 # With hardware token
-signtool sign /n "Certificate Name" /tr http://timestamp.digicert.com build/jpackage/*.msi
+signtool sign /n "Certificate Name" /tr http://timestamp.digicert.com build/jpackage/PiHole-Widgets/*.exe
 ```
 
 ### macOS Code Signing and Notarization
@@ -407,14 +406,10 @@ setx JAVA_HOME "C:\Program Files\Java\jdk-25"
 export JAVA_HOME=/path/to/jdk-25
 ```
 
-#### "WiX Toolset not found" (Windows)
+#### Windows SmartScreen warning (portable builds)
 
-**Solution:**
-1. Download and install [WiX Toolset](https://wixtoolset.org/releases/)
-2. Add WiX bin directory to PATH:
-   ```powershell
-   $env:PATH += ";C:\Program Files (x86)\WiX Toolset v3.11\bin"
-   ```
+If Windows shows a SmartScreen warning, this is expected for unsigned apps.
+For public distribution, consider code-signing the launcher `.exe` (see [Signing and Notarization](#signing-and-notarization)).
 
 #### Build Directory Lock (Windows)
 

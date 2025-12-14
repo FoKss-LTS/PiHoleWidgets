@@ -91,7 +91,8 @@ jlink {
     options = ['--strip-debug', '--compress', '2', '--no-header-files', '--no-man-pages']
 
     launcher {
-        name = 'Pihole Widget'
+        // Keep launcher name consistent across packaging types (also becomes the Windows .exe name)
+        name = 'PiHole-Widgets'
         jvmArgs = [
             '--enable-native-access=javafx.base,javafx.graphics,javafx.controls,javafx.fxml,javafx.web,javafx.swing'
         ]
@@ -102,7 +103,8 @@ jlink {
 
 
     jpackage {
-        skipInstaller = false
+        // For portable distributions we only want an app-image (no installer)
+        skipInstaller = (installerType == 'app-image')
         installerName = 'PiHole-Widgets'
         appVersion = version.toString().replaceAll('-SNAPSHOT', '')
         
@@ -120,6 +122,8 @@ jlink {
         ]
         
         // Platform-specific configurations
+        def isWindowsPackage = (installerType in ['msi', 'exe', 'app-image'])
+
         if (installerType == 'msi') {
             // Windows MSI installer
             installerOptions += [
@@ -130,7 +134,6 @@ jlink {
                 '--win-shortcut',
                 '--win-upgrade-uuid', 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'  // Consistent UUID for upgrades
             ]
-            imageOptions += ['--icon', 'src/main/resources/media/icons/icon.ico']
         }
         
         if (installerType == 'exe') {
@@ -142,6 +145,14 @@ jlink {
                 '--win-menu-group', 'PiHole Widgets',
                 '--win-shortcut'
             ]
+        }
+
+        if (installerType == 'app-image') {
+            // Portable image (no installer). On Windows this produces a folder with a launcher .exe.
+            // No installerOptions are applicable here.
+        }
+
+        if (isWindowsPackage) {
             imageOptions += ['--icon', 'src/main/resources/media/icons/icon.ico']
         }
         
@@ -196,7 +207,7 @@ jlink {
 
 }
 
-def JLINK_DIR = "$buildDir/jpackage/Pihole Widget"
+def JLINK_DIR = "$buildDir/jpackage/PiHole-Widgets"
 /*
 tasks.jlink.doLast {
 

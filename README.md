@@ -36,8 +36,8 @@ It is developed with JavaFX, and uses the framework TilesFX.
 - Live stats from Pi-hole servers.
 - Modern, customizable widgets.
 - **Cross-platform support:** Windows, macOS, and Linux.
-- **Easy installation:** Native installers for all platforms (MSI, PKG, DEB, RPM).
-- **No Java installation required:** Java runtime bundled with all installers.
+- **Easy distribution:** Portable on Windows + native packages on macOS/Linux (PKG, DEB, RPM).
+- **No Java installation required:** Java runtime bundled with all packages.
 - Great summary of your Pi-hole DNS in one place.
 - Show the last blocked domain.
 - Shows last time gravity was updated.
@@ -49,7 +49,7 @@ It is developed with JavaFX, and uses the framework TilesFX.
 
 | Platform | Installer Type | Minimum Version | Status |
 |----------|---------------|----------------|--------|
-| **Windows** | MSI | Windows 10 (64-bit) | ✅ Fully Supported |
+| **Windows** | Portable EXE (app-image) | Windows 10 (64-bit) | ✅ Fully Supported |
 | **macOS** | PKG | macOS 10.15 (Catalina) | ✅ Fully Supported |
 | **Linux (Debian/Ubuntu)** | DEB | Ubuntu 20.04+ | ✅ Fully Supported |
 | **Linux (Fedora/RHEL)** | RPM | Fedora 35+ | ✅ Fully Supported |
@@ -111,7 +111,7 @@ You can set your Widget size or layout by accessing the Widget configuration pan
 
 Download the latest installer for your platform from the [Releases page](https://github.com/foxy999/PiHoleWidgets/releases):
 
-- **Windows:** Download and run the `.msi` installer
+- **Windows:** Download the Windows portable `.zip`, unzip it, and run `PiHole-Widgets.exe`
 - **macOS:** Download and run the `.pkg` installer
 - **Linux (Debian/Ubuntu):** Download the `.deb` file and install with:
   ```bash
@@ -122,7 +122,7 @@ Download the latest installer for your platform from the [Releases page](https:/
   sudo rpm -i pihole-widgets-*.rpm
   ```
 
-All installers include the Java runtime - no separate Java installation needed!
+All packages include the bundled Java runtime - no separate Java installation needed!
 
 #### Option 2: Build from Source
 
@@ -201,7 +201,7 @@ This project includes comprehensive cross-platform build support:
 
 **🔧 Build Scripts:**
 - `build.ps1` / `build.sh` - Universal build (auto-detects OS)
-- `build-windows.ps1` / `build-windows.bat` - Windows MSI
+- `build-windows.ps1` / `build-windows.bat` - Windows portable (app-image EXE)
 - `build-macos.sh` - macOS PKG
 - `build-linux.sh` - Linux DEB/RPM
 

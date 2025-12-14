@@ -68,42 +68,47 @@
                   </children></AnchorPane>
          </content>
        </TitledPane>
-       <TitledPane disable="true" expanded="false" text="DNS 2 Settings" style="-fx-background-color: #1a1d21; -fx-text-fill: #e0e0e0;">
-         <content>
-           <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0" style="-fx-background-color: #1a1d21;">
-                  <children>
-                     <Label layoutX="30.0" layoutY="25.0" text="Protocol:" textFill="#e0e0e0">
-                        <font>
-                           <Font size="12.0" />
-                        </font>
-                     </Label>
-                     <ComboBox fx:id="ComboBox_Scheme2" layoutX="105.0" layoutY="20.0" prefWidth="80.0" style="-fx-background-color: #2a2d32; -fx-text-fill: #e0e0e0; -fx-control-inner-background: #2a2d32;" />
-                     <Label layoutX="200.0" layoutY="25.0" text="IP Address:" textFill="#e0e0e0">
-                        <font>
-                           <Font size="12.0" />
-                        </font>
-                     </Label>
-                     <TextField fx:id="TF_IP2" layoutX="285.0" layoutY="20.0" prefWidth="200.0" style="-fx-background-color: #2a2d32; -fx-text-fill: #e0e0e0; -fx-border-color: #3a3d42; -fx-border-radius: 3;" promptText="192.168.52.55" />
-                     <Label layoutX="30.0" layoutY="70.0" text="Port:" textFill="#e0e0e0">
-                        <font>
-                           <Font size="12.0" />
-                        </font>
-                     </Label>
-                     <TextField fx:id="TF_Port2" layoutX="105.0" layoutY="65.0" prefHeight="26.0" prefWidth="80.0" text="80" style="-fx-background-color: #2a2d32; -fx-text-fill: #e0e0e0; -fx-border-color: #3a3d42; -fx-border-radius: 3;" />
-                     <Label layoutX="200.0" layoutY="70.0" text="(Default: 80)" textFill="#888888">
-                        <font>
-                           <Font size="10.0" />
-                        </font>
-                     </Label>
-                     <Label layoutX="30.0" layoutY="115.0" text="API Token:" textFill="#e0e0e0">
-                        <font>
-                           <Font size="12.0" />
-                        </font>
-                     </Label>
-                     <TextField fx:id="TG_AUTH2" layoutX="105.0" layoutY="110.0" prefHeight="26.0" prefWidth="477.0" style="-fx-background-color: #2a2d32; -fx-text-fill: #e0e0e0; -fx-border-color: #3a3d42; -fx-border-radius: 3;" promptText="Enter API token" />
-                  </children></AnchorPane>
-         </content>
-       </TitledPane>
+       <!--
+         DNS 2 support intentionally disabled.
+         User request: "no need for 2 DNS management, comment all code related to 2 DNSs"
+
+         <TitledPane disable="true" expanded="false" text="DNS 2 Settings" style="-fx-background-color: #1a1d21; -fx-text-fill: #e0e0e0;">
+           <content>
+             <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0" style="-fx-background-color: #1a1d21;">
+                    <children>
+                       <Label layoutX="30.0" layoutY="25.0" text="Protocol:" textFill="#e0e0e0">
+                          <font>
+                             <Font size="12.0" />
+                          </font>
+                       </Label>
+                       <ComboBox fx:id="ComboBox_Scheme2" layoutX="105.0" layoutY="20.0" prefWidth="80.0" style="-fx-background-color: #2a2d32; -fx-text-fill: #e0e0e0; -fx-control-inner-background: #2a2d32;" />
+                       <Label layoutX="200.0" layoutY="25.0" text="IP Address:" textFill="#e0e0e0">
+                          <font>
+                             <Font size="12.0" />
+                          </font>
+                       </Label>
+                       <TextField fx:id="TF_IP2" layoutX="285.0" layoutY="20.0" prefWidth="200.0" style="-fx-background-color: #2a2d32; -fx-text-fill: #e0e0e0; -fx-border-color: #3a3d42; -fx-border-radius: 3;" promptText="192.168.52.55" />
+                       <Label layoutX="30.0" layoutY="70.0" text="Port:" textFill="#e0e0e0">
+                          <font>
+                             <Font size="12.0" />
+                          </font>
+                       </Label>
+                       <TextField fx:id="TF_Port2" layoutX="105.0" layoutY="65.0" prefHeight="26.0" prefWidth="80.0" text="80" style="-fx-background-color: #2a2d32; -fx-text-fill: #e0e0e0; -fx-border-color: #3a3d42; -fx-border-radius: 3;" />
+                       <Label layoutX="200.0" layoutY="70.0" text="(Default: 80)" textFill="#888888">
+                          <font>
+                             <Font size="10.0" />
+                          </font>
+                       </Label>
+                       <Label layoutX="30.0" layoutY="115.0" text="API Token:" textFill="#e0e0e0">
+                          <font>
+                             <Font size="12.0" />
+                          </font>
+                       </Label>
+                       <TextField fx:id="TG_AUTH2" layoutX="105.0" layoutY="110.0" prefHeight="26.0" prefWidth="477.0" style="-fx-background-color: #2a2d32; -fx-text-fill: #e0e0e0; -fx-border-color: #3a3d42; -fx-border-radius: 3;" promptText="Enter API token" />
+                    </children></AnchorPane>
+           </content>
+         </TitledPane>
+       -->
        <TitledPane text="Widget Settings" style="-fx-background-color: #1a1d21; -fx-text-fill: #e0e0e0;">
          <content>
            <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0" style="-fx-background-color: #1a1d21;">

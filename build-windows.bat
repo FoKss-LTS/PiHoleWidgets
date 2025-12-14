@@ -1,6 +1,6 @@
 @echo off
 REM Quick build script for Windows users
-REM Double-click this file to build the Windows MSI installer
+REM Double-click this file to build the Windows portable app-image (folder with launcher .exe)
 
 echo ============================================
 echo    PiHole Widgets - Windows Build

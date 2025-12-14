@@ -90,14 +90,16 @@ public class ConfigurationController implements Initializable {
     @FXML private TextField tfIp1;
     @FXML private TextField tfPort1;
     @FXML private TextField tfAuth1;
-    @FXML private TextField tfIp2;
-    @FXML private TextField tfPort2;
-    @FXML private TextField tfAuth2;
+    // DNS2 support intentionally disabled.
+    // @FXML private TextField tfIp2;
+    // @FXML private TextField tfPort2;
+    // @FXML private TextField tfAuth2;
     
     @FXML private ComboBox<String> comboBoxSize;
     @FXML private ComboBox<String> comboBoxLayout;
     @FXML private ComboBox<String> comboBoxScheme1;
-    @FXML private ComboBox<String> comboBoxScheme2;
+    // DNS2 support intentionally disabled.
+    // @FXML private ComboBox<String> comboBoxScheme2;
 
     // Legacy FXML field names for backward compatibility with existing FXML
     @FXML private Button button_cancel;
@@ -107,26 +109,28 @@ public class ConfigurationController implements Initializable {
     @FXML private TextField TF_IP1;
     @FXML private TextField TF_Port1;
     @FXML private TextField TF_AUTH1;
-    @FXML private TextField TF_IP2;
-    @FXML private TextField TF_Port2;
-    @FXML private TextField TG_AUTH2;
+    // DNS2 support intentionally disabled.
+    // @FXML private TextField TF_IP2;
+    // @FXML private TextField TF_Port2;
+    // @FXML private TextField TG_AUTH2;
     @FXML private ComboBox<String> ComboBoxSize;
     @FXML private ComboBox<String> ComboBoxLayout;
     @FXML private ComboBox<String> ComboBox_Scheme1;
-    @FXML private ComboBox<String> ComboBox_Scheme2;
+    // DNS2 support intentionally disabled.
+    // @FXML private ComboBox<String> ComboBox_Scheme2;
 
     // ==================== Instance Fields ====================
     
     private PiholeConfig configDNS1;
-    private PiholeConfig configDNS2;
+    // DNS2 support intentionally disabled.
+    // private PiholeConfig configDNS2;
     private WidgetConfig widgetConfig;
     
     // ==================== Constructor ====================
 
-    public ConfigurationController(PiholeConfig configDNS1, PiholeConfig configDNS2, WidgetConfig widgetConfig) {
+    public ConfigurationController(PiholeConfig configDNS1, WidgetConfig widgetConfig) {
         log("ConfigurationController created");
         this.configDNS1 = configDNS1;
-        this.configDNS2 = configDNS2;
         this.widgetConfig = widgetConfig;
     }
     
@@ -176,13 +180,14 @@ public class ConfigurationController implements Initializable {
         if (tfIp1 == null) tfIp1 = TF_IP1;
         if (tfPort1 == null) tfPort1 = TF_Port1;
         if (tfAuth1 == null) tfAuth1 = TF_AUTH1;
-        if (tfIp2 == null) tfIp2 = TF_IP2;
-        if (tfPort2 == null) tfPort2 = TF_Port2;
-        if (tfAuth2 == null) tfAuth2 = TG_AUTH2;
         if (comboBoxSize == null) comboBoxSize = ComboBoxSize;
         if (comboBoxLayout == null) comboBoxLayout = ComboBoxLayout;
         if (comboBoxScheme1 == null) comboBoxScheme1 = ComboBox_Scheme1;
-        if (comboBoxScheme2 == null) comboBoxScheme2 = ComboBox_Scheme2;
+        // DNS2 support intentionally disabled.
+        // if (tfIp2 == null) tfIp2 = TF_IP2;
+        // if (tfPort2 == null) tfPort2 = TF_Port2;
+        // if (tfAuth2 == null) tfAuth2 = TG_AUTH2;
+        // if (comboBoxScheme2 == null) comboBoxScheme2 = ComboBox_Scheme2;
     }
     
     private void initializeComboBoxes() {
@@ -204,13 +209,18 @@ public class ConfigurationController implements Initializable {
             comboBoxScheme1.setValue(DEFAULT_SCHEME);
             applyDarkTheme(comboBoxScheme1);
         }
-        
-        // Scheme options for DNS2
-        if (comboBoxScheme2 != null) {
-            comboBoxScheme2.setItems(FXCollections.observableArrayList(SCHEMES));
-            comboBoxScheme2.setValue(DEFAULT_SCHEME);
-            applyDarkTheme(comboBoxScheme2);
-        }
+
+        /*
+         * DNS2 support intentionally disabled.
+         * User request: "no need for 2 DNS management, comment all code related to 2 DNSs"
+         *
+         * // Scheme options for DNS2
+         * if (comboBoxScheme2 != null) {
+         *     comboBoxScheme2.setItems(FXCollections.observableArrayList(SCHEMES));
+         *     comboBoxScheme2.setValue(DEFAULT_SCHEME);
+         *     applyDarkTheme(comboBoxScheme2);
+         * }
+         */
     }
     
     private void setupButtonActions() {
@@ -294,27 +304,32 @@ public class ConfigurationController implements Initializable {
         
         // Parse ports with default fallback
         int port1 = parsePort(tfPort1);
-        int port2 = parsePort(tfPort2);
+        // DNS2 support intentionally disabled.
+        // int port2 = parsePort(tfPort2);
         
         // Get schemes
         String scheme1 = getSelectedOrDefault(comboBoxScheme1, DEFAULT_SCHEME);
-        String scheme2 = getSelectedOrDefault(comboBoxScheme2, DEFAULT_SCHEME);
+        // DNS2 support intentionally disabled.
+        // String scheme2 = getSelectedOrDefault(comboBoxScheme2, DEFAULT_SCHEME);
         
         // Strip any scheme prefix from IP fields (backward compatibility)
         String ip1 = stripScheme(getTextOrEmpty(tfIp1));
-        String ip2 = stripScheme(getTextOrEmpty(tfIp2));
+        // DNS2 support intentionally disabled.
+        // String ip2 = stripScheme(getTextOrEmpty(tfIp2));
         
         // Get widget settings
         String size = getSelectedOrDefault(comboBoxSize, DEFAULT_SIZE);
         String layout = getSelectedOrDefault(comboBoxLayout, DEFAULT_LAYOUT);
         
         log("Saving - DNS1: " + scheme1 + "://" + ip1 + ":" + port1);
-        log("Saving - DNS2: " + scheme2 + "://" + ip2 + ":" + port2);
+        // DNS2 support intentionally disabled.
+        // log("Saving - DNS2: " + scheme2 + "://" + ip2 + ":" + port2);
         log("Saving - Widget: size=" + size + ", layout=" + layout);
         
         configService.writeConfigFile(
                 scheme1, ip1, port1, getTextOrEmpty(tfAuth1),
-                scheme2, ip2, port2, getTextOrEmpty(tfAuth2),
+                // DNS2 support intentionally disabled - parameters kept for backward compatible signature.
+                DEFAULT_SCHEME, "", DEFAULT_PORT, "",
                 size, layout, true, true, true, 5, 5, 5
         );
         
@@ -329,7 +344,6 @@ public class ConfigurationController implements Initializable {
         configService.readConfiguration();
         
         configDNS1 = configService.getConfigDNS1();
-        configDNS2 = configService.getConfigDNS2();
         widgetConfig = configService.getWidgetConfig();
         
         // Populate DNS1 fields
@@ -345,18 +359,23 @@ public class ConfigurationController implements Initializable {
             setTextFieldValue(tfIp1, "");
         }
         
-        // Populate DNS2 fields
-        if (configDNS2 != null) {
-            log("Loading DNS2: " + configDNS2.getIPAddress());
-            setComboBoxValue(comboBoxScheme2, configDNS2.getScheme(), DEFAULT_SCHEME);
-            setTextFieldValue(tfIp2, configDNS2.getIPAddress());
-            setTextFieldValue(tfPort2, String.valueOf(configDNS2.getPort()));
-            setTextFieldValue(tfAuth2, configDNS2.getAUTH());
-        } else {
-            log("DNS2 config is null, using defaults");
-            setComboBoxValue(comboBoxScheme2, DEFAULT_SCHEME, DEFAULT_SCHEME);
-            setTextFieldValue(tfIp2, "");
-        }
+        /*
+         * DNS2 support intentionally disabled.
+         * User request: "no need for 2 DNS management, comment all code related to 2 DNSs"
+         *
+         * // Populate DNS2 fields
+         * if (configDNS2 != null) {
+         *     log("Loading DNS2: " + configDNS2.getIPAddress());
+         *     setComboBoxValue(comboBoxScheme2, configDNS2.getScheme(), DEFAULT_SCHEME);
+         *     setTextFieldValue(tfIp2, configDNS2.getIPAddress());
+         *     setTextFieldValue(tfPort2, String.valueOf(configDNS2.getPort()));
+         *     setTextFieldValue(tfAuth2, configDNS2.getAUTH());
+         * } else {
+         *     log("DNS2 config is null, using defaults");
+         *     setComboBoxValue(comboBoxScheme2, DEFAULT_SCHEME, DEFAULT_SCHEME);
+         *     setTextFieldValue(tfIp2, "");
+         * }
+         */
         
         // Populate widget settings
         if (widgetConfig != null) {

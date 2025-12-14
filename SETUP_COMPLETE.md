@@ -9,8 +9,8 @@ Your PiHole Widgets application is now **fully configured for cross-platform dis
 ## 📦 What You Can Now Do
 
 ### For End Users
-✅ **Download and install** native packages for:
-- 🪟 Windows (MSI installer)
+✅ **Download and run** packages for:
+- 🪟 Windows (Portable EXE bundle)
 - 🍎 macOS (PKG installer)
 - 🐧 Linux (DEB for Debian/Ubuntu, RPM for Fedora/RHEL)
 
@@ -24,7 +24,7 @@ Your PiHole Widgets application is now **fully configured for cross-platform dis
 ./build.sh               # macOS/Linux
 
 # Platform-specific
-.\build-windows.ps1      # Windows MSI
+.\build-windows.ps1      # Windows portable (app-image)
 ./build-macos.sh         # macOS PKG
 ./build-linux.sh         # Linux DEB/RPM
 ```
@@ -42,7 +42,7 @@ Your PiHole Widgets application is now **fully configured for cross-platform dis
 ```
 build.ps1                   - Universal PowerShell build (auto-detects OS)
 build.sh                    - Universal Bash build (auto-detects OS)
-build-windows.ps1           - Windows MSI builder
+build-windows.ps1           - Windows portable builder (app-image EXE)
 build-windows.bat           - Windows batch wrapper (double-click)
 build-macos.sh              - macOS PKG builder
 build-linux.sh              - Linux DEB/RPM builder
@@ -51,7 +51,7 @@ build-linux.sh              - Linux DEB/RPM builder
 ### 🤖 CI/CD Automation (1 file)
 ```
 .github/workflows/build.yml - GitHub Actions workflow
-  ├── Builds Windows MSI
+  ├── Builds Windows portable app-image
   ├── Builds macOS PKG
   ├── Builds Linux DEB
   ├── Builds Linux RPM
@@ -79,7 +79,7 @@ implementation_plan.md      - Added Phase 3: Cross-Platform Distribution
 ### 1. Multi-Platform Support
 | Platform | Package | Status |
 |----------|---------|--------|
-| Windows 10+ | MSI | ✅ Ready |
+| Windows 10+ | Portable EXE (app-image) | ✅ Ready |
 | macOS 10.15+ | PKG | ✅ Ready |
 | Linux (Debian) | DEB | ✅ Ready |
 | Linux (RedHat) | RPM | ✅ Ready |
@@ -239,7 +239,7 @@ git push origin v1.5.2
 ./gradlew build
 
 # Create installer
-./gradlew jpackage -PinstallerType=msi  # Windows
+./gradlew jpackageImage -PinstallerType=app-image  # Windows portable
 ./gradlew jpackage -PinstallerType=pkg  # macOS
 ./gradlew jpackage -PinstallerType=deb  # Linux Debian
 ./gradlew jpackage -PinstallerType=rpm  # Linux RedHat
@@ -266,7 +266,7 @@ git push origin v1.5.2
 ## 📊 Package Information
 
 ### Package Sizes
-- **Windows MSI:** ~80-100 MB
+- **Windows portable (app-image):** ~80-100 MB
 - **macOS PKG:** ~80-100 MB
 - **Linux DEB:** ~80-100 MB
 - **Linux RPM:** ~80-100 MB
@@ -274,7 +274,7 @@ git push origin v1.5.2
 *Large size due to bundled Java runtime (no dependencies required)*
 
 ### Package Names
-- Windows: `PiHole-Widgets-{version}.msi`
+- Windows: `PiHole-Widgets-windows-portable.zip`
 - macOS: `PiHole-Widgets-{version}.pkg`
 - Linux DEB: `pihole-widgets_{version}_amd64.deb`
 - Linux RPM: `pihole-widgets-{version}.x86_64.rpm`

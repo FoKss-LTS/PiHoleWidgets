@@ -5,19 +5,19 @@
 ### Installation
 
 1. **Download** the installer for your platform:
-   - 🪟 **Windows:** `PiHole-Widgets-{version}.msi`
+   - 🪟 **Windows:** `PiHole-Widgets-windows-portable.zip`
    - 🍎 **macOS:** `PiHole-Widgets-{version}.pkg`
    - 🐧 **Linux (Debian/Ubuntu):** `pihole-widgets_{version}_amd64.deb`
    - 🐧 **Linux (Fedora/RHEL):** `pihole-widgets-{version}.x86_64.rpm`
 
 2. **Install:**
-   - **Windows:** Double-click the MSI file and follow the wizard
+   - **Windows:** Unzip the portable `.zip` and run `PiHole-Widgets.exe`
    - **macOS:** Double-click the PKG file and follow the wizard
    - **Linux (DEB):** `sudo dpkg -i pihole-widgets_*.deb`
    - **Linux (RPM):** `sudo rpm -i pihole-widgets-*.rpm`
 
 3. **Launch** from:
-   - **Windows:** Start Menu > PiHole Widgets
+   - **Windows:** `PiHole-Widgets.exe` (inside the unzipped folder)
    - **macOS:** Applications folder
    - **Linux:** Applications menu
 
@@ -77,7 +77,7 @@ chmod +x build.sh && ./build.sh
 ### Platform-Specific Builds
 
 ```bash
-# Windows MSI
+# Windows portable (app-image)
 .\build-windows.ps1
 
 # macOS PKG
@@ -128,7 +128,7 @@ chmod +x build.sh && ./build.sh
 ./gradlew clean
 
 # Create installer (manual)
-./gradlew jpackage -PinstallerType=msi    # Windows
+./gradlew jpackageImage -PinstallerType=app-image  # Windows portable
 ./gradlew jpackage -PinstallerType=pkg    # macOS
 ./gradlew jpackage -PinstallerType=deb    # Linux (Debian)
 ./gradlew jpackage -PinstallerType=rpm    # Linux (RedHat)
@@ -158,9 +158,6 @@ PiHoleWidgets/
 
 ### "Java not found"
 **Solution:** Install JDK 25 and set `JAVA_HOME`
-
-### Windows: "WiX Toolset not found"
-**Solution:** Install [WiX Toolset](https://wixtoolset.org/releases/) and add to PATH
 
 ### macOS: "App is damaged"
 **Solution:** 

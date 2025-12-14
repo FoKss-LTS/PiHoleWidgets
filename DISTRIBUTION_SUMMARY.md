@@ -15,7 +15,7 @@ PiHole Widgets has been successfully configured for **cross-platform distributio
 - **`build.sh`** - Bash universal script (auto-detects OS)
 
 #### Platform-Specific Scripts
-- **`build-windows.ps1`** - Windows MSI installer builder
+- **`build-windows.ps1`** - Windows portable builder (app-image EXE)
 - **`build-macos.sh`** - macOS PKG installer builder  
 - **`build-linux.sh`** - Linux DEB/RPM package builder
 
@@ -51,7 +51,7 @@ PiHole Widgets has been successfully configured for **cross-platform distributio
 **Improvements:**
 - Unified jpackage configuration
 - Platform-specific installer options:
-  - **Windows:** MSI with upgrade UUID, menu groups, shortcuts
+  - **Windows (optional installers):** MSI/EXE with menu groups, shortcuts
   - **macOS:** PKG/DMG with package identifiers
   - **Linux:** DEB/RPM with proper categories and maintainer info
 - Consistent naming (`PiHole-Widgets`)
@@ -90,7 +90,7 @@ PiHole Widgets has been successfully configured for **cross-platform distributio
 
 | Platform | Installer Type | Min. Version | Status |
 |----------|---------------|--------------|--------|
-| **Windows** | MSI | Win 10 (64-bit) | ✅ Fully Supported |
+| **Windows** | app-image (portable EXE) | Win 10 (64-bit) | ✅ Fully Supported |
 | **Windows** | EXE | Win 10 (64-bit) | ✅ Supported |
 | **macOS** | PKG | macOS 10.15+ | ✅ Fully Supported |
 | **macOS** | DMG | macOS 10.15+ | ✅ Supported |
@@ -124,7 +124,7 @@ PiHole Widgets has been successfully configured for **cross-platform distributio
 
 **Platform-specific builds:**
 ```bash
-# Windows MSI
+# Windows portable (app-image)
 .\build-windows.ps1
 
 # macOS PKG
@@ -161,7 +161,7 @@ PiHole Widgets has been successfully configured for **cross-platform distributio
 ## Distribution Package Details
 
 ### Package Contents
-All installers include:
+All packages include:
 - PiHole Widgets application
 - Java 25 runtime (bundled)
 - JavaFX libraries
@@ -170,12 +170,12 @@ All installers include:
 - Menu entries (platform-specific)
 
 ### Package Sizes
-Approximate sizes: **80-100 MB** per installer
+Approximate sizes: **80-100 MB** per package
 
 *Large size due to bundled Java runtime - ensures zero dependencies for end users*
 
 ### Package Naming
-- **Windows:** `PiHole-Widgets-{version}.msi`
+- **Windows (portable):** `PiHole-Widgets-windows-portable.zip`
 - **macOS:** `PiHole-Widgets-{version}.pkg`
 - **Linux (DEB):** `pihole-widgets_{version}_amd64.deb`
 - **Linux (RPM):** `pihole-widgets-{version}.x86_64.rpm`
@@ -185,12 +185,12 @@ Approximate sizes: **80-100 MB** per installer
 ## Key Features
 
 ✅ **Cross-platform support** - Windows, macOS, Linux  
-✅ **Native installers** - MSI, PKG, DEB, RPM  
+✅ **Native packages** - Windows portable app-image, macOS PKG, Linux DEB/RPM  
 ✅ **Bundled Java runtime** - No separate Java installation needed  
 ✅ **Automated CI/CD** - GitHub Actions builds all platforms  
 ✅ **Easy builds** - Simple build scripts for developers  
 ✅ **Comprehensive docs** - Guides for users and developers  
-✅ **Upgrade support** - Windows MSI with consistent UUID  
+✅ **Upgrade support** - Windows MSI available (optional) with consistent UUID  
 ✅ **Professional packaging** - Icons, shortcuts, menu entries  
 
 ---

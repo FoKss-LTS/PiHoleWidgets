@@ -54,7 +54,9 @@ public class ConfigurationService {
     
     // JSON keys
     private static final String KEY_DNS1 = "DNS1";
-    private static final String KEY_DNS2 = "DNS2";
+    // DNS2 support intentionally disabled.
+    // User request: "no need for 2 DNS management, comment all code related to 2 DNSs"
+    // private static final String KEY_DNS2 = "DNS2";
     private static final String KEY_WIDGET = "Widget";
     private static final String KEY_SCHEME = "Scheme";
     private static final String KEY_IP = "IP";
@@ -67,7 +69,8 @@ public class ConfigurationService {
     private final ObjectMapper objectMapper;
     
     private PiholeConfig configDNS1;
-    private PiholeConfig configDNS2;
+    // DNS2 support intentionally disabled.
+    // private PiholeConfig configDNS2;
     private WidgetConfig widgetConfig;
 
     public ConfigurationService() {
@@ -98,12 +101,14 @@ public class ConfigurationService {
             JsonNode root = objectMapper.readTree(configFilePath.toFile());
             
             configDNS1 = parseDnsConfig(root.get(KEY_DNS1));
-            configDNS2 = parseDnsConfig(root.get(KEY_DNS2));
+            // DNS2 support intentionally disabled.
+            // configDNS2 = parseDnsConfig(root.get(KEY_DNS2));
             widgetConfig = parseWidgetConfig(root.get(KEY_WIDGET));
             
             log("Configuration loaded successfully");
             log("DNS1: " + (configDNS1 != null ? configDNS1.getIPAddress() : "null"));
-            log("DNS2: " + (configDNS2 != null ? configDNS2.getIPAddress() : "null"));
+            // DNS2 support intentionally disabled.
+            // log("DNS2: " + (configDNS2 != null ? configDNS2.getIPAddress() : "null"));
             
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "Failed to read configuration", e);
@@ -187,13 +192,18 @@ public class ConfigurationService {
         dns1Node.put(KEY_AUTH, auth1);
         root.set(KEY_DNS1, dns1Node);
 
-        // DNS2 configuration
-        ObjectNode dns2Node = objectMapper.createObjectNode();
-        dns2Node.put(KEY_SCHEME, scheme2);
-        dns2Node.put(KEY_IP, ip2);
-        dns2Node.put(KEY_PORT, port2);
-        dns2Node.put(KEY_AUTH, auth2);
-        root.set(KEY_DNS2, dns2Node);
+        /*
+         * DNS2 support intentionally disabled.
+         * User request: "no need for 2 DNS management, comment all code related to 2 DNSs"
+         *
+         * // DNS2 configuration
+         * ObjectNode dns2Node = objectMapper.createObjectNode();
+         * dns2Node.put(KEY_SCHEME, scheme2);
+         * dns2Node.put(KEY_IP, ip2);
+         * dns2Node.put(KEY_PORT, port2);
+         * dns2Node.put(KEY_AUTH, auth2);
+         * root.set(KEY_DNS2, dns2Node);
+         */
 
         // Widget configuration
         ObjectNode widgetNode = objectMapper.createObjectNode();
@@ -224,7 +234,9 @@ public class ConfigurationService {
     }
 
     public PiholeConfig getConfigDNS2() {
-        return configDNS2;
+        // DNS2 support intentionally disabled.
+        // return configDNS2;
+        return null;
     }
 
     public WidgetConfig getWidgetConfig() {

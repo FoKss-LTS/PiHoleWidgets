@@ -80,7 +80,6 @@ public class WidgetApplication extends Application {
     // ==================== Static Application State ====================
     
     private static PiholeConfig configDNS1;
-    private static PiholeConfig configDNS2;
     private static WidgetConfig widgetConfig;
     
     private static Parent configurationRoot;
@@ -117,19 +116,18 @@ public class WidgetApplication extends Application {
         configService.readConfiguration();
 
         configDNS1 = configService.getConfigDNS1();
-        configDNS2 = configService.getConfigDNS2();
         widgetConfig = configService.getWidgetConfig();
         log("Configuration loaded - DNS1: " + (configDNS1 != null ? configDNS1.getIPAddress() : "null"));
 
         // Initialize configuration controller and view
-        ConfigurationController configurationController = new ConfigurationController(configDNS1, configDNS2, widgetConfig);
+        ConfigurationController configurationController = new ConfigurationController(configDNS1, widgetConfig);
         FXMLLoader configLoader = new FXMLLoader(getClass().getResource("Configuration.fxml"));
         configLoader.setController(configurationController);
         configurationRoot = configLoader.load();
         log("Configuration view loaded");
 
         // Initialize widget controller and view
-        widgetController = new WidgetController(configDNS1, configDNS2, widgetConfig);
+        widgetController = new WidgetController(configDNS1, widgetConfig);
         FXMLLoader widgetLoader = new FXMLLoader(getClass().getResource("WidgetContainer.fxml"));
         widgetLoader.setController(widgetController);
         Parent widgetRoot = widgetLoader.load();
@@ -172,8 +170,10 @@ public class WidgetApplication extends Application {
     
     private boolean hasValidDnsConfig() {
         boolean dns1Valid = configDNS1 != null && configDNS1.hasValidAddress();
-        boolean dns2Valid = configDNS2 != null && configDNS2.hasValidAddress();
-        return dns1Valid || dns2Valid;
+        // DNS2 support intentionally disabled.
+        // boolean dns2Valid = configDNS2 != null && configDNS2.hasValidAddress();
+        // return dns1Valid || dns2Valid;
+        return dns1Valid;
     }
     
     private void setupDragHandlers(Parent root) {
@@ -219,13 +219,11 @@ public class WidgetApplication extends Application {
         // Reload configuration
         configService.readConfiguration();
         configDNS1 = configService.getConfigDNS1();
-        configDNS2 = configService.getConfigDNS2();
         widgetConfig = configService.getWidgetConfig();
         
         // Update widget controller
         if (widgetController != null) {
             widgetController.setConfigDNS1(configDNS1);
-            widgetController.setConfigDNS2(configDNS2);
             widgetController.setWidgetConfig(widgetConfig);
             widgetController.refreshPihole();
         }

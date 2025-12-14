@@ -1,10 +1,11 @@
 #!/usr/bin/env pwsh
 # Windows Build Script for PiHole Widgets
-# Builds a Windows MSI installer
+# Builds a Windows *portable* app-image (folder with a launcher .exe)
 
 param(
     [switch]$Clean = $false,
-    [switch]$SkipTests = $false
+    [switch]$SkipTests = $false,
+    [bool]$Zip = $true
 )
 
 Write-Host "=== PiHole Widgets - Windows Build ===" -ForegroundColor Cyan
@@ -53,28 +54,54 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "Build successful!" -ForegroundColor Green
 Write-Host ""
 
-# Create jpackage MSI installer
-Write-Host "Creating Windows MSI installer..." -ForegroundColor Yellow
-& .\gradlew.bat jpackage -PinstallerType=msi
+# Create jpackage portable app-image
+Write-Host "Creating Windows portable app-image..." -ForegroundColor Yellow
+& .\gradlew.bat jpackageImage -PinstallerType=app-image
 if ($LASTEXITCODE -ne 0) {
     Write-Host "ERROR: jpackage failed." -ForegroundColor Red
     exit 1
 }
 Write-Host ""
 
-# Find and display the installer location
-$installerPath = Get-ChildItem -Path "build\jpackage" -Filter "*.msi" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+# Find the app-image directory (portable bundle)
+$appImageDir = Get-ChildItem -Path "build\jpackage" -Directory -ErrorAction SilentlyContinue |
+    Sort-Object LastWriteTime -Descending |
+    Select-Object -First 1
 
-if ($installerPath) {
-    Write-Host "=== Build Complete! ===" -ForegroundColor Green
-    Write-Host ""
-    Write-Host "Windows MSI installer created at:" -ForegroundColor Cyan
-    Write-Host "  $($installerPath.FullName)" -ForegroundColor White
-    Write-Host ""
-    Write-Host "You can now distribute this installer to Windows users." -ForegroundColor Yellow
-} else {
-    Write-Host "WARNING: Could not find MSI installer in build output." -ForegroundColor Yellow
+if (-not $appImageDir) {
+    Write-Host "WARNING: Could not find portable app-image directory in build output." -ForegroundColor Yellow
     Write-Host "Check the build/jpackage directory manually." -ForegroundColor Yellow
+    exit 0
+}
+
+# The launcher .exe is at the root of the app-image folder
+$launcherExe = Get-ChildItem -Path $appImageDir.FullName -File -Filter "*.exe" -ErrorAction SilentlyContinue |
+    Sort-Object Length -Descending |
+    Select-Object -First 1
+
+Write-Host "=== Build Complete! ===" -ForegroundColor Green
+Write-Host ""
+Write-Host "Portable app-image folder created at:" -ForegroundColor Cyan
+Write-Host "  $($appImageDir.FullName)" -ForegroundColor White
+
+if ($launcherExe) {
+    Write-Host ""
+    Write-Host "Run the widget using:" -ForegroundColor Cyan
+    Write-Host "  $($launcherExe.FullName)" -ForegroundColor White
+}
+
+if ($Zip) {
+    $portableOutDir = Join-Path -Path "build" -ChildPath "portable"
+    New-Item -ItemType Directory -Force -Path $portableOutDir | Out-Null
+
+    $zipPath = Join-Path -Path $portableOutDir -ChildPath "PiHole-Widgets-windows-portable.zip"
+    if (Test-Path $zipPath) { Remove-Item -Force $zipPath }
+
+    Write-Host ""
+    Write-Host "Creating portable ZIP..." -ForegroundColor Yellow
+    Compress-Archive -Path $appImageDir.FullName -DestinationPath $zipPath -Force
+    Write-Host "Portable ZIP created at:" -ForegroundColor Cyan
+    Write-Host "  $(Resolve-Path $zipPath)" -ForegroundColor White
 }
 
 Write-Host ""
