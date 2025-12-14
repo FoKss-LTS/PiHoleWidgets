@@ -104,11 +104,6 @@
                         </font>
                      </Label>
                      <ComboBox fx:id="ComboBoxTheme" layoutX="93.0" layoutY="113.0" prefWidth="150.0" />
-                     <Label layoutX="260.0" layoutY="118.0" text="(*)" styleClass="label-warning">
-                        <font>
-                           <Font size="12.0" />
-                        </font>
-                     </Label>
                   </children>
                </AnchorPane>
          </content>
