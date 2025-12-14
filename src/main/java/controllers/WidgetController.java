@@ -476,17 +476,13 @@ public class WidgetController implements Initializable {
             CombinedStats combined = combineStats(s1, SummaryStats.inactive());
             
             double adsPercentage = combined.percentBlocked();
-            
-            String gravityUpdate = "";
-            if (piholeDns1 != null) gravityUpdate = piholeDns1.getGravityLastUpdate();
-            String finalGravityUpdate = gravityUpdate == null ? "" : gravityUpdate;
             String statsFetchedText = formatStatsFetchedAt(fetchedAt);
             
             Platform.runLater(() -> {
                 log("inflateFluidData - updating UI...");
                 fluidTile.setValue(adsPercentage);
-                fluidTile.setText(finalGravityUpdate);
-                fluidTile.setTitle("Gravity Status: " + statsFetchedText);
+                fluidTile.setTitle("Widget Version: " + WIDGET_VERSION);
+                fluidTile.setText("Stats fetched at " + statsFetchedText);
                 log("inflateFluidData complete");
             });
         });
@@ -510,16 +506,27 @@ public class WidgetController implements Initializable {
             if (piholeDns1 != null) apiVersion = piholeDns1.getVersion();
             String finalApiVersion = apiVersion == null ? "" : apiVersion;
             
+            String gravityUpdate = "";
+            if (piholeDns1 != null) gravityUpdate = piholeDns1.getGravityLastUpdate();
+            String finalGravityUpdate = gravityUpdate == null ? "" : gravityUpdate;
+            
             Platform.runLater(() -> {
                 log("inflateActiveData - updating UI...");
                 
-                ledTile.setTitle("Widget Version: " + WIDGET_VERSION);
+                var apiTitle = finalApiVersion.isBlank()
+                        ? "API Version: N/A"
+                        : "API Version: " + finalApiVersion;
+                var gravityLabel = finalGravityUpdate.isBlank()
+                        ? "Gravity Last Update: N/A"
+                        : finalGravityUpdate;
+                
+                ledTile.setTitle(apiTitle);
                 ledTile.setDescription((statsJson == null || statsJson.isBlank()) ? "No active Pi-hole" : ipsText);
                 
                 if (statsJson == null || statsJson.isBlank()) {
                     ledTile.setActiveColor(Color.RED);
                     ledTile.setActive(false);
-                    ledTile.setText("API Version: N/A");
+                    ledTile.setText(gravityLabel);
                     ledTile.setTooltipText("No active Pi-hole");
                     return;
                 }
@@ -529,26 +536,26 @@ public class WidgetController implements Initializable {
                     case ENABLED -> {
                         ledTile.setActiveColor(Color.LIGHTGREEN);
                         ledTile.setActive(true);
-                        ledTile.setText("API Version: " + finalApiVersion);
+                        ledTile.setText(gravityLabel);
                         ledTile.setTooltipText("DNS blocking is ENABLED (click LED circle to disable)");
                     }
                     case DISABLED -> {
                         ledTile.setActiveColor(Color.RED);
                         ledTile.setActive(false);
-                        ledTile.setText("API Version: " + finalApiVersion);
+                        ledTile.setText(gravityLabel);
                         ledTile.setTooltipText("DNS blocking is DISABLED (click LED circle to enable)");
                     }
                     case MIXED -> {
                         // DNS2 support intentionally disabled: MIXED state cannot happen with a single instance.
                         ledTile.setActiveColor(Color.ORANGE);
                         ledTile.setActive(true);
-                        ledTile.setText("API Version: " + finalApiVersion);
+                        ledTile.setText(gravityLabel);
                         ledTile.setTooltipText("Click LED circle to toggle DNS blocking");
                     }
                     case UNKNOWN -> {
                         ledTile.setActiveColor(Color.LIGHTGREEN);
                         ledTile.setActive(true);
-                        ledTile.setText("API Version: " + finalApiVersion);
+                        ledTile.setText(gravityLabel);
                         ledTile.setTooltipText("Click LED circle to toggle DNS blocking");
                     }
                 }
@@ -737,8 +744,8 @@ public class WidgetController implements Initializable {
         fluidTile = TileBuilder.create()
                 .skinType(Tile.SkinType.FLUID)
                 .prefSize(tileWidth, tileHeight)
-                .title("Gravity Status")
-                .text("ADS Blocked")
+                .title("Widget Version")
+                .text("Widget Version: " + WIDGET_VERSION)
                 .unit("\u0025")
                 .decimals(0)
                 .barColor(Tile.RED)
@@ -763,7 +770,7 @@ public class WidgetController implements Initializable {
         ledTile = TileBuilder.create()
                 .skinType(Tile.SkinType.LED)
                 .prefSize(tileWidth, tileHeight)
-                .title("Version: ")
+                .title("API Version")
                 .description("Description")
                 .text("Whatever text")
                 .backgroundColor(ThemeManager.getTileBackgroundColor(theme))
@@ -1088,7 +1095,7 @@ public class WidgetController implements Initializable {
                 .leftGraphics(leftGraphics)
                 .middleGraphics(middleGraphics)
                 .rightGraphics(rightGraphics)
-                .text("Gravity")
+                .text("Gravity Status")
                 .backgroundColor(ThemeManager.getTileBackgroundColor(theme))
                 .foregroundColor(ThemeManager.getForegroundColor(theme))
                 .titleColor(ThemeManager.getTitleColor(theme))
