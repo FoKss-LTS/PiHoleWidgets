@@ -1,0 +1,199 @@
+/*
+ * Light Theme Stylesheet for PiHole Widgets
+ */
+
+/* ==================== Root and Base Styling ==================== */
+.root {
+    -fx-base: #f5f5f5;
+    -fx-background: #ffffff;
+    -fx-control-inner-background: #ffffff;
+}
+
+/* ==================== Widget Pane Styling ==================== */
+.widget-root {
+    -fx-background-color: #f8f9fa;
+}
+
+.widget-label {
+    -fx-text-fill: #2c3e50;
+}
+
+.widget-value {
+    -fx-text-fill: #1a1a2e;
+}
+
+.widget-copyright {
+    -fx-text-fill: #6c757d;
+}
+
+/* ==================== TitledPane Styling ==================== */
+.titled-pane > .title {
+    -fx-background-color: #e9ecef;
+    -fx-border-color: #dee2e6;
+    -fx-border-width: 0 0 1 0;
+}
+
+.titled-pane > .title > .text {
+    -fx-fill: #212529;
+}
+
+.titled-pane > .title > .arrow-button {
+    -fx-background-color: transparent;
+}
+
+.titled-pane > .title > .arrow-button > .arrow {
+    -fx-background-color: #495057;
+}
+
+.titled-pane:expanded > .title {
+    -fx-background-color: #dee2e6;
+}
+
+.titled-pane > .content {
+    -fx-background-color: #f8f9fa;
+}
+
+/* ==================== Accordion Styling ==================== */
+.accordion {
+    -fx-background-color: #f8f9fa;
+}
+
+.accordion > .titled-pane > .content {
+    -fx-background-color: #f8f9fa;
+    -fx-border-color: #dee2e6;
+    -fx-border-width: 0 1 1 1;
+}
+
+/* ==================== Label Styling ==================== */
+.label {
+    -fx-text-fill: #212529;
+}
+
+.label-muted {
+    -fx-text-fill: #6c757d;
+}
+
+.label-warning {
+    -fx-text-fill: #dc3545;
+}
+
+/* ==================== TextField Styling ==================== */
+.text-field {
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #212529;
+    -fx-border-color: #ced4da;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+    -fx-prompt-text-fill: #adb5bd;
+}
+
+.text-field:focused {
+    -fx-border-color: #4a9eff;
+}
+
+/* ==================== ComboBox Styling ==================== */
+.combo-box {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #ced4da;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+}
+
+.combo-box .list-cell {
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #212529;
+}
+
+.combo-box-popup .list-view {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #ced4da;
+}
+
+.combo-box-popup .list-view .list-cell {
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #212529;
+}
+
+.combo-box-popup .list-view .list-cell:hover {
+    -fx-background-color: #e9ecef;
+}
+
+.combo-box-popup .list-view .list-cell:selected {
+    -fx-background-color: #4a9eff;
+    -fx-text-fill: white;
+}
+
+/* ==================== Button Styling ==================== */
+.button {
+    -fx-background-color: #e9ecef;
+    -fx-text-fill: #212529;
+    -fx-border-color: #ced4da;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+    -fx-padding: 8 16 8 16;
+}
+
+.button:hover {
+    -fx-background-color: #dee2e6;
+}
+
+.btn-primary {
+    -fx-background-color: #4a9eff;
+    -fx-text-fill: white;
+    -fx-border-color: transparent;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+    -fx-padding: 8 16 8 16;
+}
+
+.btn-primary:hover {
+    -fx-background-color: #3a8eef;
+}
+
+.btn-secondary {
+    -fx-background-color: #6c757d;
+    -fx-text-fill: white;
+    -fx-border-color: transparent;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+    -fx-padding: 8 16 8 16;
+}
+
+.btn-secondary:hover {
+    -fx-background-color: #5c656d;
+}
+
+.btn-success {
+    -fx-background-color: #28a745;
+    -fx-text-fill: white;
+    -fx-border-color: transparent;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+    -fx-padding: 8 16 8 16;
+}
+
+.btn-success:hover {
+    -fx-background-color: #218838;
+}
+
+.btn-danger {
+    -fx-background-color: #dc3545;
+    -fx-text-fill: white;
+    -fx-border-color: transparent;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+    -fx-padding: 8 16 8 16;
+}
+
+.btn-danger:hover {
+    -fx-background-color: #c82333;
+}
+
+/* ==================== Pane Backgrounds ==================== */
+.config-root {
+    -fx-background-color: #f8f9fa;
+}
+
+.config-content {
+    -fx-background-color: #ffffff;
+}

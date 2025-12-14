@@ -26,7 +26,6 @@ import javafx.fxml.Initializable;
 import javafx.scene.control.Accordion;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
-import javafx.scene.control.ListCell;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TitledPane;
 import services.configuration.ConfigurationService;
@@ -51,21 +50,14 @@ public class ConfigurationController implements Initializable {
     private static final List<String> SIZES = List.of("Small", "Medium", "Large", "XXL", "Full Screen");
     private static final List<String> LAYOUTS = List.of("Horizontal", "Square");
     private static final List<String> SCHEMES = List.of("http", "https");
+    private static final List<String> THEMES = List.of("Dark", "Light");
     
     private static final String DEFAULT_SCHEME = "http";
     private static final String DEFAULT_SIZE = "Medium";
     private static final String DEFAULT_LAYOUT = "Square";
+    private static final String DEFAULT_THEME = "Dark";
     private static final int DEFAULT_PORT = 80;
     
-    // Dark theme styling
-    private static final String DARK_COMBO_STYLE = 
-            "-fx-background-color: #2a2d32; " +
-            "-fx-text-fill: #e0e0e0; " +
-            "-fx-control-inner-background: #2a2d32; " +
-            "-fx-prompt-text-fill: #888888;";
-    
-    private static final String DARK_CELL_STYLE = 
-            "-fx-background-color: #2a2d32; -fx-text-fill: #e0e0e0;";
     
     // Button styles
     private static final String APPLY_BTN_NORMAL = "-fx-background-color: #4a9eff; -fx-text-fill: white; -fx-background-radius: 5; -fx-padding: 8 16 8 16;";
@@ -97,6 +89,7 @@ public class ConfigurationController implements Initializable {
     
     @FXML private ComboBox<String> comboBoxSize;
     @FXML private ComboBox<String> comboBoxLayout;
+    @FXML private ComboBox<String> comboBoxTheme;
     @FXML private ComboBox<String> comboBoxScheme1;
     // DNS2 support intentionally disabled.
     // @FXML private ComboBox<String> comboBoxScheme2;
@@ -115,6 +108,7 @@ public class ConfigurationController implements Initializable {
     // @FXML private TextField TG_AUTH2;
     @FXML private ComboBox<String> ComboBoxSize;
     @FXML private ComboBox<String> ComboBoxLayout;
+    @FXML private ComboBox<String> ComboBoxTheme;
     @FXML private ComboBox<String> ComboBox_Scheme1;
     // DNS2 support intentionally disabled.
     // @FXML private ComboBox<String> ComboBox_Scheme2;
@@ -182,6 +176,7 @@ public class ConfigurationController implements Initializable {
         if (tfAuth1 == null) tfAuth1 = TF_AUTH1;
         if (comboBoxSize == null) comboBoxSize = ComboBoxSize;
         if (comboBoxLayout == null) comboBoxLayout = ComboBoxLayout;
+        if (comboBoxTheme == null) comboBoxTheme = ComboBoxTheme;
         if (comboBoxScheme1 == null) comboBoxScheme1 = ComboBox_Scheme1;
         // DNS2 support intentionally disabled.
         // if (tfIp2 == null) tfIp2 = TF_IP2;
@@ -194,20 +189,23 @@ public class ConfigurationController implements Initializable {
         // Size options
         if (comboBoxSize != null) {
             comboBoxSize.setItems(FXCollections.observableArrayList(SIZES));
-            applyDarkTheme(comboBoxSize);
         }
         
         // Layout options
         if (comboBoxLayout != null) {
             comboBoxLayout.setItems(FXCollections.observableArrayList(LAYOUTS));
-            applyDarkTheme(comboBoxLayout);
+        }
+        
+        // Theme options
+        if (comboBoxTheme != null) {
+            comboBoxTheme.setItems(FXCollections.observableArrayList(THEMES));
+            comboBoxTheme.setValue(DEFAULT_THEME);
         }
         
         // Scheme options for DNS1
         if (comboBoxScheme1 != null) {
             comboBoxScheme1.setItems(FXCollections.observableArrayList(SCHEMES));
             comboBoxScheme1.setValue(DEFAULT_SCHEME);
-            applyDarkTheme(comboBoxScheme1);
         }
 
         /*
@@ -268,31 +266,6 @@ public class ConfigurationController implements Initializable {
         }
     }
 
-    private void applyDarkTheme(ComboBox<String> comboBox) {
-        if (comboBox == null) return;
-        
-        comboBox.setStyle(DARK_COMBO_STYLE);
-        
-        // Cell factory for dropdown items
-        comboBox.setCellFactory(_ -> new ListCell<>() {
-            @Override
-            protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                setText(empty || item == null ? null : item);
-                setStyle(DARK_CELL_STYLE);
-            }
-        });
-        
-        // Button cell for selected item display
-        comboBox.setButtonCell(new ListCell<>() {
-            @Override
-            protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                setText(empty || item == null ? null : item);
-                setStyle(DARK_CELL_STYLE);
-            }
-        });
-    }
 
     // ==================== Configuration Management ====================
 
@@ -320,17 +293,18 @@ public class ConfigurationController implements Initializable {
         // Get widget settings
         String size = getSelectedOrDefault(comboBoxSize, DEFAULT_SIZE);
         String layout = getSelectedOrDefault(comboBoxLayout, DEFAULT_LAYOUT);
+        String theme = getSelectedOrDefault(comboBoxTheme, DEFAULT_THEME);
         
         log("Saving - DNS1: " + scheme1 + "://" + ip1 + ":" + port1);
         // DNS2 support intentionally disabled.
         // log("Saving - DNS2: " + scheme2 + "://" + ip2 + ":" + port2);
-        log("Saving - Widget: size=" + size + ", layout=" + layout);
+        log("Saving - Widget: size=" + size + ", layout=" + layout + ", theme=" + theme);
         
         configService.writeConfigFile(
                 scheme1, ip1, port1, getTextOrEmpty(tfAuth1),
                 // DNS2 support intentionally disabled - parameters kept for backward compatible signature.
                 DEFAULT_SCHEME, "", DEFAULT_PORT, "",
-                size, layout, true, true, true, 5, 5, 5
+                size, layout, theme, true, true, true, 5, 5, 5
         );
         
         log("Configuration saved");
@@ -379,9 +353,10 @@ public class ConfigurationController implements Initializable {
         
         // Populate widget settings
         if (widgetConfig != null) {
-            log("Loading widget config: size=" + widgetConfig.getSize() + ", layout=" + widgetConfig.getLayout());
+            log("Loading widget config: size=" + widgetConfig.getSize() + ", layout=" + widgetConfig.getLayout() + ", theme=" + widgetConfig.getTheme());
             setComboBoxValue(comboBoxSize, widgetConfig.getSize(), DEFAULT_SIZE);
             setComboBoxValue(comboBoxLayout, widgetConfig.getLayout(), DEFAULT_LAYOUT);
+            setComboBoxValue(comboBoxTheme, widgetConfig.getTheme(), DEFAULT_THEME);
         }
         
         log("Configuration loaded");

@@ -20,6 +20,7 @@ package controllers;
 
 import domain.configuration.PiholeConfig;
 import domain.configuration.WidgetConfig;
+import helpers.ThemeManager;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
@@ -136,6 +137,11 @@ public class WidgetApplication extends Application {
         // Create widget scene
         Scene widgetScene = new Scene(widgetController.getGridPane());
         
+        // Apply theme to widget scene
+        String theme = widgetConfig != null ? widgetConfig.getTheme() : ThemeManager.DEFAULT_THEME;
+        ThemeManager.applyTheme(widgetScene, theme);
+        log("Applied theme: " + theme);
+        
         // Setup drag handlers for widget
         setupDragHandlers(widgetRoot);
         
@@ -154,6 +160,7 @@ public class WidgetApplication extends Application {
 
         // Setup and show configuration stage (initially hidden)
         Scene configScene = new Scene(configurationRoot);
+        ThemeManager.applyTheme(configScene, theme);
         configurationStage.setScene(configScene);
         configurationStage.setOpacity(0);
         configurationStage.setAlwaysOnTop(true);
@@ -221,14 +228,24 @@ public class WidgetApplication extends Application {
         configDNS1 = configService.getConfigDNS1();
         widgetConfig = configService.getWidgetConfig();
         
+        // Apply theme to both scenes
+        String theme = widgetConfig != null ? widgetConfig.getTheme() : ThemeManager.DEFAULT_THEME;
+        if (widgetStage != null && widgetStage.getScene() != null) {
+            ThemeManager.applyTheme(widgetStage.getScene(), theme);
+        }
+        if (configurationStage != null && configurationStage.getScene() != null) {
+            ThemeManager.applyTheme(configurationStage.getScene(), theme);
+        }
+        
         // Update widget controller
         if (widgetController != null) {
             widgetController.setConfigDNS1(configDNS1);
             widgetController.setWidgetConfig(widgetConfig);
             widgetController.refreshPihole();
+            widgetController.applyTheme(theme);
         }
         
-        log("Configuration applied");
+        log("Configuration applied with theme: " + theme);
     }
 
     public static void closeConfigurationWindow() {

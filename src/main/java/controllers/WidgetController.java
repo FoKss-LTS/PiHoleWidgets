@@ -27,6 +27,7 @@ import eu.hansolo.tilesfx.TileBuilder;
 import eu.hansolo.tilesfx.addons.Indicator;
 import eu.hansolo.tilesfx.tools.FlowGridPane;
 import helpers.HelperService;
+import helpers.ThemeManager;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -303,9 +304,13 @@ public class WidgetController implements Initializable {
         gridPane.setAlignment(Pos.CENTER);
         gridPane.setCenterShape(true);
         gridPane.setPadding(new Insets(5));
-        gridPane.setBackground(new Background(new BackgroundFill(Color.web("#101214"), CornerRadii.EMPTY, Insets.EMPTY)));
         
-        log("FlowGridPane created with background color #101214");
+        // Apply theme-aware background color
+        String theme = widgetConfig != null ? widgetConfig.getTheme() : ThemeManager.DEFAULT_THEME;
+        Color bgColor = ThemeManager.getBackgroundColor(theme);
+        gridPane.setBackground(new Background(new BackgroundFill(bgColor, CornerRadii.EMPTY, Insets.EMPTY)));
+        
+        log("FlowGridPane created with theme: " + theme);
     }
     
     // ==================== Scheduler Management ====================
@@ -1215,5 +1220,27 @@ public class WidgetController implements Initializable {
     public void setWidgetConfig(WidgetConfig widgetConfig) {
         log("setWidgetConfig() - setting to: " + formatWidgetConfig(widgetConfig));
         this.widgetConfig = widgetConfig;
+    }
+    
+    /**
+     * Applies the specified theme to the widget.
+     * Updates background colors and other theme-specific styling.
+     *
+     * @param theme the theme name (Dark or Light)
+     */
+    public void applyTheme(String theme) {
+        log("applyTheme() - applying theme: " + theme);
+        
+        if (gridPane != null) {
+            Color bgColor = ThemeManager.getBackgroundColor(theme);
+            gridPane.setBackground(new Background(new BackgroundFill(bgColor, CornerRadii.EMPTY, Insets.EMPTY)));
+            log("Grid pane background updated for theme: " + theme);
+        }
+        
+        // Update copyright label color
+        if (dakLabel != null) {
+            Color textColor = ThemeManager.getMutedTextColor(theme);
+            dakLabel.setTextFill(textColor);
+        }
     }
 }

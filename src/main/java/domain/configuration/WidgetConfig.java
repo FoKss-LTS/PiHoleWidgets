@@ -23,6 +23,7 @@ package domain.configuration;
  *
  * @param size the widget size (Small, Medium, Large, XXL, Full Screen)
  * @param layout the widget layout (Horizontal, Square)
+ * @param theme the UI theme (Dark, Light)
  * @param showLive whether to show live data tile
  * @param showStatus whether to show status tile
  * @param showFluid whether to show fluid percentage tile
@@ -33,6 +34,7 @@ package domain.configuration;
 public record WidgetConfig(
         String size,
         String layout,
+        String theme,
         boolean showLive,
         boolean showStatus,
         boolean showFluid,
@@ -44,6 +46,7 @@ public record WidgetConfig(
     // Default values
     public static final String DEFAULT_SIZE = "Medium";
     public static final String DEFAULT_LAYOUT = "Square";
+    public static final String DEFAULT_THEME = "Dark";
     public static final int DEFAULT_UPDATE_INTERVAL = 5;
     
     /**
@@ -55,6 +58,9 @@ public record WidgetConfig(
         }
         if (layout == null || layout.isBlank()) {
             layout = DEFAULT_LAYOUT;
+        }
+        if (theme == null || theme.isBlank()) {
+            theme = DEFAULT_THEME;
         }
         if (updateStatusSec <= 0) {
             updateStatusSec = DEFAULT_UPDATE_INTERVAL;
@@ -71,7 +77,15 @@ public record WidgetConfig(
      * Creates a WidgetConfig with default values for display options and intervals.
      */
     public WidgetConfig(String size, String layout) {
-        this(size, layout, true, true, true, 
+        this(size, layout, DEFAULT_THEME, true, true, true, 
+             DEFAULT_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL);
+    }
+    
+    /**
+     * Creates a WidgetConfig with size, layout, and theme.
+     */
+    public WidgetConfig(String size, String layout, String theme) {
+        this(size, layout, theme, true, true, true, 
              DEFAULT_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL);
     }
     
@@ -79,7 +93,7 @@ public record WidgetConfig(
      * Creates a default WidgetConfig.
      */
     public static WidgetConfig defaultConfig() {
-        return new WidgetConfig(DEFAULT_SIZE, DEFAULT_LAYOUT);
+        return new WidgetConfig(DEFAULT_SIZE, DEFAULT_LAYOUT, DEFAULT_THEME);
     }
     
     // Legacy getter methods for backward compatibility
@@ -90,6 +104,10 @@ public record WidgetConfig(
     
     public String getLayout() {
         return layout;
+    }
+    
+    public String getTheme() {
+        return theme;
     }
     
     public boolean isShow_live() {

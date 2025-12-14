@@ -64,6 +64,8 @@ public class ConfigurationService {
     private static final String KEY_AUTH = "Authentication Token";
     private static final String KEY_SIZE = "Size";
     private static final String KEY_LAYOUT = "Layout";
+    private static final String KEY_THEME = "Theme";
+    private static final String DEFAULT_THEME = "Dark";
     
     private final Path configFilePath;
     private final ObjectMapper objectMapper;
@@ -135,8 +137,9 @@ public class ConfigurationService {
         
         String size = getTextOrDefault(node, KEY_SIZE, DEFAULT_SIZE);
         String layout = getTextOrDefault(node, KEY_LAYOUT, DEFAULT_LAYOUT);
+        String theme = getTextOrDefault(node, KEY_THEME, DEFAULT_THEME);
         
-        return new WidgetConfig(size, layout);
+        return new WidgetConfig(size, layout, theme);
     }
     
     private String getTextOrDefault(JsonNode node, String key, String defaultValue) {
@@ -165,7 +168,7 @@ public class ConfigurationService {
         return writeConfigFile(
                 DEFAULT_SCHEME, DEFAULT_IP, DEFAULT_PORT, "",
                 DEFAULT_SCHEME, "", DEFAULT_PORT, "",
-                DEFAULT_SIZE, DEFAULT_LAYOUT,
+                DEFAULT_SIZE, DEFAULT_LAYOUT, DEFAULT_THEME,
                 true, true, true, 5, 5, 5
         );
     }
@@ -176,7 +179,7 @@ public class ConfigurationService {
     public boolean writeConfigFile(
             String scheme1, String ip1, int port1, String auth1,
             String scheme2, String ip2, int port2, String auth2,
-            String size, String layout,
+            String size, String layout, String theme,
             boolean showLive, boolean showStatus, boolean showFluid,
             int updateStatusSec, int updateFluidSec, int updateActiveSec) {
         
@@ -209,6 +212,7 @@ public class ConfigurationService {
         ObjectNode widgetNode = objectMapper.createObjectNode();
         widgetNode.put(KEY_SIZE, size);
         widgetNode.put(KEY_LAYOUT, layout);
+        widgetNode.put(KEY_THEME, theme != null ? theme : DEFAULT_THEME);
         root.set(KEY_WIDGET, widgetNode);
 
         try {
