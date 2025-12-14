@@ -29,7 +29,7 @@
   ~
   -->
 
-<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="311.0" prefWidth="650.0" style="-fx-background-color: #101214;" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1">
+<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="311.0" prefWidth="650.0" style="-fx-background-color: #101214;" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1">
    <Accordion fx:id="accord" prefHeight="264.0" prefWidth="650.0" style="-fx-background-color: #1a1d21;">
      <panes>
        <TitledPane fx:id="dns1TitledPane" text="DNS 1 Settings" style="-fx-background-color: #1a1d21; -fx-text-fill: #e0e0e0;">
