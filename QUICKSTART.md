@@ -52,7 +52,7 @@
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/foxy999/PiHoleWidgets.git
+git clone https://github.com/FoKss-LTS/PiHoleWidgets.git
 cd PiHoleWidgets
 ```
 
@@ -173,8 +173,8 @@ sudo dnf install pihole-widgets
 
 - 📖 **Full Documentation:** [README.md](README.md)
 - 🔧 **Build Guide:** [DISTRIBUTION.md](DISTRIBUTION.md)
-- 🐛 **Issue Tracker:** [GitHub Issues](https://github.com/foxy999/PiHoleWidgets/issues)
-- 📦 **Releases:** [GitHub Releases](https://github.com/foxy999/PiHoleWidgets/releases)
+- 🐛 **Issue Tracker:** [GitHub Issues](https://github.com/FoKss-LTS/PiHoleWidgets/issues)
+- 📦 **Releases:** [GitHub Releases](https://github.com/FoKss-LTS/PiHoleWidgets/releases)
 
 ---
 

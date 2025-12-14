@@ -149,7 +149,7 @@ GitHub Actions will automatically:
 ## Support
 
 For issues or questions:
-- **GitHub Issues:** https://github.com/foxy999/PiHoleWidgets/issues
+- **GitHub Issues:** https://github.com/FoKss-LTS/PiHoleWidgets/issues
 - **Build problems:** See [DISTRIBUTION.md](DISTRIBUTION.md#troubleshooting)
 - **Quick help:** See [QUICKSTART.md](QUICKSTART.md#troubleshooting)
 
@@ -158,7 +158,7 @@ For issues or questions:
 ## License
 
 GNU General Public License v3.0  
-Copyright (C) 2022-2025 Reda ELFARISSI aka foxy999
+Copyright (C) 2022-2025 Reda ELFARISSI aka FoKss-LTS
 
 ---
 

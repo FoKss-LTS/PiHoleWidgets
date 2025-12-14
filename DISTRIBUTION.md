@@ -65,7 +65,7 @@ All builds are done through Gradle. No additional wrapper scripts are needed.
 
 ```bash
 # Clone the repository
-git clone https://github.com/foxy999/PiHoleWidgets.git
+git clone https://github.com/FoKss-LTS/PiHoleWidgets.git
 cd PiHoleWidgets
 
 # Build and test
@@ -407,7 +407,7 @@ sudo dnf install rpm-build
 ### Getting Help
 
 If you encounter issues:
-1. Check the [GitHub Issues](https://github.com/foxy999/PiHoleWidgets/issues)
+1. Check the [GitHub Issues](https://github.com/FoKss-LTS/PiHoleWidgets/issues)
 2. Review build logs in `build/` directory
 3. Enable verbose logging: `./gradlew --info build`
 4. Open a new issue with:
@@ -423,7 +423,7 @@ If you encounter issues:
 - [Gradle Documentation](https://docs.gradle.org/)
 - [jpackage Guide](https://docs.oracle.com/en/java/javase/25/jpackage/)
 - [JavaFX Documentation](https://openjfx.io/)
-- [Project Repository](https://github.com/foxy999/PiHoleWidgets)
+- [Project Repository](https://github.com/FoKss-LTS/PiHoleWidgets)
 
 ---
 

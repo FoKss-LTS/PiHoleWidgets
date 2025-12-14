@@ -113,7 +113,7 @@ jlink {
         installerOptions = [
                 '--description', project.description,
                 '--vendor', 'Reda ELFARISSI',
-                '--copyright', 'Copyright (C) 2022-2025 Reda ELFARISSI aka foxy999',
+                '--copyright', 'Copyright (C) 2022-2025 Reda ELFARISSI aka FoKss-LTS',
                 '--license-file', 'LICENCE'
         ]
         
@@ -160,7 +160,7 @@ jlink {
         if (installerType == 'pkg') {
             // macOS PKG installer
             installerOptions += [
-                '--mac-package-identifier', 'com.foxy999.piholewidgets',
+                '--mac-package-identifier', 'com.FoKss-LTS.piholewidgets',
                 '--mac-package-name', 'PiHole Widgets'
             ]
             // Uncomment when icon is available in .icns format
@@ -170,7 +170,7 @@ jlink {
         if (installerType == 'dmg') {
             // macOS DMG installer (alternative to PKG)
             installerOptions += [
-                '--mac-package-identifier', 'com.foxy999.piholewidgets',
+                '--mac-package-identifier', 'com.FoKss-LTS.piholewidgets',
                 '--mac-package-name', 'PiHole Widgets'
             ]
             // Uncomment when icon is available in .icns format

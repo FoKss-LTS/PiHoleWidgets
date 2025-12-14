@@ -122,14 +122,14 @@ implementation_plan.md      - Added Phase 3: Cross-Platform Distribution
 ### For End Users
 
 **Option 1: Download installer** (when available)
-1. Go to [GitHub Releases](https://github.com/foxy999/PiHoleWidgets/releases)
+1. Go to [GitHub Releases](https://github.com/FoKss-LTS/PiHoleWidgets/releases)
 2. Download for your platform
 3. Install and run
 
 **Option 2: Build from source**
 ```bash
 # Clone repository
-git clone https://github.com/foxy999/PiHoleWidgets.git
+git clone https://github.com/FoKss-LTS/PiHoleWidgets.git
 cd PiHoleWidgets
 
 # Build (Windows)
@@ -288,9 +288,9 @@ git push origin v1.5.2
 
 ## 🔗 Resources
 
-- **Repository:** https://github.com/foxy999/PiHoleWidgets
-- **Issues:** https://github.com/foxy999/PiHoleWidgets/issues
-- **Releases:** https://github.com/foxy999/PiHoleWidgets/releases
+- **Repository:** https://github.com/FoKss-LTS/PiHoleWidgets
+- **Issues:** https://github.com/FoKss-LTS/PiHoleWidgets/issues
+- **Releases:** https://github.com/FoKss-LTS/PiHoleWidgets/releases
 
 ---
 
@@ -299,7 +299,7 @@ git push origin v1.5.2
 Need help?
 1. Check **[QUICKSTART.md](QUICKSTART.md#troubleshooting)**
 2. Review **[DISTRIBUTION.md](DISTRIBUTION.md#troubleshooting)**
-3. Search **[GitHub Issues](https://github.com/foxy999/PiHoleWidgets/issues)**
+3. Search **[GitHub Issues](https://github.com/FoKss-LTS/PiHoleWidgets/issues)**
 4. Open a new issue with details
 
 ---
@@ -307,7 +307,7 @@ Need help?
 ## 📜 License
 
 GNU General Public License v3.0  
-Copyright (C) 2022-2025 Reda ELFARISSI aka foxy999
+Copyright (C) 2022-2025 Reda ELFARISSI aka FoKss-LTS
 
 ---
 

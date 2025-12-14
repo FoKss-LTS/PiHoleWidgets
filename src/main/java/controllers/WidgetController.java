@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 2022.  Reda ELFARISSI aka foxy999
+ *  Copyright (C) 2022 - 2025.  Reda ELFARISSI aka FoKss-LTS
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -283,7 +283,7 @@ public class WidgetController implements Initializable {
     }
     
     private void setupCopyrightLabel() {
-        String copyright = "Copyright (C) " + Year.now().getValue() + ".  Reda ELFARISSI aka foxy999";
+        String copyright = "Copyright (C) " + Year.now().getValue() + ".  Reda ELFARISSI aka FoKss-LTS";
         dakLabel.setText(copyright);
         dakLabel.setLayoutX(tileWidth + 1);
         dakLabel.setLayoutY((tileHeight * 2) - 15);
@@ -1113,7 +1113,7 @@ public class WidgetController implements Initializable {
         dataTable.setAlignment(Pos.CENTER_LEFT);
         log("initCustomTile() - DataTable VBox created");
         
-        String copyright = "Copyright (C) " + Year.now().getValue() + ".  Reda ELFARISSI aka foxy999";
+        String copyright = "Copyright (C) " + Year.now().getValue() + ".  Reda ELFARISSI aka FoKss-LTS";
         
         topXTile = TileBuilder.create()
                 .skinType(Tile.SkinType.CUSTOM)
