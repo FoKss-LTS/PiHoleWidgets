@@ -24,6 +24,24 @@ This file tracks planned work and what has been implemented.
 - ✅ Documentation for building/distribution (`DISTRIBUTION.md`, `QUICKSTART.md`, README updates)
 - ✅ GitHub Actions CI/CD workflow
 
+### Phase 4 — Themes & UI Enhancements
+- ✅ Dark theme (`dark-theme.css`)
+- ✅ Light theme (`light-theme.css`)
+- ✅ ThemeManager for dynamic theme switching
+- ✅ Theme selection in configuration UI
+
+### Phase 5 — System Tray Integration
+- ✅ System tray icon with popup menu
+- ✅ Hide to tray functionality
+- ✅ Show/restore from tray (double-click or menu)
+- ✅ Tray context menu (Show, Hide, Settings, Exit)
+
+### Phase 6 — Pi-hole Control Features
+- ✅ Enable/Disable DNS blocking from widget
+- ✅ DNS blocking status indicator (LED tile)
+- ✅ Refresh All Now context menu option
+- ✅ HTTP/HTTPS protocol support
+
 ### Build Commands Reference
 ```bash
 # Development
@@ -38,8 +56,7 @@ This file tracks planned work and what has been implemented.
 ```
 
 ## Backlog (Future Ideas)
-- Multiple Pi-hole support
-- Themes
-- Tray support
-- Enable/disable Pi-hole from widget
+- Multiple Pi-hole support (intentionally disabled per user request)
+- Additional themes and color schemes
+- Custom update intervals in UI
 

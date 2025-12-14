@@ -33,17 +33,33 @@ It is developed with JavaFX, and uses the framework TilesFX.
 
 ### <ins>Features</ins>
 
-- Live stats from Pi-hole servers.
-- Modern, customizable widgets.
-- **Cross-platform support:** Windows, macOS, and Linux.
-- **Easy distribution:** Portable on Windows + native packages on macOS/Linux (PKG, DEB, RPM).
-- **No Java installation required:** Java runtime bundled with all packages.
-- Great summary of your Pi-hole DNS in one place.
-- Show the last blocked domain.
-- Shows last time gravity was updated.
-- Change visual aspects of the widget.
-- Adjustable widget size to fit your needs.
-- Simple configuration interface.
+#### Core Features
+- **Live stats from Pi-hole servers** - Real-time monitoring of your Pi-hole DNS.
+- **Modern, customizable widgets** - Beautiful TilesFX-based interface.
+- **Great summary** - All your Pi-hole DNS stats in one place.
+- **Last blocked domain** - See what was blocked most recently.
+- **Gravity update status** - Shows when gravity was last updated.
+
+#### Themes & Customization
+- **Dark and Light themes** - Switch between elegant dark mode and clean light mode.
+- **Adjustable widget sizes** - Small, Medium, Large, XXL, or Full Screen.
+- **Multiple layouts** - Choose between Horizontal and Square layouts.
+- **Simple configuration interface** - Easy right-click access to settings.
+
+#### System Tray Integration
+- **Hide to tray** - Minimize the widget to system tray for a clean desktop.
+- **Tray context menu** - Quick access to Show, Hide, Settings, and Exit.
+- **Double-click to restore** - Easily bring back the widget from tray.
+
+#### Pi-hole Control
+- **Enable/Disable Pi-hole** - Toggle DNS blocking directly from the widget.
+- **Refresh on demand** - Manual refresh option via right-click menu.
+- **HTTP/HTTPS support** - Connect to your Pi-hole using secure or standard protocols.
+
+#### Cross-Platform
+- **Windows, macOS, and Linux support** - Native packages for all major platforms.
+- **Portable distribution** - Windows portable ZIP requires no installation.
+- **No Java installation required** - Java runtime bundled with all packages.
 
 ### <ins>Supported Platforms</ins>
 
@@ -58,11 +74,9 @@ It is developed with JavaFX, and uses the framework TilesFX.
 
 ### <ins>Upcoming features</ins>
 
-- Support for 2 Pi-Holes.
-- Beautiful Themes.
-- Hide to tray option.
-- Enable/Disable Pi-hole from widget.
-
+- Support for AdGuardHome.
+- Additional themes and color schemes.
+- Update Gravity List
 
 # <ins>Donation</ins>
 All donations are welcome and any amount of money will help me to maintain this project :)
@@ -101,15 +115,20 @@ Then input your controllers IP Address/Port and API Token, and click Apply.
 
 ###### Personalize your widget
 
-You can set your Widget size or layout by accessing the Widget configuration panel in Settings (Restart needed).
+You can set your Widget size, layout, and theme by accessing the Widget configuration panel in Settings (Restart needed for some changes).
 
 ![img_10.png](Readme_imgs/img_10.png)
+
+**Available options:**
+- **Size:** Small, Medium, Large, XXL, Full Screen
+- **Layout:** Horizontal, Square
+- **Theme:** Dark, Light
 
 ### Installation Options
 
 #### Option 1: Download Pre-built Installers (Recommended)
 
-Download the latest installer for your platform from the [Releases page](https://github.com/foxy999/PiHoleWidgets/releases):
+Download the latest installer for your platform from the [Releases page](https://github.com/FoKss-LTS/PiHoleWidgets/releases):
 
 - **Windows:** Download the Windows portable `.zip`, unzip it, and run `PiHole-Widgets.exe`
 - **macOS:** Download and run the `.pkg` installer
@@ -130,7 +149,7 @@ All builds are done through Gradle commands directly:
 
 ```bash
 # Clone the repository
-git clone https://github.com/foxy999/PiHoleWidgets.git
+git clone https://github.com/FoKss-LTS/PiHoleWidgets.git
 cd PiHoleWidgets
 
 # Build and test
@@ -160,13 +179,22 @@ For detailed build instructions, see [DISTRIBUTION.md](DISTRIBUTION.md).
 ### Running the widget
 
 After installation, launch PiHole Widgets from:
-- **Windows:** Start Menu > PiHole Widgets
+- **Windows:** Start Menu > PiHole Widgets, or run directly from the portable folder
 - **macOS:** Applications folder
-- **Linux:** Applications menu (under Network or Office)
+- **Linux:** Applications menu (under Network or Utilities)
 
-If you want to close the widget, right-click on it and select "Close" from the context menu. You can also update manually from the same menu.
+**Context Menu (Right-click):**
+- **Hide to Tray** - Minimize to system tray
+- **Refresh All Now** - Manually refresh all data
+- **Settings** - Open configuration window
+- **Exit** - Close the application
 
 ![img_9.png](Readme_imgs/img_9.png)
+
+**System Tray:**
+When the widget is hidden to tray, you can:
+- **Double-click** the tray icon to restore the widget
+- **Right-click** for Show, Hide, Settings, and Exit options
 
 # <ins>Testing</ins>
 
@@ -177,7 +205,7 @@ App has been tested on:
 
 Automated builds and testing are performed via GitHub Actions on all supported platforms.
 
-If you find any bugs or want to suggest new features please go to: https://github.com/foxy999/PiHoleWidgets/issues
+If you find any bugs or want to suggest new features please go to: https://github.com/FoKss-LTS/PiHoleWidgets/issues
 
 ---
 
@@ -221,7 +249,8 @@ Shoutout to :
 </div>
 
 # <ins>Licence</ins>
-Copyright (C) 2022.  Reda ELFARISSI aka foxy999
+Copyright (C) 2022 - 2025.  Reda ELFARISSI aka FoKss-LTS
+
 
 
 This program is free software: you can redistribute it and/or modify
