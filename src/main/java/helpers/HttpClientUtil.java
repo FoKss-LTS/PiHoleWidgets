@@ -35,6 +35,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Small HTTP utility tailored for HTTPS/HTTP requests.
@@ -42,19 +44,20 @@ import java.util.Optional;
  */
 public class HttpClientUtil {
 
+    private static final Logger LOGGER = Logger.getLogger(HttpClientUtil.class.getName());
     private static final Duration DEFAULT_CONNECT_TIMEOUT = Duration.ofSeconds(5);
     private static final Duration DEFAULT_REQUEST_TIMEOUT = Duration.ofSeconds(10);
-    
+
     // Enable verbose logging via system property: -Dpihole.verbose=true
     public static final boolean VERBOSE = Boolean.parseBoolean(System.getProperty("pihole.verbose", "false"));
 
     private final HttpClient client;
     private final Duration defaultRequestTimeout;
     private final ObjectMapper mapper;
-    
+
     private static void log(String message) {
         if (VERBOSE) {
-            System.out.println("[HTTP] " + java.time.LocalDateTime.now() + " - " + message);
+            LOGGER.log(Level.FINE, () -> "[HTTP] " + message);
         }
     }
 
@@ -81,25 +84,31 @@ public class HttpClientUtil {
         return send(url, HttpMethod.GET, Collections.emptyMap(), null, Collections.emptyMap(), null);
     }
 
-    public HttpResponsePayload get(String url, Map<String, String> queryParams, Map<String, String> headers) throws IOException, InterruptedException {
+    public HttpResponsePayload get(String url, Map<String, String> queryParams, Map<String, String> headers)
+            throws IOException, InterruptedException {
         return send(url, HttpMethod.GET, headers, null, queryParams, null);
     }
 
-    public HttpResponsePayload delete(String url, Map<String, String> headers) throws IOException, InterruptedException {
+    public HttpResponsePayload delete(String url, Map<String, String> headers)
+            throws IOException, InterruptedException {
         return send(url, HttpMethod.DELETE, headers, null, Collections.emptyMap(), null);
     }
 
-    public HttpResponsePayload post(String url, String body, Map<String, String> headers) throws IOException, InterruptedException {
+    public HttpResponsePayload post(String url, String body, Map<String, String> headers)
+            throws IOException, InterruptedException {
         return send(url, HttpMethod.POST, headers, body, Collections.emptyMap(), null);
     }
 
-    public HttpResponsePayload put(String url, String body, Map<String, String> headers) throws IOException, InterruptedException {
+    public HttpResponsePayload put(String url, String body, Map<String, String> headers)
+            throws IOException, InterruptedException {
         return send(url, HttpMethod.PUT, headers, body, Collections.emptyMap(), null);
     }
 
-    public HttpResponsePayload postJson(String url, Object body, Map<String, String> headers) throws IOException, InterruptedException {
+    public HttpResponsePayload postJson(String url, Object body, Map<String, String> headers)
+            throws IOException, InterruptedException {
         Map<String, String> mergedHeaders = new HashMap<>();
-        if (headers != null) mergedHeaders.putAll(headers);
+        if (headers != null)
+            mergedHeaders.putAll(headers);
         mergedHeaders.putIfAbsent("Content-Type", "application/json");
         mergedHeaders.putIfAbsent("Accept", "application/json");
         String json = body == null ? "" : mapper.writeValueAsString(body);
@@ -107,25 +116,27 @@ public class HttpClientUtil {
     }
 
     public HttpResponsePayload postJson(String url,
-                                        Object body,
-                                        Map<String, String> queryParams,
-                                        Map<String, String> headers) throws IOException, InterruptedException {
+            Object body,
+            Map<String, String> queryParams,
+            Map<String, String> headers) throws IOException, InterruptedException {
         Map<String, String> mergedHeaders = new HashMap<>();
-        if (headers != null) mergedHeaders.putAll(headers);
+        if (headers != null)
+            mergedHeaders.putAll(headers);
         mergedHeaders.putIfAbsent("Content-Type", "application/json");
         mergedHeaders.putIfAbsent("Accept", "application/json");
         String json = body == null ? "" : mapper.writeValueAsString(body);
-        return send(url, HttpMethod.POST, mergedHeaders, json, queryParams == null ? Collections.emptyMap() : queryParams, null);
+        return send(url, HttpMethod.POST, mergedHeaders, json,
+                queryParams == null ? Collections.emptyMap() : queryParams, null);
     }
 
     public HttpResponsePayload send(String url,
-                                    HttpMethod method,
-                                    Map<String, String> headers,
-                                    String body,
-                                    Map<String, String> queryParams,
-                                    Duration timeout) throws IOException, InterruptedException {
+            HttpMethod method,
+            Map<String, String> headers,
+            String body,
+            Map<String, String> queryParams,
+            Duration timeout) throws IOException, InterruptedException {
         URI uri = buildUri(url, queryParams);
-        
+
         log(">>> " + method + " " + uri);
         if (headers != null && !headers.isEmpty()) {
             log("    Headers: " + headers);
@@ -135,7 +146,7 @@ public class HttpClientUtil {
             String safeBody = body.replaceAll("\"password\"\\s*:\\s*\"[^\"]*\"", "\"password\":\"***\"");
             log("    Body: " + safeBody);
         }
-        
+
         HttpRequest.Builder builder = HttpRequest.newBuilder(uri)
                 .timeout(timeout == null ? defaultRequestTimeout : timeout);
 
@@ -143,9 +154,10 @@ public class HttpClientUtil {
         builder.method(method.name(), buildBodyPublisher(method, body));
 
         long startTime = System.currentTimeMillis();
-        HttpResponse<String> response = client.send(builder.build(), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        HttpResponse<String> response = client.send(builder.build(),
+                HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
         long duration = System.currentTimeMillis() - startTime;
-        
+
         log("<<< " + method + " " + uri + " -> " + response.statusCode() + " (" + duration + "ms)");
         if (VERBOSE && response.body() != null) {
             String responseBody = response.body();
@@ -156,24 +168,28 @@ public class HttpClientUtil {
                 log("    Response: " + responseBody);
             }
         }
-        
+
         return new HttpResponsePayload(method, uri, response, mapper);
     }
 
     private void applyHeaders(HttpRequest.Builder builder, Map<String, String> headers) {
-        if (headers == null || headers.isEmpty()) return;
+        if (headers == null || headers.isEmpty())
+            return;
         headers.forEach(builder::header);
     }
 
     private HttpRequest.BodyPublisher buildBodyPublisher(HttpMethod method, String body) {
         boolean shouldSendBody = method == HttpMethod.POST || method == HttpMethod.PUT || method == HttpMethod.PATCH;
-        if (!shouldSendBody) return HttpRequest.BodyPublishers.noBody();
-        if (body == null || body.isBlank()) return HttpRequest.BodyPublishers.noBody();
+        if (!shouldSendBody)
+            return HttpRequest.BodyPublishers.noBody();
+        if (body == null || body.isBlank())
+            return HttpRequest.BodyPublishers.noBody();
         return HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8);
     }
 
     private URI buildUri(String baseUrl, Map<String, String> queryParams) {
-        if (queryParams == null || queryParams.isEmpty()) return URI.create(baseUrl);
+        if (queryParams == null || queryParams.isEmpty())
+            return URI.create(baseUrl);
         StringBuilder urlBuilder = new StringBuilder(baseUrl);
         if (!baseUrl.contains("?")) {
             urlBuilder.append("?");
@@ -181,7 +197,8 @@ public class HttpClientUtil {
             urlBuilder.append("&");
         }
         queryParams.forEach((key, value) -> {
-            if (urlBuilder.charAt(urlBuilder.length() - 1) != '?' && urlBuilder.charAt(urlBuilder.length() - 1) != '&') {
+            if (urlBuilder.charAt(urlBuilder.length() - 1) != '?'
+                    && urlBuilder.charAt(urlBuilder.length() - 1) != '&') {
                 urlBuilder.append("&");
             }
             urlBuilder.append(encode(key)).append("=").append(encode(value));
@@ -242,7 +259,8 @@ public class HttpClientUtil {
         }
 
         public Optional<JsonNode> bodyAsJson() {
-            if (body == null || body.isBlank()) return Optional.empty();
+            if (body == null || body.isBlank())
+                return Optional.empty();
             try {
                 return Optional.of(mapper.readTree(body));
             } catch (JsonProcessingException e) {
@@ -251,4 +269,3 @@ public class HttpClientUtil {
         }
     }
 }
-

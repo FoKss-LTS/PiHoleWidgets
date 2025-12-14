@@ -1,9 +1,8 @@
 # PiHole Widgets - Implementation Tasks
 
 ## Phase 1: Foundation (Week 1)
-- [ ] Task 1.1: Fix logging inconsistency in HttpClientUtil
-- [ ] Task 1.3: Add Gradle dependency update plugin
-- [ ] Task 1.4: Add JaCoCo code coverage
+- [x] Task 1.1: Fix logging inconsistency in HttpClientUtil
+- [x] Task 1.2: Add Gradle dependency update plugin
 
 ## Phase 2: Resilience (Week 2)
 - [ ] Task 2.1: Add retry logic to HttpClientUtil

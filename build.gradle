@@ -3,6 +3,7 @@ plugins {
     id 'application'
     id 'org.openjfx.javafxplugin' version '0.1.0'
     id 'org.beryx.jlink' version '3.1.3'
+    id 'com.github.ben-manes.versions' version '0.53.0'
 }
 
 group = 'controllers'
@@ -255,4 +256,28 @@ tasks.register('portableZip', Zip) {
             throw new GradleException("App-image not found at ${appImageDir}. Run with -PinstallerType=app-image")
         }
     }
+}
+
+// Dependency update checker configuration
+tasks.named('dependencyUpdates').configure {
+    // Check for updates in the entire dependency tree
+    checkForGradleUpdate = true
+    outputFormatter = 'plain,html'
+    outputDir = "$buildDir/reports/dependencyUpdates"
+    reportfileName = 'dependency-updates-report'
+    
+    // Reject all non-stable versions
+    rejectVersionIf {
+        isNonStable(candidate.version)
+    }
+}
+
+/**
+ * Determines if a version string indicates an unstable release.
+ * Returns true for alpha, beta, RC, milestone, and other pre-release versions.
+ */
+boolean isNonStable(String version) {
+    def stableKeyword = ['RELEASE', 'FINAL', 'GA'].any { version.toUpperCase().contains(it) }
+    def regex = /^[0-9,.v-]+(-r)?$/
+    return !stableKeyword && !(version ==~ regex)
 }
