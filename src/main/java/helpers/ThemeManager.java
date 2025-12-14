@@ -42,15 +42,21 @@ public final class ThemeManager {
 
     // Dark theme colors
     public static final Color DARK_BACKGROUND = Color.web("#101214");
-    public static final Color DARK_WIDGET_BACKGROUND = Color.web("#2a2a2a");
+    public static final Color DARK_TILE_BACKGROUND = Color.web("#1a1d21");
+    public static final Color DARK_FOREGROUND = Color.web("#2a2d32");
     public static final Color DARK_TEXT = Color.web("#e0e0e0");
+    public static final Color DARK_TITLE_TEXT = Color.web("#ffffff");
     public static final Color DARK_MUTED_TEXT = Color.web("#888888");
+    public static final Color DARK_VALUE_TEXT = Color.web("#4a9eff");
 
     // Light theme colors
-    public static final Color LIGHT_BACKGROUND = Color.web("#f8f9fa");
-    public static final Color LIGHT_WIDGET_BACKGROUND = Color.web("#ffffff");
+    public static final Color LIGHT_BACKGROUND = Color.web("#e9ecef");
+    public static final Color LIGHT_TILE_BACKGROUND = Color.web("#ffffff");
+    public static final Color LIGHT_FOREGROUND = Color.web("#f8f9fa");
     public static final Color LIGHT_TEXT = Color.web("#212529");
+    public static final Color LIGHT_TITLE_TEXT = Color.web("#1a1a2e");
     public static final Color LIGHT_MUTED_TEXT = Color.web("#6c757d");
+    public static final Color LIGHT_VALUE_TEXT = Color.web("#0d6efd");
 
     private ThemeManager() {
         // Utility class - no instantiation
@@ -124,13 +130,43 @@ public final class ThemeManager {
     }
 
     /**
-     * Gets the widget background color for the given theme.
+     * Gets the tile background color for the given theme.
      *
      * @param theme the theme name
-     * @return the widget background color
+     * @return the tile background color
      */
-    public static Color getWidgetBackgroundColor(String theme) {
-        return LIGHT_THEME.equalsIgnoreCase(theme) ? LIGHT_WIDGET_BACKGROUND : DARK_WIDGET_BACKGROUND;
+    public static Color getTileBackgroundColor(String theme) {
+        return LIGHT_THEME.equalsIgnoreCase(theme) ? LIGHT_TILE_BACKGROUND : DARK_TILE_BACKGROUND;
+    }
+
+    /**
+     * Gets the foreground color for the given theme.
+     *
+     * @param theme the theme name
+     * @return the foreground color
+     */
+    public static Color getForegroundColor(String theme) {
+        return LIGHT_THEME.equalsIgnoreCase(theme) ? LIGHT_FOREGROUND : DARK_FOREGROUND;
+    }
+
+    /**
+     * Gets the title text color for the given theme.
+     *
+     * @param theme the theme name
+     * @return the title text color
+     */
+    public static Color getTitleColor(String theme) {
+        return LIGHT_THEME.equalsIgnoreCase(theme) ? LIGHT_TITLE_TEXT : DARK_TITLE_TEXT;
+    }
+
+    /**
+     * Gets the value text color for the given theme.
+     *
+     * @param theme the theme name
+     * @return the value text color
+     */
+    public static Color getValueColor(String theme) {
+        return LIGHT_THEME.equalsIgnoreCase(theme) ? LIGHT_VALUE_TEXT : DARK_VALUE_TEXT;
     }
 
     /**
@@ -164,13 +200,13 @@ public final class ThemeManager {
     }
 
     /**
-     * Gets the widget background color as a CSS-compatible hex string.
+     * Gets the tile background color as a CSS-compatible hex string.
      *
      * @param theme the theme name
      * @return the hex color string
      */
-    public static String getWidgetBackgroundColorHex(String theme) {
-        return colorToHex(getWidgetBackgroundColor(theme));
+    public static String getTileBackgroundColorHex(String theme) {
+        return colorToHex(getTileBackgroundColor(theme));
     }
 
     /**

@@ -602,13 +602,16 @@ public class WidgetController implements Initializable {
     // ==================== UI Component Creation ====================
     
     private HBox createTopXHeader() {
+        String theme = widgetConfig != null ? widgetConfig.getTheme() : ThemeManager.DEFAULT_THEME;
+        Color textColor = ThemeManager.getTextColor(theme);
+        
         Label nameLabel = new Label("Domain");
-        nameLabel.setTextFill(Tile.FOREGROUND);
+        nameLabel.setTextFill(textColor);
         nameLabel.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(nameLabel, Priority.NEVER);
         
         Label blocksLabel = new Label("Nbr Blocks");
-        blocksLabel.setTextFill(Tile.FOREGROUND);
+        blocksLabel.setTextFill(textColor);
         blocksLabel.setAlignment(Pos.CENTER_RIGHT);
         HBox.setHgrow(blocksLabel, Priority.NEVER);
         
@@ -637,11 +640,14 @@ public class WidgetController implements Initializable {
     private HBox createTopBlockedItem(int rank, String fullDomain, String truncatedDomain, String blockCount) {
         log("createTopBlockedItem() - Creating item #" + rank + ": " + truncatedDomain + " (" + blockCount + " blocks)");
         
+        String theme = widgetConfig != null ? widgetConfig.getTheme() : ThemeManager.DEFAULT_THEME;
+        Color textColor = ThemeManager.getTextColor(theme);
+        
         // Try to load rank icon from classpath resources
         ImageView iconView = loadRankIcon(rank);
         
         Label domainLabel = new Label(truncatedDomain);
-        domainLabel.setTextFill(Tile.FOREGROUND);
+        domainLabel.setTextFill(textColor);
         domainLabel.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(domainLabel, Priority.NEVER);
         
@@ -650,7 +656,7 @@ public class WidgetController implements Initializable {
         HBox.setHgrow(spacer, Priority.ALWAYS);
         
         Label valueLabel = new Label(blockCount);
-        valueLabel.setTextFill(Tile.FOREGROUND);
+        valueLabel.setTextFill(textColor);
         valueLabel.setAlignment(Pos.CENTER_RIGHT);
         HBox.setHgrow(valueLabel, Priority.NEVER);
         
@@ -726,6 +732,8 @@ public class WidgetController implements Initializable {
     private void initFluidTile() {
         log("initFluidTile() - Building FLUID tile with size " + tileWidth + "x" + tileHeight);
         
+        String theme = widgetConfig != null ? widgetConfig.getTheme() : ThemeManager.DEFAULT_THEME;
+        
         fluidTile = TileBuilder.create()
                 .skinType(Tile.SkinType.FLUID)
                 .prefSize(tileWidth, tileHeight)
@@ -735,6 +743,12 @@ public class WidgetController implements Initializable {
                 .decimals(0)
                 .barColor(Tile.RED)
                 .animated(true)
+                .backgroundColor(ThemeManager.getTileBackgroundColor(theme))
+                .foregroundColor(ThemeManager.getForegroundColor(theme))
+                .titleColor(ThemeManager.getTitleColor(theme))
+                .textColor(ThemeManager.getTextColor(theme))
+                .valueColor(ThemeManager.getValueColor(theme))
+                .unitColor(ThemeManager.getTextColor(theme))
                 .build();
         
         fluidTile.setValue(0);
@@ -744,12 +758,19 @@ public class WidgetController implements Initializable {
     private void initLEDTile() {
         log("initLEDTile() - Building LED tile with size " + tileWidth + "x" + tileHeight);
         
+        String theme = widgetConfig != null ? widgetConfig.getTheme() : ThemeManager.DEFAULT_THEME;
+        
         ledTile = TileBuilder.create()
                 .skinType(Tile.SkinType.LED)
                 .prefSize(tileWidth, tileHeight)
                 .title("Version: ")
                 .description("Description")
                 .text("Whatever text")
+                .backgroundColor(ThemeManager.getTileBackgroundColor(theme))
+                .foregroundColor(ThemeManager.getForegroundColor(theme))
+                .titleColor(ThemeManager.getTitleColor(theme))
+                .textColor(ThemeManager.getTextColor(theme))
+                .descriptionColor(ThemeManager.getTextColor(theme))
                 .build();
         
         ledTile.setActive(true);
@@ -1043,6 +1064,8 @@ public class WidgetController implements Initializable {
     private void initStatusTile() {
         log("initStatusTile() - Building STATUS tile with size " + tileWidth + "x" + tileHeight);
         
+        String theme = widgetConfig != null ? widgetConfig.getTheme() : ThemeManager.DEFAULT_THEME;
+        
         Indicator leftGraphics = new Indicator(Tile.BLUE);
         leftGraphics.setOn(true);
         
@@ -1066,6 +1089,11 @@ public class WidgetController implements Initializable {
                 .middleGraphics(middleGraphics)
                 .rightGraphics(rightGraphics)
                 .text("Gravity")
+                .backgroundColor(ThemeManager.getTileBackgroundColor(theme))
+                .foregroundColor(ThemeManager.getForegroundColor(theme))
+                .titleColor(ThemeManager.getTitleColor(theme))
+                .textColor(ThemeManager.getTextColor(theme))
+                .valueColor(ThemeManager.getValueColor(theme))
                 .build();
         
         statusTile.setLeftValue(0);
@@ -1077,6 +1105,8 @@ public class WidgetController implements Initializable {
     
     private void initCustomTile() {
         log("initCustomTile() - Building CUSTOM tile for Top " + topX + " Blocked");
+        
+        String theme = widgetConfig != null ? widgetConfig.getTheme() : ThemeManager.DEFAULT_THEME;
         
         dataTable = new VBox();
         dataTable.setFillWidth(true);
@@ -1090,6 +1120,10 @@ public class WidgetController implements Initializable {
                 .prefSize(tileWidth, tileHeight)
                 .title("Top " + topX + " Blocked")
                 .text(copyright)
+                .backgroundColor(ThemeManager.getTileBackgroundColor(theme))
+                .foregroundColor(ThemeManager.getForegroundColor(theme))
+                .titleColor(ThemeManager.getTitleColor(theme))
+                .textColor(ThemeManager.getTextColor(theme))
                 .build();
         
         log("initCustomTile() - TopX tile built with title 'Top " + topX + " Blocked'");
@@ -1241,6 +1275,68 @@ public class WidgetController implements Initializable {
         if (dakLabel != null) {
             Color textColor = ThemeManager.getMutedTextColor(theme);
             dakLabel.setTextFill(textColor);
+        }
+        
+        // Update tile colors
+        Color tileBg = ThemeManager.getTileBackgroundColor(theme);
+        Color tileFg = ThemeManager.getForegroundColor(theme);
+        Color titleColor = ThemeManager.getTitleColor(theme);
+        Color textColor = ThemeManager.getTextColor(theme);
+        Color valueColor = ThemeManager.getValueColor(theme);
+        
+        if (fluidTile != null) {
+            fluidTile.setBackgroundColor(tileBg);
+            fluidTile.setForegroundColor(tileFg);
+            fluidTile.setTitleColor(titleColor);
+            fluidTile.setTextColor(textColor);
+            fluidTile.setValueColor(valueColor);
+            fluidTile.setUnitColor(textColor);
+        }
+        
+        if (ledTile != null) {
+            ledTile.setBackgroundColor(tileBg);
+            ledTile.setForegroundColor(tileFg);
+            ledTile.setTitleColor(titleColor);
+            ledTile.setTextColor(textColor);
+            ledTile.setDescriptionColor(textColor);
+        }
+        
+        if (statusTile != null) {
+            statusTile.setBackgroundColor(tileBg);
+            statusTile.setForegroundColor(tileFg);
+            statusTile.setTitleColor(titleColor);
+            statusTile.setTextColor(textColor);
+            statusTile.setValueColor(valueColor);
+        }
+        
+        if (topXTile != null) {
+            topXTile.setBackgroundColor(tileBg);
+            topXTile.setForegroundColor(tileFg);
+            topXTile.setTitleColor(titleColor);
+            topXTile.setTextColor(textColor);
+        }
+        
+        // Update dataTable text colors for TopX tile
+        if (dataTable != null) {
+            updateDataTableTheme(theme);
+        }
+        
+        log("Tile colors updated for theme: " + theme);
+    }
+    
+    /**
+     * Updates the TopX data table labels with theme-appropriate colors.
+     */
+    private void updateDataTableTheme(String theme) {
+        Color textColor = ThemeManager.getTextColor(theme);
+        for (Node node : dataTable.getChildren()) {
+            if (node instanceof HBox row) {
+                for (Node child : row.getChildren()) {
+                    if (child instanceof Label label) {
+                        label.setTextFill(textColor);
+                    }
+                }
+            }
         }
     }
 }
