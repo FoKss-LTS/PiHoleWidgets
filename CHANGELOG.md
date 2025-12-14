@@ -37,7 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Java 17 → Java 25 Migration**
-  - Raised the toolchain to Java 25 with JavaFX 25 EA (25-ea+21) and Gradle 9.2.1
+  - Raised the toolchain to Java 25 with JavaFX 25 and Gradle 9.2.1
   - Updated Java toolchain configuration to use Java 25
   - Added compiler warnings for deprecation and unchecked code
   - Replaced deprecated `java.util.Calendar` with `java.time.Year` for copyright year display

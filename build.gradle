@@ -51,7 +51,7 @@ tasks.named('run') {
 }
 
 javafx {
-    version = '25-ea+21'
+    version = '25'
     modules = ['javafx.controls', 'javafx.fxml', 'javafx.web', 'javafx.swing']
 }
 
