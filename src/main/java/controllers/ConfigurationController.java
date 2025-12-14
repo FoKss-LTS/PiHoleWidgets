@@ -20,14 +20,17 @@ package controllers;
 
 import domain.configuration.PiholeConfig;
 import domain.configuration.WidgetConfig;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Accordion;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TitledPane;
+import javafx.stage.Window;
 import services.configuration.ConfigurationService;
 
 import java.net.URL;
@@ -226,6 +229,7 @@ public class ConfigurationController implements Initializable {
             buttonApply.setOnMouseClicked(_ -> {
                 log("Apply button clicked");
                 saveConfiguration();
+                showInfoAlert("Settings applied", "Configuration saved and applied to the widget.");
                 WidgetApplication.applyAndCloseConfigurationWindow();
             });
         }
@@ -234,6 +238,7 @@ public class ConfigurationController implements Initializable {
             buttonSave.setOnMouseClicked(_ -> {
                 log("Save button clicked");
                 saveConfiguration();
+                showInfoAlert("Configuration saved", "Settings saved to the configuration file.");
             });
         }
         
@@ -241,6 +246,7 @@ public class ConfigurationController implements Initializable {
             buttonLoad.setOnMouseClicked(_ -> {
                 log("Load button clicked");
                 loadConfiguration();
+                showInfoAlert("Configuration loaded", "Settings loaded from the configuration file.");
             });
         }
         
@@ -360,6 +366,46 @@ public class ConfigurationController implements Initializable {
         }
         
         log("Configuration loaded");
+    }
+    
+    // ==================== Notifications ====================
+    
+    private void showInfoAlert(String title, String content) {
+        Runnable showTask = () -> {
+            var alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle(title);
+            alert.setHeaderText(null);
+            alert.setContentText(content);
+            
+            var owner = findOwnerWindow();
+            if (owner != null) {
+                alert.initOwner(owner);
+            }
+            
+            alert.show();
+        };
+        
+        if (Platform.isFxApplicationThread()) {
+            showTask.run();
+        } else {
+            Platform.runLater(showTask);
+        }
+    }
+    
+    private Window findOwnerWindow() {
+        if (accord != null && accord.getScene() != null) {
+            return accord.getScene().getWindow();
+        }
+        if (buttonApply != null && buttonApply.getScene() != null) {
+            return buttonApply.getScene().getWindow();
+        }
+        if (buttonSave != null && buttonSave.getScene() != null) {
+            return buttonSave.getScene().getWindow();
+        }
+        if (buttonLoad != null && buttonLoad.getScene() != null) {
+            return buttonLoad.getScene().getWindow();
+        }
+        return null;
     }
 
     // ==================== Utility Methods ====================
