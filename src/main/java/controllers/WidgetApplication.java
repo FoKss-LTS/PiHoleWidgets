@@ -105,6 +105,7 @@ public class WidgetApplication extends Application {
         widgetStage.setTitle("PiHole Widget");
         widgetStage.initStyle(StageStyle.UNDECORATED);
         log("Widget stage created");
+        widgetStage.setOnShowing(_ -> refreshWidgetTiles());
 
         // Setup configuration stage
         configurationStage = new Stage();
@@ -154,8 +155,7 @@ public class WidgetApplication extends Application {
         });
         
         // Show the widget stage
-        widgetStage.show();
-        bringStageToFront(widgetStage);
+        showWidget();
         log("Widget stage shown");
 
         // Setup and show configuration stage (initially hidden)
@@ -211,9 +211,11 @@ public class WidgetApplication extends Application {
 
     public static void openConfigurationWindow() {
         log("Opening configuration window");
-        if (configurationStage != null) {
-            configurationStage.setOpacity(1);
-        }
+        if (configurationStage == null) return;
+
+        configurationStage.setOpacity(1);
+        configurationStage.show();
+        bringStageToFront(configurationStage);
     }
 
     public static void applyAndCloseConfigurationWindow() {
@@ -279,12 +281,7 @@ public class WidgetApplication extends Application {
         trayIcon.setImageAutoSize(true);
         
         // Double-click to show window
-        trayIcon.addActionListener(_ -> Platform.runLater(() -> {
-            if (widgetStage != null) {
-                widgetStage.show();
-                bringStageToFront(widgetStage);
-            }
-        }));
+        trayIcon.addActionListener(_ -> Platform.runLater(WidgetApplication::showWidget));
 
         try {
             systemTray.add(trayIcon);
@@ -453,12 +450,7 @@ public class WidgetApplication extends Application {
         PopupMenu popup = new PopupMenu();
         
         MenuItem showItem = new MenuItem("Show");
-        showItem.addActionListener(_ -> Platform.runLater(() -> {
-            if (widgetStage != null) {
-                widgetStage.show();
-                bringStageToFront(widgetStage);
-            }
-        }));
+        showItem.addActionListener(_ -> Platform.runLater(WidgetApplication::showWidget));
         popup.add(showItem);
 
         MenuItem hideItem = new MenuItem("Hide to Tray");
@@ -494,9 +486,19 @@ public class WidgetApplication extends Application {
 
     public static void showFromTray() {
         log("Showing from tray");
+        showWidget();
+    }
+    
+    private static void showWidget() {
         if (widgetStage != null) {
             widgetStage.show();
             bringStageToFront(widgetStage);
+        }
+    }
+    
+    private static void refreshWidgetTiles() {
+        if (widgetController != null) {
+            widgetController.refreshAllTiles();
         }
     }
     

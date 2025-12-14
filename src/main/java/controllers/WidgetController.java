@@ -1255,6 +1255,15 @@ public class WidgetController implements Initializable {
         log("setWidgetConfig() - setting to: " + formatWidgetConfig(widgetConfig));
         this.widgetConfig = widgetConfig;
     }
+
+    /**
+     * Triggers a full data refresh across all tiles.
+     * Invoked when the widget becomes visible again (e.g., restored from tray).
+     */
+    public void refreshAllTiles() {
+        log("refreshAllTiles() called");
+        inflateAllData();
+    }
     
     /**
      * Applies the specified theme to the widget.
