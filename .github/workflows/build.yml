@@ -11,7 +11,7 @@ on:
 
 jobs:
   build-windows:
-    name: Build Windows MSI
+    name: Build Windows Portable
     runs-on: windows-latest
     
     steps:
@@ -34,23 +34,20 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-gradle-
           
-    - name: Grant execute permission for gradlew
-      run: icacls gradlew.bat /grant Everyone:RX
-      
     - name: Build with Gradle
       run: .\gradlew.bat build
       
     - name: Run tests
       run: .\gradlew.bat test
       
-    - name: Create Windows MSI installer
-      run: .\gradlew.bat jpackage -PinstallerType=msi
+    - name: Create Windows portable ZIP
+      run: .\gradlew.bat portableZip -PinstallerType=app-image
       
-    - name: Upload Windows MSI
+    - name: Upload Windows portable ZIP
       uses: actions/upload-artifact@v4
       with:
-        name: windows-msi
-        path: build/jpackage/*.msi
+        name: windows-portable
+        path: build/portable/*.zip
         retention-days: 30
 
   build-macos:
@@ -177,7 +174,7 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          artifacts/windows-msi/*.msi
+          artifacts/windows-portable/*.zip
           artifacts/macos-pkg/*.pkg
           artifacts/linux-deb/*.deb
           artifacts/linux-rpm/*.rpm
@@ -186,4 +183,3 @@ jobs:
         generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-

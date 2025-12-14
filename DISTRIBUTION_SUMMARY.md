@@ -2,33 +2,43 @@
 
 ## Overview
 
-PiHole Widgets has been successfully configured for **cross-platform distribution** to Windows, macOS, and Linux. The project now includes automated build scripts, CI/CD workflows, and comprehensive documentation for building and distributing native installers for all major platforms.
+PiHole Widgets has been configured for **cross-platform distribution** to Windows, macOS, and Linux. The project uses Gradle commands directly for all builds, with GitHub Actions CI/CD for automated releases.
 
 ---
 
-## What Was Added
+## Build System
 
-### 1. Build Scripts (6 files)
+All builds are done through **Gradle commands directly** - no wrapper scripts needed.
 
-#### Universal Build Scripts
-- **`build.ps1`** - PowerShell universal script (auto-detects OS)
-- **`build.sh`** - Bash universal script (auto-detects OS)
+### Quick Reference
 
-#### Platform-Specific Scripts
-- **`build-windows.ps1`** - Windows portable builder (app-image EXE)
-- **`build-macos.sh`** - macOS PKG installer builder  
-- **`build-linux.sh`** - Linux DEB/RPM package builder
+```bash
+# Development
+./gradlew build test          # Build and test
+./gradlew run                 # Run the application
 
-**Features:**
-- Automatic OS detection
-- Clean build support
-- Test skipping option
-- Multiple package format support
-- Colored output
-- Error handling
-- Build artifact location reporting
+# Distribution
+./gradlew portableZip -PinstallerType=app-image   # Windows portable ZIP
+./gradlew jpackage -PinstallerType=pkg            # macOS PKG
+./gradlew jpackage -PinstallerType=deb            # Linux DEB
+./gradlew jpackage -PinstallerType=rpm            # Linux RPM
+```
 
-### 2. GitHub Actions Workflow
+---
+
+## Supported Platforms
+
+| Platform | Installer Type | Min. Version | Status |
+|----------|---------------|--------------|--------|
+| **Windows** | portable ZIP (app-image) | Win 10 (64-bit) | ✅ Fully Supported |
+| **macOS** | PKG | macOS 10.15+ | ✅ Fully Supported |
+| **macOS** | DMG | macOS 10.15+ | ✅ Supported |
+| **Linux (Debian)** | DEB | Ubuntu 20.04+ | ✅ Fully Supported |
+| **Linux (RedHat)** | RPM | Fedora 35+ | ✅ Fully Supported |
+
+---
+
+## GitHub Actions Workflow
 
 **File:** `.github/workflows/build.yml`
 
@@ -46,115 +56,27 @@ PiHole Widgets has been successfully configured for **cross-platform distributio
 - Tagged releases (`v*`)
 - Manual workflow dispatch
 
-### 3. Enhanced build.gradle
-
-**Improvements:**
-- Unified jpackage configuration
-- Platform-specific installer options:
-  - **Windows (optional installers):** MSI/EXE with menu groups, shortcuts
-  - **macOS:** PKG/DMG with package identifiers
-  - **Linux:** DEB/RPM with proper categories and maintainer info
-- Consistent naming (`PiHole-Widgets`)
-- License file inclusion
-- Vendor and copyright information
-
-### 4. Documentation (3 files)
-
-#### DISTRIBUTION.md (Comprehensive Build Guide)
-- Prerequisites for all platforms
-- Quick start instructions
-- Platform-specific build procedures
-- Manual Gradle commands reference
-- GitHub Actions usage
-- Code signing and notarization guides
-- Troubleshooting section
-- **~300 lines of detailed documentation**
-
-#### QUICKSTART.md (Quick Reference)
-- End-user installation guide
-- Developer quick build guide
-- Common commands
-- Troubleshooting tips
-- **Simple, easy-to-follow format**
-
-#### Updated README.md
-- Cross-platform support section
-- Supported platforms table
-- Multiple installation options
-- Pre-built installer instructions
-- Improved features list
-
 ---
 
-## Supported Platforms
+## Gradle Tasks
 
-| Platform | Installer Type | Min. Version | Status |
-|----------|---------------|--------------|--------|
-| **Windows** | app-image (portable EXE) | Win 10 (64-bit) | ✅ Fully Supported |
-| **Windows** | EXE | Win 10 (64-bit) | ✅ Supported |
-| **macOS** | PKG | macOS 10.15+ | ✅ Fully Supported |
-| **macOS** | DMG | macOS 10.15+ | ✅ Supported |
-| **Linux (Debian)** | DEB | Ubuntu 20.04+ | ✅ Fully Supported |
-| **Linux (RedHat)** | RPM | Fedora 35+ | ✅ Fully Supported |
+### Built-in Tasks
 
----
+| Task | Description |
+|------|-------------|
+| `build` | Compile and package the application |
+| `test` | Run unit tests |
+| `run` | Run the application directly |
+| `clean` | Clean build outputs |
+| `jlink` | Create runtime image |
+| `jpackage` | Create platform installer (requires `-PinstallerType`) |
+| `jpackageImage` | Create app-image (no installer) |
 
-## How to Use
+### Custom Tasks
 
-### For End Users
-
-**Download pre-built installers:**
-1. Go to [GitHub Releases](https://github.com/foxy999/PiHoleWidgets/releases)
-2. Download the installer for your platform
-3. Run the installer
-4. Launch from Start Menu/Applications
-
-**No Java installation required!** All installers include bundled Java runtime.
-
-### For Developers
-
-**Quick build (auto-detects OS):**
-```bash
-# Windows
-.\build.ps1
-
-# macOS/Linux
-./build.sh
-```
-
-**Platform-specific builds:**
-```bash
-# Windows portable (app-image)
-.\build-windows.ps1
-
-# macOS PKG
-./build-macos.sh
-
-# Linux DEB
-./build-linux.sh --type deb
-
-# Linux RPM
-./build-linux.sh --type rpm
-
-# Both DEB and RPM
-./build-linux.sh --type both
-```
-
-**Run without building:**
-```bash
-./gradlew run
-```
-
-### For CI/CD
-
-**Automatic builds:**
-- Push to main/master/develop → Builds all platforms
-- Create tag `v1.5.2` → Builds all platforms + creates GitHub release
-
-**Manual trigger:**
-1. Go to GitHub Actions
-2. Select "Build and Release"
-3. Click "Run workflow"
+| Task | Description |
+|------|-------------|
+| `portableZip` | Create Windows portable ZIP from app-image |
 
 ---
 
@@ -166,8 +88,6 @@ All packages include:
 - Java 25 runtime (bundled)
 - JavaFX libraries
 - Application icon
-- Desktop shortcuts
-- Menu entries (platform-specific)
 
 ### Package Sizes
 Approximate sizes: **80-100 MB** per package
@@ -175,93 +95,44 @@ Approximate sizes: **80-100 MB** per package
 *Large size due to bundled Java runtime - ensures zero dependencies for end users*
 
 ### Package Naming
-- **Windows (portable):** `PiHole-Widgets-windows-portable.zip`
+- **Windows (portable):** `PiHole-Widgets-{version}-portable.zip`
 - **macOS:** `PiHole-Widgets-{version}.pkg`
 - **Linux (DEB):** `pihole-widgets_{version}_amd64.deb`
 - **Linux (RPM):** `pihole-widgets-{version}.x86_64.rpm`
 
 ---
 
+## How to Create a Release
+
+```bash
+# 1. Ensure all changes are committed
+git add .
+git commit -m "Release version 1.5.2"
+
+# 2. Create a version tag
+git tag -a v1.5.2 -m "Release version 1.5.2"
+
+# 3. Push changes and tag
+git push origin main
+git push origin v1.5.2
+```
+
+GitHub Actions will automatically:
+1. Build Windows portable ZIP
+2. Build macOS PKG
+3. Build Linux DEB and RPM
+4. Create a GitHub release with all artifacts
+
+---
+
 ## Key Features
 
 ✅ **Cross-platform support** - Windows, macOS, Linux  
-✅ **Native packages** - Windows portable app-image, macOS PKG, Linux DEB/RPM  
+✅ **Native packages** - Windows portable, macOS PKG, Linux DEB/RPM  
 ✅ **Bundled Java runtime** - No separate Java installation needed  
 ✅ **Automated CI/CD** - GitHub Actions builds all platforms  
-✅ **Easy builds** - Simple build scripts for developers  
+✅ **Simple builds** - Direct Gradle commands, no wrapper scripts  
 ✅ **Comprehensive docs** - Guides for users and developers  
-✅ **Upgrade support** - Windows MSI available (optional) with consistent UUID  
-✅ **Professional packaging** - Icons, shortcuts, menu entries  
-
----
-
-## Next Steps for Release
-
-### Immediate (Optional but Recommended)
-
-1. **Create icon assets:**
-   - `.icns` file for macOS (from existing `.ico`)
-   - `.png` file (256x256) for Linux
-   - Place in `src/main/resources/media/icons/`
-
-2. **Test builds:**
-   ```bash
-   # Test on your Windows machine
-   .\build-windows.ps1
-   
-   # Verify installer creates and runs properly
-   ```
-
-3. **Create a release:**
-   ```bash
-   git add .
-   git commit -m "Add cross-platform distribution support"
-   git tag -a v1.5.2 -m "Release version 1.5.2"
-   git push origin main
-   git push origin v1.5.2
-   ```
-   
-   GitHub Actions will automatically build all installers and create a release!
-
-### Future Enhancements
-
-1. **Code signing:**
-   - Windows: Sign MSI with code signing certificate
-   - macOS: Sign and notarize PKG with Developer ID
-   - Linux: Sign DEB/RPM packages with GPG
-
-2. **Additional formats:**
-   - Windows: Chocolatey package
-   - macOS: Homebrew cask
-   - Linux: Snap/Flatpak packages
-
-3. **Auto-updater:**
-   - Implement in-app update checks
-   - Download and install updates automatically
-
----
-
-## Files Modified/Created
-
-### Created Files
-- `build.ps1` - Universal build script (PowerShell)
-- `build.sh` - Universal build script (Bash)
-- `build-windows.ps1` - Windows-specific build
-- `build-macos.sh` - macOS-specific build
-- `build-linux.sh` - Linux-specific build
-- `.github/workflows/build.yml` - CI/CD workflow
-- `DISTRIBUTION.md` - Comprehensive distribution guide
-- `QUICKSTART.md` - Quick reference guide
-- `DISTRIBUTION_SUMMARY.md` - This file
-
-### Modified Files
-- `build.gradle` - Enhanced jpackage configuration
-- `README.md` - Updated with distribution info
-- `implementation_plan.md` - Added Phase 3 documentation
-
-### Existing Files (No changes needed)
-- `.gitignore` - Already excludes build artifacts
-- `fix-build-locks.ps1` - Already handles Windows build locks
 
 ---
 
@@ -293,5 +164,4 @@ Copyright (C) 2022-2025 Reda ELFARISSI aka foxy999
 
 **Status:** ✅ Complete and ready for distribution!  
 **Version:** 1.5.2  
-**Last Updated:** December 13, 2025
-
+**Last Updated:** December 14, 2025

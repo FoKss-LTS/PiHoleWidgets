@@ -88,7 +88,8 @@ jlink {
         requires "java.xml"
     }
 
-    options = ['--strip-debug', '--compress', '2', '--no-header-files', '--no-man-pages']
+    // JDK 25+ deprecates numeric --compress values; '2' is equivalent to 'zip-6'
+    options = ['--strip-debug', '--compress', 'zip-6', '--no-header-files', '--no-man-pages']
 
     launcher {
         // Keep launcher name consistent across packaging types (also becomes the Windows .exe name)
@@ -229,8 +230,29 @@ tasks.jlink.doLast {
 jlinkZip {
     group = 'distribution'
 }
+
 jpackage {
     doFirst {
         project.getProperty('installerType') // throws exception if its missing
+    }
+}
+
+// Task to create a portable ZIP from the app-image (Windows)
+tasks.register('portableZip', Zip) {
+    group = 'distribution'
+    description = 'Creates a portable ZIP archive from the jpackage app-image'
+    
+    dependsOn 'jpackageImage'
+    
+    def appImageDir = file("${buildDir}/jpackage/PiHole-Widgets")
+    from appImageDir
+    into 'PiHole-Widgets'
+    archiveFileName = "PiHole-Widgets-${version}-portable.zip"
+    destinationDirectory = file("${buildDir}/portable")
+    
+    doFirst {
+        if (!appImageDir.exists()) {
+            throw new GradleException("App-image not found at ${appImageDir}. Run with -PinstallerType=app-image")
+        }
     }
 }

@@ -10,7 +10,7 @@ This guide provides comprehensive instructions for building and distributing PiH
   - [Windows](#building-for-windows)
   - [macOS](#building-for-macos)
   - [Linux](#building-for-linux)
-- [Manual Build Commands](#manual-build-commands)
+- [Gradle Commands Reference](#gradle-commands-reference)
 - [GitHub Actions CI/CD](#github-actions-cicd)
 - [Distribution Packages](#distribution-packages)
 - [Signing and Notarization](#signing-and-notarization)
@@ -35,7 +35,6 @@ This guide provides comprehensive instructions for building and distributing PiH
 #### Windows
 - **Windows 10 or later** (64-bit)
 - *(Portable builds do not require WiX / installer toolchains)*
-- **PowerShell 5.1+** or **PowerShell Core 7+**
 
 #### macOS
 - **macOS 10.15 (Catalina) or later**
@@ -60,46 +59,46 @@ This guide provides comprehensive instructions for building and distributing PiH
 
 ## Quick Start
 
-### Using the Universal Build Scripts
+All builds are done through Gradle. No additional wrapper scripts are needed.
 
-The easiest way to build for your platform is to use the universal build scripts:
-
-**Windows (PowerShell):**
-```powershell
-.\build.ps1
-```
-
-**macOS/Linux (Bash):**
-```bash
-chmod +x build.sh
-./build.sh
-```
-
-### Build Options
-
-- `--clean` or `-Clean`: Clean previous builds before building
-- `--skip-tests` or `-SkipTests`: Skip running tests
-- `--linux-type` or `-LinuxType`: Specify Linux package type (`deb`, `rpm`, or `both`)
-
-**Examples:**
-
-```powershell
-# Windows: Clean build with tests
-.\build.ps1 -Clean
-
-# Windows: Skip tests
-.\build.ps1 -SkipTests
-
-# Windows: Clean build without tests
-.\build.ps1 -Clean -SkipTests
-```
+### Clone and Build
 
 ```bash
-# Linux: Build both DEB and RPM
-./build.sh --clean --linux-type both
+# Clone the repository
+git clone https://github.com/foxy999/PiHoleWidgets.git
+cd PiHoleWidgets
 
-# macOS: Quick build without cleaning
-./build.sh --skip-tests
+# Build and test
+./gradlew build test
+```
+
+### Run the Application
+
+```bash
+# Run directly (without creating an installer)
+./gradlew run
+
+# Run with verbose logging
+./gradlew run -Ppihole.verbose=true
+```
+
+### Create Installers
+
+```bash
+# Windows portable (folder with .exe)
+./gradlew jpackageImage -PinstallerType=app-image
+
+# Windows portable ZIP
+./gradlew portableZip -PinstallerType=app-image
+
+# macOS PKG
+./gradlew jpackage -PinstallerType=pkg
+
+# Linux DEB
+./gradlew jpackage -PinstallerType=deb
+
+# Linux RPM
+./gradlew jpackage -PinstallerType=rpm
 ```
 
 ---
@@ -108,25 +107,20 @@ chmod +x build.sh
 
 ### Building for Windows
 
-#### Method 1: Using the build script (Recommended)
-
-```powershell
-.\build-windows.ps1
-```
-
-#### Method 2: Manual Gradle commands
-
-```powershell
+```bash
 # Build the application
 .\gradlew.bat build
 
 # Create portable app-image (folder with launcher .exe)
 .\gradlew.bat jpackageImage -PinstallerType=app-image
+
+# Create portable ZIP for distribution
+.\gradlew.bat portableZip -PinstallerType=app-image
 ```
 
 #### Output
 - **Portable app-image folder:** `build/jpackage/PiHole-Widgets/` (contains `PiHole-Widgets.exe`)
-- **Portable ZIP (from script):** `build/portable/PiHole-Widgets-windows-portable.zip`
+- **Portable ZIP:** `build/portable/PiHole-Widgets-{version}-portable.zip`
 
 #### Distribution Notes
 - Portable ZIP can be distributed directly (unzip and run)
@@ -136,15 +130,6 @@ chmod +x build.sh
 ---
 
 ### Building for macOS
-
-#### Method 1: Using the build script (Recommended)
-
-```bash
-chmod +x build-macos.sh
-./build-macos.sh
-```
-
-#### Method 2: Manual Gradle commands
 
 ```bash
 # Build the application
@@ -170,30 +155,11 @@ chmod +x build-macos.sh
 
 ### Building for Linux
 
-#### Method 1: Using the build script (Recommended)
-
 ```bash
-chmod +x build-linux.sh
-
 # Build DEB package (Debian/Ubuntu)
-./build-linux.sh --type deb
-
-# Build RPM package (Fedora/RHEL)
-./build-linux.sh --type rpm
-
-# Build both
-./build-linux.sh --type both
-```
-
-#### Method 2: Manual Gradle commands
-
-```bash
-# Build DEB package
-./gradlew build
 ./gradlew jpackage -PinstallerType=deb
 
-# Build RPM package
-./gradlew clean build
+# Build RPM package (Fedora/RHEL)
 ./gradlew jpackage -PinstallerType=rpm
 ```
 
@@ -225,47 +191,32 @@ sudo rpm -e pihole-widgets
 
 ---
 
-## Manual Build Commands
+## Gradle Commands Reference
 
-### Basic Gradle Commands
+### Basic Commands
 
-```bash
-# Clean build directory
-./gradlew clean
+| Command | Description |
+|---------|-------------|
+| `./gradlew clean` | Clean build directory |
+| `./gradlew compileJava` | Compile the application |
+| `./gradlew test` | Run tests |
+| `./gradlew build` | Build JAR file |
+| `./gradlew run` | Run the application |
+| `./gradlew run -Ppihole.verbose=true` | Run with verbose logging |
+| `./gradlew jlink` | Create runtime image (without installer) |
 
-# Compile the application
-./gradlew compileJava
-
-# Run tests
-./gradlew test
-
-# Build JAR file
-./gradlew build
-
-# Run the application
-./gradlew run
-
-# Run with verbose logging
-./gradlew run -Ppihole.verbose=true
-
-# Create runtime image (without installer)
-./gradlew jlink
-
-# Create installer (requires -PinstallerType)
-./gradlew jpackage -PinstallerType=<type>
-```
-
-### Supported Installer Types
+### Installer Commands
 
 | Platform | Installer Type | Command |
-|----------|---------------|---------|
-| Windows  | app-image (portable) | `./gradlew jpackageImage -PinstallerType=app-image` |
-| Windows  | MSI (installer, optional) | `./gradlew jpackage -PinstallerType=msi` |
-| Windows  | EXE (installer, optional) | `./gradlew jpackage -PinstallerType=exe` |
-| macOS    | PKG           | `./gradlew jpackage -PinstallerType=pkg` |
-| macOS    | DMG           | `./gradlew jpackage -PinstallerType=dmg` |
-| Linux    | DEB           | `./gradlew jpackage -PinstallerType=deb` |
-| Linux    | RPM           | `./gradlew jpackage -PinstallerType=rpm` |
+|----------|----------------|---------|
+| Windows | app-image (portable) | `./gradlew jpackageImage -PinstallerType=app-image` |
+| Windows | portable ZIP | `./gradlew portableZip -PinstallerType=app-image` |
+| Windows | MSI (optional) | `./gradlew jpackage -PinstallerType=msi` |
+| Windows | EXE (optional) | `./gradlew jpackage -PinstallerType=exe` |
+| macOS | PKG | `./gradlew jpackage -PinstallerType=pkg` |
+| macOS | DMG | `./gradlew jpackage -PinstallerType=dmg` |
+| Linux | DEB | `./gradlew jpackage -PinstallerType=deb` |
+| Linux | RPM | `./gradlew jpackage -PinstallerType=rpm` |
 
 ---
 
@@ -279,7 +230,7 @@ The project includes GitHub Actions workflows that automatically build packages 
 2. **Pull requests:** Builds and tests all platforms
 3. **Tagged releases (v*):** Builds all platforms and creates a GitHub release
 
-### Triggering a Build
+### Triggering a Release
 
 ```bash
 # Tag a release
@@ -287,7 +238,7 @@ git tag -a v1.5.2 -m "Release version 1.5.2"
 git push origin v1.5.2
 
 # GitHub Actions will automatically:
-# 1. Build Windows portable app-image
+# 1. Build Windows portable ZIP
 # 2. Build macOS PKG
 # 3. Build Linux DEB and RPM
 # 4. Create a GitHub release with all artifacts
@@ -311,8 +262,6 @@ All installers include:
 - Java runtime (bundled)
 - Required JavaFX libraries
 - Application icon
-- Desktop shortcuts (platform-dependent; Windows installers only)
-- Start menu entries (Windows installers only)
 
 ### Package Sizes
 
@@ -399,8 +348,11 @@ rpm --addsign build/jpackage/pihole-widgets-*.rpm
 # Verify Java installation
 java -version
 
-# Set JAVA_HOME (Windows)
-setx JAVA_HOME "C:\Program Files\Java\jdk-25"
+# Set JAVA_HOME (Windows PowerShell)
+$env:JAVA_HOME = "C:\Program Files\Java\jdk-25"
+
+# Set JAVA_HOME (Windows CMD)
+set JAVA_HOME=C:\Program Files\Java\jdk-25
 
 # Set JAVA_HOME (macOS/Linux)
 export JAVA_HOME=/path/to/jdk-25
@@ -415,22 +367,15 @@ For public distribution, consider code-signing the launcher `.exe` (see [Signing
 
 **Solution:**
 ```powershell
-# Stop processes locking the build directory
-.\fix-build-locks.ps1
-
-# Or manually
+# Stop Gradle daemon
 ./gradlew --stop
-# Pause OneDrive sync if applicable
 ```
 
 #### "Permission denied" (macOS/Linux)
 
 **Solution:**
 ```bash
-# Make scripts executable
-chmod +x build.sh
-chmod +x build-macos.sh
-chmod +x build-linux.sh
+# Make gradlew executable
 chmod +x gradlew
 ```
 
@@ -484,4 +429,3 @@ If you encounter issues:
 
 **Last Updated:** December 2025  
 **Version:** 1.5.2
-

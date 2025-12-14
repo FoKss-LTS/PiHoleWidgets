@@ -5,7 +5,7 @@
 ### Installation
 
 1. **Download** the installer for your platform:
-   - 🪟 **Windows:** `PiHole-Widgets-windows-portable.zip`
+   - 🪟 **Windows:** `PiHole-Widgets-{version}-portable.zip`
    - 🍎 **macOS:** `PiHole-Widgets-{version}.pkg`
    - 🐧 **Linux (Debian/Ubuntu):** `pihole-widgets_{version}_amd64.deb`
    - 🐧 **Linux (Fedora/RHEL):** `pihole-widgets-{version}.x86_64.rpm`
@@ -46,22 +46,14 @@
 
 ### Prerequisites
 
-- Java 25 JDK
+- Java 25 JDK (set `JAVA_HOME` environment variable)
 - Git
 
-### Quick Build
+### Clone the Repository
 
 ```bash
-# Clone the repository
 git clone https://github.com/foxy999/PiHoleWidgets.git
 cd PiHoleWidgets
-
-# Build for your platform (auto-detects OS)
-# Windows:
-.\build.ps1
-
-# macOS/Linux:
-chmod +x build.sh && ./build.sh
 ```
 
 ### Run Without Building Installer
@@ -72,67 +64,62 @@ chmod +x build.sh && ./build.sh
 
 # macOS/Linux
 ./gradlew run
+
+# With verbose logging
+./gradlew run -Ppihole.verbose=true
 ```
 
-### Platform-Specific Builds
+### Build & Test
 
 ```bash
-# Windows portable (app-image)
-.\build-windows.ps1
-
-# macOS PKG
-./build-macos.sh
-
-# Linux DEB (Debian/Ubuntu)
-./build-linux.sh --type deb
-
-# Linux RPM (Fedora/RHEL)
-./build-linux.sh --type rpm
-
-# Linux Both DEB and RPM
-./build-linux.sh --type both
-```
-
-### Build Options
-
-- `--clean` or `-Clean`: Clean before building
-- `--skip-tests` or `-SkipTests`: Skip tests
-
-**Examples:**
-```bash
-# Clean build with tests
-.\build.ps1 -Clean                    # Windows
-./build.sh --clean                     # macOS/Linux
-
-# Quick build without tests
-.\build.ps1 -SkipTests                # Windows
-./build.sh --skip-tests                # macOS/Linux
-```
-
-### Common Gradle Commands
-
-```bash
-# Build
+# Build the application
 ./gradlew build
 
 # Run tests
 ./gradlew test
 
-# Run application
-./gradlew run
-
-# Run with verbose logging
-./gradlew run -Ppihole.verbose=true
-
-# Clean
-./gradlew clean
-
-# Create installer (manual)
-./gradlew jpackageImage -PinstallerType=app-image  # Windows portable
-./gradlew jpackage -PinstallerType=pkg    # macOS
-./gradlew jpackage -PinstallerType=deb    # Linux (Debian)
-./gradlew jpackage -PinstallerType=rpm    # Linux (RedHat)
+# Clean build
+./gradlew clean build
 ```
+
+### Create Platform Installers
+
+All installers are created using Gradle's `jpackage` task with the `-PinstallerType` parameter:
+
+```bash
+# Windows portable (app-image folder with .exe)
+./gradlew jpackageImage -PinstallerType=app-image
+
+# Windows portable ZIP (creates a distributable ZIP)
+./gradlew portableZip -PinstallerType=app-image
+
+# macOS PKG installer
+./gradlew jpackage -PinstallerType=pkg
+
+# macOS DMG (alternative)
+./gradlew jpackage -PinstallerType=dmg
+
+# Linux DEB (Debian/Ubuntu)
+./gradlew jpackage -PinstallerType=deb
+
+# Linux RPM (Fedora/RHEL)
+./gradlew jpackage -PinstallerType=rpm
+```
+
+### Common Gradle Commands
+
+| Command | Description |
+|---------|-------------|
+| `./gradlew build` | Compile and package the application |
+| `./gradlew test` | Run unit tests |
+| `./gradlew run` | Run the application directly |
+| `./gradlew clean` | Clean build outputs |
+| `./gradlew jlink` | Create runtime image (without installer) |
+| `./gradlew jpackageImage -PinstallerType=app-image` | Windows portable |
+| `./gradlew portableZip -PinstallerType=app-image` | Windows portable ZIP |
+| `./gradlew jpackage -PinstallerType=pkg` | macOS PKG |
+| `./gradlew jpackage -PinstallerType=deb` | Linux DEB |
+| `./gradlew jpackage -PinstallerType=rpm` | Linux RPM |
 
 ### Project Structure
 
@@ -140,16 +127,15 @@ chmod +x build.sh && ./build.sh
 PiHoleWidgets/
 ├── src/main/java/          # Java source code
 │   ├── controllers/        # JavaFX controllers
-│   ├── domain/            # Domain models
-│   ├── services/          # Business logic
-│   └── helpers/           # Utility classes
-├── src/main/resources/    # Resources (FXML, icons)
-├── build.gradle           # Gradle build configuration
-├── build-*.ps1/sh         # Platform-specific build scripts
-├── .github/workflows/     # CI/CD automation
-├── README.md             # Main documentation
-├── DISTRIBUTION.md       # Detailed build guide
-└── implementation_plan.md # Development roadmap
+│   ├── domain/             # Domain models
+│   ├── services/           # Business logic
+│   └── helpers/            # Utility classes
+├── src/main/resources/     # Resources (FXML, icons)
+├── build.gradle            # Gradle build configuration
+├── .github/workflows/      # CI/CD automation
+├── README.md               # Main documentation
+├── DISTRIBUTION.md         # Detailed build guide
+└── implementation_plan.md  # Development roadmap
 ```
 
 ---
@@ -157,7 +143,7 @@ PiHoleWidgets/
 ## Troubleshooting
 
 ### "Java not found"
-**Solution:** Install JDK 25 and set `JAVA_HOME`
+**Solution:** Install JDK 25 and set `JAVA_HOME` environment variable
 
 ### macOS: "App is damaged"
 **Solution:** 
@@ -178,7 +164,7 @@ sudo dnf install pihole-widgets
 ### Build directory locked (Windows)
 **Solution:**
 ```powershell
-.\fix-build-locks.ps1
+./gradlew --stop
 ```
 
 ---
@@ -194,4 +180,3 @@ sudo dnf install pihole-widgets
 
 **Version:** 1.5.2  
 **Last Updated:** December 2025
-

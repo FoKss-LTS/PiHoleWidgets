@@ -16,23 +16,30 @@ This file tracks planned work and what has been implemented.
 - ✅ JavaFX plugin setup
 - ✅ jlink runtime image support
 - ✅ jpackage support (cross-platform packaging)
+- ✅ `portableZip` Gradle task for Windows portable distribution
 
 ### Phase 3 — Distribution
-- ✅ Cross-platform build scripts (`build.ps1`, `build.sh`, and platform scripts)
+- ✅ Simplified build process using Gradle commands directly
+- ✅ Removed wrapper scripts (build.ps1, build.sh, build-windows.ps1, etc.)
 - ✅ Documentation for building/distribution (`DISTRIBUTION.md`, `QUICKSTART.md`, README updates)
+- ✅ GitHub Actions CI/CD workflow
 
-## In Progress / Next Changes
+### Build Commands Reference
+```bash
+# Development
+./gradlew build test          # Build and test
+./gradlew run                 # Run the application
 
-### Windows distribution: switch from installer to portable
-- 🔄 Replace Windows MSI installer output with **portable app-image** output
-  - Goal: user downloads/unzips and runs the included `.exe` (no installation)
-  - Implementation: use Gradle `jpackageImage` with `installerType=app-image`
-  - Output: a portable folder containing the launcher `.exe` (optionally zipped for release)
+# Distribution
+./gradlew portableZip -PinstallerType=app-image   # Windows portable ZIP
+./gradlew jpackage -PinstallerType=pkg            # macOS PKG
+./gradlew jpackage -PinstallerType=deb            # Linux DEB
+./gradlew jpackage -PinstallerType=rpm            # Linux RPM
+```
 
 ## Backlog (Future Ideas)
 - Multiple Pi-hole support
 - Themes
 - Tray support
 - Enable/disable Pi-hole from widget
-
 

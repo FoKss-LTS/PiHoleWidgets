@@ -126,40 +126,33 @@ All packages include the bundled Java runtime - no separate Java installation ne
 
 #### Option 2: Build from Source
 
-**Quick Build (Auto-detects your OS):**
+All builds are done through Gradle commands directly:
+
 ```bash
-# Windows PowerShell
-.\build.ps1
+# Clone the repository
+git clone https://github.com/foxy999/PiHoleWidgets.git
+cd PiHoleWidgets
 
-# macOS/Linux
-chmod +x build.sh && ./build.sh
-```
+# Build and test
+./gradlew build test
 
-**Platform-Specific Builds:**
-```bash
-# Windows
-.\build-windows.ps1
-
-# macOS
-./build-macos.sh
-
-# Linux (DEB for Debian/Ubuntu)
-./build-linux.sh --type deb
-
-# Linux (RPM for Fedora/RHEL)
-./build-linux.sh --type rpm
-
-# Linux (Both DEB and RPM)
-./build-linux.sh --type both
-```
-
-**Run without Building Installer:**
-```bash
-# Windows
-.\gradlew.bat run
-
-# macOS/Linux
+# Run the application (without installer)
 ./gradlew run
+```
+
+**Create Platform Installers:**
+```bash
+# Windows portable ZIP
+./gradlew portableZip -PinstallerType=app-image
+
+# macOS PKG
+./gradlew jpackage -PinstallerType=pkg
+
+# Linux DEB (Debian/Ubuntu)
+./gradlew jpackage -PinstallerType=deb
+
+# Linux RPM (Fedora/RHEL)
+./gradlew jpackage -PinstallerType=rpm
 ```
 
 For detailed build instructions, see [DISTRIBUTION.md](DISTRIBUTION.md).
@@ -199,11 +192,15 @@ This project includes comprehensive cross-platform build support:
 - **[DISTRIBUTION.md](DISTRIBUTION.md)** - Detailed build and distribution guide
 - **[DISTRIBUTION_SUMMARY.md](DISTRIBUTION_SUMMARY.md)** - Implementation summary
 
-**🔧 Build Scripts:**
-- `build.ps1` / `build.sh` - Universal build (auto-detects OS)
-- `build-windows.ps1` / `build-windows.bat` - Windows portable (app-image EXE)
-- `build-macos.sh` - macOS PKG
-- `build-linux.sh` - Linux DEB/RPM
+**🔧 Build Commands:**
+```bash
+./gradlew build test                              # Build and test
+./gradlew run                                     # Run the application
+./gradlew portableZip -PinstallerType=app-image   # Windows portable ZIP
+./gradlew jpackage -PinstallerType=pkg            # macOS PKG
+./gradlew jpackage -PinstallerType=deb            # Linux DEB
+./gradlew jpackage -PinstallerType=rpm            # Linux RPM
+```
 
 **🚀 CI/CD:**
 - GitHub Actions automatically builds all platforms
