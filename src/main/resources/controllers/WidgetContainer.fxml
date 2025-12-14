@@ -22,8 +22,8 @@
   ~
   -->
 
-<Pane fx:id="rootPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="300.0" prefWidth="300.0" style="-fx-background-color: rgba(42, 42, 42, 1);" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1">
-    <Label fx:id="dakLabel" layoutX="160.0" layoutY="285.0" text="Copyright (C) 2022. By Reda ELFARISSI aka foxy999" textFill="WHITE">
+<Pane fx:id="rootPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="300.0" prefWidth="300.0" style="-fx-background-color: rgba(42, 42, 42, 1);" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1">
+    <Label fx:id="dakLabel" layoutX="66.0" layoutY="285.0" text="Copyright (C) 2025. By Reda ELFARISSI aka foxy999" textFill="WHITE">
         <font>
             <Font size="9.0" />
         </font>

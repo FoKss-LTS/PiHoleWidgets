@@ -55,7 +55,11 @@ import javafx.util.Duration;
 import services.pihole.PiHoleHandler;
 
 import java.net.URL;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.time.Year;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
@@ -79,6 +83,7 @@ public class WidgetController implements Initializable {
     private static final String TRUNCATION_SUFFIX = "..";
     private static final String RANK_ICON_PATH_PATTERN = "/media/images/%d.png";
     private static final int TOOLTIP_DELAY_MS = 200;
+    private static final DateTimeFormatter STATS_TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
     
     // Scheduler intervals in seconds
     private static final long STATUS_REFRESH_INTERVAL = 5;
@@ -428,6 +433,16 @@ public class WidgetController implements Initializable {
     }
     
     // ==================== Data Inflation Methods ====================
+
+    private static String formatStatsFetchedAt(Instant fetchedAt) {
+        if (fetchedAt == null) return "Stats: unknown";
+        String time = STATS_TIME_FORMATTER.format(
+                fetchedAt.atZone(ZoneId.systemDefault())
+                        .toLocalTime()
+                        .truncatedTo(ChronoUnit.SECONDS)
+        );
+        return time;
+    }
     
     public void inflateStatusData() {
         log("=== inflateStatusData() called ===");
@@ -468,6 +483,7 @@ public class WidgetController implements Initializable {
                 log("WARNING: Both Pi-holes inactive, skipping fluid update");
                 return;
             }
+            final Instant fetchedAt = Instant.now();
             
             SummaryStats s1 = parseSummaryStats(stats.pihole1());
             SummaryStats s2 = parseSummaryStats(stats.pihole2());
@@ -479,11 +495,13 @@ public class WidgetController implements Initializable {
             if (piholeDns1 != null) gravityUpdate = piholeDns1.getGravityLastUpdate();
             if ((gravityUpdate == null || gravityUpdate.isBlank()) && piholeDns2 != null) gravityUpdate = piholeDns2.getGravityLastUpdate();
             String finalGravityUpdate = gravityUpdate == null ? "" : gravityUpdate;
+            String statsFetchedText = formatStatsFetchedAt(fetchedAt);
             
             Platform.runLater(() -> {
                 log("inflateFluidData - updating UI...");
                 fluidTile.setValue(adsPercentage);
                 fluidTile.setText(finalGravityUpdate);
+                fluidTile.setTitle("Gravity Status: " + statsFetchedText);
                 log("inflateFluidData complete");
             });
         });

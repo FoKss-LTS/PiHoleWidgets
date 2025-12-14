@@ -1,7 +1,6 @@
 package services.helpers;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,7 +28,6 @@ class HttpClientUtilTest {
 
     private HttpServer server;
     private int port;
-    private final ObjectMapper mapper = new ObjectMapper();
     private HttpClientUtil client;
 
     @BeforeEach
