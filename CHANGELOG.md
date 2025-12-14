@@ -5,7 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## Ver [2.0.0] - 
+
+### Added
+
+- **System Tray Integration**
+  - System tray icon with popup menu
+  - Hide to tray functionality
+  - Show/restore from tray (double-click or menu)
+  - Tray context menu (Show, Hide, Settings, Exit)
+
+- **Pi-hole Control Features**
+  - Enable/Disable DNS blocking directly from widget
+  - DNS blocking status indicator (LED tile)
+  - "Refresh All Now" context menu option
+  - HTTP/HTTPS protocol support
+
+- **Themes & UI Enhancements**
+  - Dark theme (`dark-theme.css`)
+  - Light theme (`light-theme.css`)
+  - ThemeManager for dynamic theme switching
+  - Theme selection in configuration UI
+
+- **Distribution & Packaging**
+  - jlink runtime image support
+  - jpackage support for cross-platform packaging (Windows, macOS, Linux)
+  - `portableZip` Gradle task for Windows portable distribution
+  - GitHub Actions CI/CD workflow
+  - Updated documentation (`DISTRIBUTION.md`, `QUICKSTART.md`, README)
 
 ### Changed
 
@@ -30,6 +57,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated Gradle wrapper from 7.3.1 to 9.2.1
   - Updated JavaFX plugin from 0.0.13 to 0.1.0
   - Updated jlink plugin from 2.26.0 to 3.1.3
+  - Simplified build process using Gradle commands directly
+  - Removed legacy wrapper scripts (build.ps1, build.sh, build-windows.ps1, etc.)
   - Documented the new Java requirement and Gradle commands in `README.md`
 
 - **Code Quality**
