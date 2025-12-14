@@ -1,0 +1,56 @@
+# Generic LLM Ignore File
+# Files and directories listed here will be excluded from LLM/AI assistant context
+# Compatible with various AI coding assistants
+
+# Operating System
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.log
+*.cache
+
+# Dependencies
+node_modules/
+.pnpm-store/
+vendor/
+
+# Package files
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Large media/assets (uncomment if needed)
+# *.png
+# *.jpg
+# *.jpeg
+# *.gif
+# *.mp4
+# *.mov
+# Readme_imgs/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+
+# Compiled Java class files
+*.class
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# OS-specific files
+*.swp
+*.swo
+*~
