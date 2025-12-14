@@ -26,10 +26,10 @@ It is developed with JavaFX, and uses the framework TilesFX.
 
 ##### Screen Shots
 ###### <ins>Square</ins>
-![img_5.png](Readme_imgs/img_5.png)
+![square_lightmode.png](Readme_imgs/widget/square_lightmode.png)
 
 ###### <ins>Horizontal</ins>
-![img_7.png](Readme_imgs/img_7.png)
+![horizontal_darkmode.png](Readme_imgs/widget/horizontal_darkmode.png)
 
 ### <ins>Features</ins>
 
@@ -101,28 +101,36 @@ All donations are welcome and any amount of money will help me to maintain this 
 ### Configuration
 The widget automatically sets its configuration to the default pi-hole local address if that doesn't work , open the configuration interface by right clicking on the widget then click on Settings.
 
-![img_8.png](Readme_imgs/img_8.png)
+![settings_rightclick.png](Readme_imgs/settings/settings_rightclick.png)
 
-Then input your controllers IP Address/Port and API Token, and click Apply.
+Then input your controllers IP Address/Port and the web password or generatedapp password, and click Apply.
 
-###### Where to find the API TOKEN
+![settings.png](Readme_imgs/settings/dns_settings.png)
 
-![img.png](Readme_imgs/img.png)
+###### Where to generate the App password
 
-![img_3.png](Readme_imgs/img_3.png)
+![alt text](Readme_imgs/pihole_interface/option%20in%20settings.png)
 
-![img_4.png](Readme_imgs/img_4.png)
+Enable Expert Settings 
+
+![img.png](Readme_imgs/pihole_interface/web_interface_API%20Settings.png)
+
+then click  on configure app password
+
+![img.png](Readme_imgs/pihole_interface/configure_app_password.png)
+
 
 ###### Personalize your widget
 
 You can set your Widget size, layout, and theme by accessing the Widget configuration panel in Settings (Restart needed for some changes).
 
-![img_10.png](Readme_imgs/img_10.png)
+![widget_settings.png](Readme_imgs/settings/widget_settings.png)
 
 **Available options:**
 - **Size:** Small, Medium, Large, XXL, Full Screen
 - **Layout:** Horizontal, Square
 - **Theme:** Dark, Light
+- **Time to refresh:** Customizable
 
 ### Installation Options
 
@@ -189,7 +197,7 @@ After installation, launch PiHole Widgets from:
 - **Settings** - Open configuration window
 - **Exit** - Close the application
 
-![img_9.png](Readme_imgs/img_9.png)
+![img_9.png](Readme_imgs/settings/settings_rightclick.png)
 
 **System Tray:**
 When the widget is hidden to tray, you can:
