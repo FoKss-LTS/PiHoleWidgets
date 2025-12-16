@@ -226,7 +226,7 @@ This project includes comprehensive cross-platform build support:
 **📚 Documentation:**
 - **[QUICKSTART.md](QUICKSTART.md)** - Quick reference for users and developers
 - **[DISTRIBUTION.md](DISTRIBUTION.md)** - Detailed build and distribution guide
-- **[DISTRIBUTION_SUMMARY.md](DISTRIBUTION_SUMMARY.md)** - Implementation summary
+- **[CHANGELOG.md](CHANGELOG.md)** - Version history and release notes
 
 **🔧 Build Commands:**
 ```bash

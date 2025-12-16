@@ -135,7 +135,7 @@ PiHoleWidgets/
 ├── .github/workflows/      # CI/CD automation
 ├── README.md               # Main documentation
 ├── DISTRIBUTION.md         # Detailed build guide
-└── implementation_plan.md  # Development roadmap
+└── CHANGELOG.md            # Version history
 ```
 
 ---
@@ -178,5 +178,5 @@ sudo dnf install pihole-widgets
 
 ---
 
-**Version:** 1.5.2  
+**Version:** 2.0.0  
 **Last Updated:** December 2025
