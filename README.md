@@ -224,9 +224,11 @@ If you find any bugs or want to suggest new features please go to: https://githu
 This project includes comprehensive cross-platform build support:
 
 **📚 Documentation:**
-- **[QUICKSTART.md](QUICKSTART.md)** - Quick reference for users and developers
+- **[docs/QUICKSTART.md](docs/QUICKSTART.md)** - Quick reference for users and developers
 - **[DISTRIBUTION.md](DISTRIBUTION.md)** - Detailed build and distribution guide
 - **[CHANGELOG.md](CHANGELOG.md)** - Version history and release notes
+- **[docs/project_analysis.md](docs/project_analysis.md)** - Project analysis and improvement recommendations
+- **[docs/DEPENDENCY_UPDATES.md](docs/DEPENDENCY_UPDATES.md)** - Dependency update management guide
 
 **🔧 Build Commands:**
 ```bash

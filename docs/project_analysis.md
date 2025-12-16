@@ -3,69 +3,49 @@
 ## Executive Summary
 
 **Project**: PiHole Widgets v1.5.2  
-**Technology**: JavaFX 25, TilesFX, Gradle  
+**Technology**: JavaFX 25, TilesFX, Gradle 9.2.1  
 **Status**: Production-ready with cross-platform distribution  
 **Overall Quality**: Good ⭐⭐⭐⭐☆
 
-The project is well-structured with modern Java practices, comprehensive documentation, and professional CI/CD. However, there are several areas for improvement across code quality, architecture, performance, and tooling.
+The project is well-structured with modern Java practices, comprehensive documentation, and professional CI/CD. Recent improvements include Java 25 migration, dependency update plugin integration, and logging consistency fixes. There are still several areas for improvement across code quality, architecture, performance, and tooling.
 
 ---
 
 ## 🎯 Critical Improvements (High Priority)
 
-### 1. **Logging Infrastructure** ⚠️ CRITICAL
+### 1. **Logging Infrastructure** ✅ COMPLETED
 
-**Issue**: Inconsistent logging approach mixing `System.out.println` with proper Java logging.
+**Status**: Fixed - All `System.out.println` statements have been replaced with proper `java.util.logging.Logger` usage.
 
-**Location**: [`HttpClientUtil.java:57`](file:///G:/DEV_FOLDER/PiHoleWidgets/src/main/java/helpers/HttpClientUtil.java#L57)
+**Implementation**: 
+- Consistent logging pattern across all classes
+- Proper log levels (FINE, INFO, WARNING, SEVERE)
+- Logging can be redirected and filtered properly
+- Better production diagnostics
 
-```java
-// Current (inconsistent)
-System.out.println("[HTTP] " + java.time.LocalDateTime.now() + " - " + message);
-```
-
-**Impact**: 
-- No log levels in debug output
-- Cannot redirect or filter logs properly
-- Difficult to diagnose issues in production
-
-**Recommendation**:
-- Replace `System.out.println` with proper `Logger` 
-- Use consistent logging pattern across all classes
-- The project already uses `java.util.logging.Logger` elsewhere
-
-**Example Fix**:
-```java
-private static final Logger LOGGER = Logger.getLogger(HttpClientUtil.class.getName());
-
-private static void log(String message) {
-    if (VERBOSE) {
-        LOGGER.log(Level.FINE, () -> "[HTTP] " + message);
-    }
-}
-```
+**Note**: This critical issue has been resolved in the current codebase.
 
 ---
 
-### 2. **Dependency Version Management** ⚠️
+### 2. **Dependency Version Management** ✅ COMPLETED
 
-**Issue**: Some dependencies may have updates available, and there's no automated dependency checking.
+**Status**: Implemented - Gradle Versions Plugin (0.53.0) has been added to the build configuration.
 
 **Current State**:
 - Jackson: 2.18.2 (good)
 - JUnit: 5.10.2 (good)
 - JetBrains Annotations: 26.0.2 (good)
 - JavaFX: 25
+- Gradle Versions Plugin: 0.53.0 ✅
 
-**Recommendations**:
-1. **Add Gradle dependency update plugin**:
-```gradle
-plugins {
-    id 'com.github.ben-manes.versions' version '0.51.0'
-}
-```
+**Implementation**:
+- Dependency update checking available via `./gradlew dependencyUpdates --no-parallel`
+- Configured to only show stable releases
+- Generates HTML and plain text reports in `build/reports/dependencyUpdates/`
 
-2. **Add dependency verification**: Enable Gradle dependency verification for security.
+**Remaining Recommendations**:
+1. **Add dependency verification**: Enable Gradle dependency verification for security.
+2. **Automate dependency checks**: Consider adding to CI/CD pipeline.
 
 ---
 
@@ -74,8 +54,8 @@ plugins {
 **Issue**: Network operations could benefit from retry logic and better error recovery.
 
 **Affected Areas**:
-- [`PiHoleHandler.java`](file:///G:/DEV_FOLDER/PiHoleWidgets/src/main/java/services/pihole/PiHoleHandler.java) - API calls
-- [`HttpClientUtil.java`](file:///G:/DEV_FOLDER/PiHoleWidgets/src/main/java/helpers/HttpClientUtil.java) - HTTP operations
+- `src/main/java/services/pihole/PiHoleHandler.java` - API calls
+- `src/main/java/helpers/HttpClientUtil.java` - HTTP operations
 
 **Recommendations**:
 1. **Add retry mechanism** for transient network failures
@@ -140,7 +120,7 @@ public class PiholeConfig {
 
 **Issue**: The application uses `Executors.newSingleThreadScheduledExecutor()` without explicit configuration.
 
-**Location**: [`WidgetController.java`](file:///G:/DEV_FOLDER/PiHoleWidgets/src/main/java/controllers/WidgetController.java)
+**Location**: `src/main/java/controllers/WidgetController.java`
 
 **Recommendations**:
 1. Use custom `ThreadPoolExecutor` with:
@@ -432,8 +412,8 @@ pmd {
 **Issue**: Version is hardcoded in multiple places.
 
 **Locations**:
-- [`build.gradle:102`](file:///G:/DEV_FOLDER/PiHoleWidgets/build.gradle#L102)
-- `WidgetController.java` (WIDGET_VERSION constant)
+- `build.gradle` (line 103: version = "1.5.2")
+- `src/main/java/controllers/WidgetController.java` (WIDGET_VERSION constant)
 
 **Recommendation**: 
 1. Single source of truth for version in `gradle.properties`
@@ -594,8 +574,8 @@ public class AdGuardClient implements DnsServerClient { ... }
 
 | Priority | Category | Improvement | Impact | Effort |
 |----------|----------|-------------|--------|--------|
-| 🔴 Critical | Logging | Fix System.out.println (#1) | High | Low |
-| 🔴 Critical | Dependencies | Stable JavaFX version (#2) | High | Low |
+| ✅ Completed | Logging | Fix System.out.println (#1) | High | Low |
+| ✅ Completed | Dependencies | Add dependency update plugin (#2) | High | Low |
 | 🟡 High | Resilience | Add retry logic (#3) | High | Medium |
 | 🟡 High | Security | Encrypt credentials (#15) | High | Medium |
 | 🟡 High | Testing | Add code coverage (#10) | Medium | Low |
@@ -623,11 +603,11 @@ public class AdGuardClient implements DnsServerClient { ... }
 
 ## 🎯 Recommended Implementation Order
 
-### Phase 1: Foundation (Week 1-2)
-1. Fix logging inconsistency (#1)
-2. Switch to stable JavaFX (#2)
-3. Add dependency update plugin (#2)
-4. Add code coverage tools (#10)
+### Phase 1: Foundation (Week 1-2) ✅ IN PROGRESS
+1. ✅ Fix logging inconsistency (#1) - **COMPLETED**
+2. ✅ Add dependency update plugin (#2) - **COMPLETED**
+3. JavaFX 25 is stable and in use
+4. Add code coverage tools (#10) - **PENDING**
 
 ### Phase 2: Resilience (Week 3-4)
 1. Implement retry logic (#3)

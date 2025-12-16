@@ -178,5 +178,5 @@ sudo dnf install pihole-widgets
 
 ---
 
-**Version:** 2.0.0  
-**Last Updated:** December 2025
+**Version:** 1.5.2  
+**Last Updated:** January 2025

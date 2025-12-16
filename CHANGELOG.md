@@ -5,7 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Ver [2.0.0] - 
+## [Unreleased]
+
+### Planned for Version 2.0.0
 
 ### Added
 
@@ -50,7 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Ikonli JavaFX: 12.2.0 → 12.4.0
   - TilesFX: 11.48 → 21.0.9
   - JetBrains Annotations: 20.1.0 → 26.0.2
-  - JUnit: 5.8.1 → 6.0.1
+  - JUnit: 5.8.1 → 5.10.2
   - Migrated from json-simple 1.1 to Jackson 2.18.2 for better Java 25 compatibility
 
 - **Build System**
@@ -74,7 +76,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Support for Pihole 5.9
 - Added Settings helpers.
 - Updated Changelog and Readme
-
 
 ## Ver [1.5.1] - 01-27-2022
 
