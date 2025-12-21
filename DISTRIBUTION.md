@@ -92,19 +92,19 @@ cd PiHoleWidgets
 ### Create Installers
 
 ```bash
-# Windows portable (folder with .exe)
+# Windows portable (folder with .exe) - Run on Windows
 ./gradlew jpackageImage -PinstallerType=app-image
 
-# Windows portable ZIP
+# Windows portable ZIP - Run on Windows
 ./gradlew portableZip -PinstallerType=app-image
 
-# macOS PKG
+# macOS PKG - Run on macOS
 ./gradlew jpackage -PinstallerType=pkg
 
-# Linux DEB
+# Linux DEB - Run on Linux
 ./gradlew jpackage -PinstallerType=deb
 
-# Linux RPM
+# Linux RPM - Run on Linux
 ./gradlew jpackage -PinstallerType=rpm
 ```
 

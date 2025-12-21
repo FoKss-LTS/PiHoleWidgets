@@ -63,6 +63,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -79,7 +80,7 @@ public class WidgetController implements Initializable {
 
     // ==================== Constants ====================
 
-    private static final String WIDGET_VERSION = "2.0.0";
+    private static final String WIDGET_VERSION = loadVersion();
     private static final int DEFAULT_TOP_X = 5;
     private static final int DOMAIN_TRUNCATE_LENGTH = 20;
     private static final String TRUNCATION_SUFFIX = "..";
@@ -98,6 +99,18 @@ public class WidgetController implements Initializable {
     private static final double DEFAULT_TILE_HEIGHT = 200;
 
     // ==================== Logging ====================
+
+    private static String loadVersion() {
+        try (var stream = WidgetController.class.getResourceAsStream("/version.properties")) {
+            if (stream == null)
+                return "Unknown";
+            Properties props = new Properties();
+            props.load(stream);
+            return props.getProperty("version", "Unknown");
+        } catch (Exception e) {
+            return "Unknown";
+        }
+    }
 
     private static final Logger LOGGER = Logger.getLogger(WidgetController.class.getName());
     private static final boolean VERBOSE = Boolean.parseBoolean(System.getProperty("pihole.verbose", "false"));
