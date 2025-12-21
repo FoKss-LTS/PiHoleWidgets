@@ -100,7 +100,7 @@ jlink {
         ]
     }
 
-    version = "1.5.2"
+    version = "2.0.0"
     description ="A desktop Widget to display Pihole data"
 
 
@@ -114,7 +114,7 @@ jlink {
         installerOptions = [
                 '--description', project.description,
                 '--vendor', 'Reda ELFARISSI',
-                '--copyright', 'Copyright (C) 2022-2025 Reda ELFARISSI aka FoKss-LTS',
+                '--copyright', 'Copyright (C) 2022-202 Reda ELFARISSI aka FoKss-LTS',
                 '--license-file', 'LICENCE'
         ]
         

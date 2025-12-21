@@ -33,24 +33,31 @@ This guide provides comprehensive instructions for building and distributing PiH
 ### Platform-Specific Requirements
 
 #### Windows
+
 - **Windows 10 or later** (64-bit)
 - *(Portable builds do not require WiX / installer toolchains)*
 
 #### macOS
+
 - **macOS 10.15 (Catalina) or later**
 - **Xcode Command Line Tools**
+
   ```bash
   xcode-select --install
   ```
+
 - **Developer ID certificate** (optional, for signed packages)
 
 #### Linux
+
 - **Debian/Ubuntu:**
+
   ```bash
   sudo apt-get install fakeroot
   ```
   
 - **Fedora/RHEL/CentOS:**
+
   ```bash
   sudo dnf install rpm-build
   ```
@@ -119,10 +126,12 @@ cd PiHoleWidgets
 ```
 
 #### Output
+
 - **Portable app-image folder:** `build/jpackage/PiHole-Widgets/` (contains `PiHole-Widgets.exe`)
 - **Portable ZIP:** `build/portable/PiHole-Widgets-{version}-portable.zip`
 
 #### Distribution Notes
+
 - Portable ZIP can be distributed directly (unzip and run)
 - No code signing required for personal use (Windows may show SmartScreen for unsigned apps)
 - For public distribution, consider signing with a code signing certificate
@@ -143,10 +152,12 @@ cd PiHoleWidgets
 ```
 
 #### Output
+
 - **PKG Installer:** `build/jpackage/PiHole-Widgets-{version}.pkg`
 - **Installation Location:** `/Applications/PiHole Widgets.app`
 
 #### Distribution Notes
+
 - PKG files need to be signed for public distribution
 - Users may need to allow the app in **System Preferences > Security & Privacy**
 - See [Signing and Notarization](#signing-and-notarization) for details
@@ -164,23 +175,27 @@ cd PiHoleWidgets
 ```
 
 #### Output
+
 - **DEB Package:** `build/jpackage/pihole-widgets_{version}_amd64.deb`
 - **RPM Package:** `build/jpackage/pihole-widgets-{version}.x86_64.rpm`
 
 #### Installation
 
 **Debian/Ubuntu:**
+
 ```bash
 sudo dpkg -i pihole-widgets_*.deb
 sudo apt-get install -f  # Install dependencies if needed
 ```
 
 **Fedora/RHEL:**
+
 ```bash
 sudo rpm -i pihole-widgets-*.rpm
 ```
 
 **Uninstallation:**
+
 ```bash
 # Debian/Ubuntu
 sudo apt-get remove pihole-widgets
@@ -234,8 +249,8 @@ The project includes GitHub Actions workflows that automatically build packages 
 
 ```bash
 # Tag a release
-git tag -a v1.5.2 -m "Release version 1.5.2"
-git push origin v1.5.2
+git tag -a v2.0.0 -m "Release version 2.0.0"
+git push origin v2.0.0
 
 # GitHub Actions will automatically:
 # 1. Build Windows portable ZIP
@@ -258,6 +273,7 @@ git push origin v1.5.2
 ### Package Contents
 
 All installers include:
+
 - PiHole Widgets application
 - Java runtime (bundled)
 - Required JavaFX libraries
@@ -266,6 +282,7 @@ All installers include:
 ### Package Sizes
 
 Approximate installer sizes:
+
 - **Windows portable (app-image):** ~80-100 MB
 - **macOS PKG:** ~80-100 MB
 - **Linux DEB/RPM:** ~80-100 MB
@@ -295,28 +312,28 @@ signtool sign /n "Certificate Name" /tr http://timestamp.digicert.com build/jpac
 ```bash
 # Sign with Developer ID Installer certificate
 productsign --sign "Developer ID Installer: Your Name (TEAM_ID)" \
-  build/jpackage/PiHole-Widgets-1.5.2.pkg \
-  build/jpackage/PiHole-Widgets-1.5.2-signed.pkg
+  build/jpackage/PiHole-Widgets-2.0.0.pkg \
+  build/jpackage/PiHole-Widgets-2.0.0-signed.pkg
 ```
 
 #### Step 2: Notarize with Apple
 
 ```bash
 # Submit for notarization
-xcrun notarytool submit build/jpackage/PiHole-Widgets-1.5.2-signed.pkg \
+xcrun notarytool submit build/jpackage/PiHole-Widgets-2.0.0-signed.pkg \
   --apple-id "your-email@example.com" \
   --team-id "TEAM_ID" \
   --password "app-specific-password" \
   --wait
 
 # Staple the notarization ticket
-xcrun stapler staple build/jpackage/PiHole-Widgets-1.5.2-signed.pkg
+xcrun stapler staple build/jpackage/PiHole-Widgets-2.0.0-signed.pkg
 ```
 
 #### Step 3: Verify
 
 ```bash
-spctl -a -vvv -t install build/jpackage/PiHole-Widgets-1.5.2-signed.pkg
+spctl -a -vvv -t install build/jpackage/PiHole-Widgets-2.0.0-signed.pkg
 ```
 
 ### Linux Package Signing
@@ -344,6 +361,7 @@ rpm --addsign build/jpackage/pihole-widgets-*.rpm
 #### "Java not found" Error
 
 **Solution:**
+
 ```bash
 # Verify Java installation
 java -version
@@ -366,6 +384,7 @@ For public distribution, consider code-signing the launcher `.exe` (see [Signing
 #### Build Directory Lock (Windows)
 
 **Solution:**
+
 ```powershell
 # Stop Gradle daemon
 ./gradlew --stop
@@ -374,6 +393,7 @@ For public distribution, consider code-signing the launcher `.exe` (see [Signing
 #### "Permission denied" (macOS/Linux)
 
 **Solution:**
+
 ```bash
 # Make gradlew executable
 chmod +x gradlew
@@ -384,6 +404,7 @@ chmod +x gradlew
 **Issue:** "App is damaged and can't be opened"
 
 **Solution:**
+
 ```bash
 # Remove quarantine attribute
 xattr -cr "/Applications/PiHole Widgets.app"
@@ -394,12 +415,14 @@ xattr -cr "/Applications/PiHole Widgets.app"
 #### Missing Dependencies (Linux)
 
 **Debian/Ubuntu:**
+
 ```bash
 sudo apt-get update
 sudo apt-get install fakeroot binutils
 ```
 
 **Fedora/RHEL:**
+
 ```bash
 sudo dnf install rpm-build
 ```
@@ -407,6 +430,7 @@ sudo dnf install rpm-build
 ### Getting Help
 
 If you encounter issues:
+
 1. Check the [GitHub Issues](https://github.com/FoKss-LTS/PiHoleWidgets/issues)
 2. Review build logs in `build/` directory
 3. Enable verbose logging: `./gradlew --info build`
@@ -428,4 +452,4 @@ If you encounter issues:
 ---
 
 **Last Updated:** December 2025  
-**Version:** 1.5.2
+**Version:** 2.0.0

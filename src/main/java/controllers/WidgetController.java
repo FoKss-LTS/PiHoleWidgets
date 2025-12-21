@@ -79,7 +79,7 @@ public class WidgetController implements Initializable {
 
     // ==================== Constants ====================
 
-    private static final String WIDGET_VERSION = "1.5.2";
+    private static final String WIDGET_VERSION = "2.0.0";
     private static final int DEFAULT_TOP_X = 5;
     private static final int DOMAIN_TRUNCATE_LENGTH = 20;
     private static final String TRUNCATION_SUFFIX = "..";
