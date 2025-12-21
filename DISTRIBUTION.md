@@ -241,9 +241,8 @@ sudo rpm -e pihole-widgets
 
 The project includes GitHub Actions workflows that automatically build packages for all platforms:
 
-1. **Push to main/master/develop branches:** Builds all platforms
-2. **Pull requests:** Builds and tests all platforms
-3. **Tagged releases (v*):** Builds all platforms and creates a GitHub release
+1. **Pull requests and Pushes (CI):** Builds and tests all platforms automatically on every pull request and push to main/develop.
+2. **Tagged releases (Release):** Dedicated workflow that builds all platforms, generates checksums, extracts release notes from the changelog, and creates a GitHub release.
 
 ### Triggering a Release
 
@@ -256,13 +255,15 @@ git push origin v2.0.0
 # 1. Build Windows portable ZIP
 # 2. Build macOS PKG
 # 3. Build Linux DEB and RPM
-# 4. Create a GitHub release with all artifacts
+# 4. Generate SHA-256 Checksums
+# 5. Extract release notes from CHANGELOG.md
+# 6. Create a GitHub release with all artifacts and notes
 ```
 
 ### Manually Triggering Workflows
 
 1. Go to the **Actions** tab in your GitHub repository
-2. Select **Build and Release** workflow
+2. Select **CI** or **Release** workflow
 3. Click **Run workflow**
 4. Select branch and click **Run workflow**
 
