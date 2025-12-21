@@ -1,57 +1,82 @@
 plugins {
     id 'java'
     id 'application'
-    id 'org.openjfx.javafxplugin' version '0.0.13'
-    id 'org.beryx.jlink' version '2.26.0'
-
+    id 'org.openjfx.javafxplugin' version '0.1.0'
+    id 'org.beryx.jlink' version '3.1.3'
+    id 'com.github.ben-manes.versions' version '0.53.0'
 }
 
-group 'controllers'
+group = 'controllers'
+description = 'A desktop Widget to display Pi-hole data'
 
 repositories {
     mavenCentral()
 }
 
-ext {
-    junitVersion = '5.8.1'
+def junitVersion = '5.10.2'
+def javaRelease = 25
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(javaRelease)
+    }
+    // Ensure all dependencies are available as modules
+    modularity.inferModulePath = true
 }
 
-sourceCompatibility = '17'
-targetCompatibility = '17'
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = javaRelease
+    options.compilerArgs += [
+        '-Xlint:deprecation',
+        '-Xlint:unchecked'
+    ]
+}
 
-tasks.withType(JavaCompile) {
+tasks.withType(Javadoc).configureEach {
     options.encoding = 'UTF-8'
 }
 
 application {
     mainModule = 'pihole'
     mainClass = 'controllers.WidgetApplication'
+    applicationDefaultJvmArgs = [
+        '--enable-native-access=javafx.base,javafx.graphics,javafx.controls,javafx.fxml,javafx.web,javafx.swing'
+    ]
+}
+
+// Pass pihole.verbose property to the running application
+tasks.named('run') {
+    def verboseFlag = project.findProperty('pihole.verbose') ?: 'false'
+    jvmArgs += ["-Dpihole.verbose=${verboseFlag}"]
 }
 
 javafx {
-    version = '17.0.7'
-    modules = ['javafx.controls', 'javafx.fxml', 'javafx.web']
+    version = '25'
+    modules = ['javafx.controls', 'javafx.fxml', 'javafx.web', 'javafx.swing']
 }
 
 dependencies {
-    implementation('org.controlsfx:controlsfx:11.1.0')
-    implementation('com.dlsc.formsfx:formsfx-core:11.3.2') {
+    implementation('org.controlsfx:controlsfx:11.2.2')
+    implementation('com.dlsc.formsfx:formsfx-core:11.6.0') {
         exclude(group: 'org.openjfx')
     }
-    implementation('net.synedra:validatorfx:0.1.13') {
+    implementation('net.synedra:validatorfx:0.6.1') {
         exclude(group: 'org.openjfx')
     }
-    implementation('org.kordamp.ikonli:ikonli-javafx:12.2.0')
+    implementation('org.kordamp.ikonli:ikonli-javafx:12.4.0')
     implementation('org.kordamp.bootstrapfx:bootstrapfx-core:0.4.0')
-    implementation('eu.hansolo:tilesfx:11.48') {
+    implementation('eu.hansolo:tilesfx:21.0.9') {
         exclude(group: 'org.openjfx')
     }
 
-    implementation group: 'com.googlecode.json-simple', name: 'json-simple', version: '1.1'
-    implementation 'org.jetbrains:annotations:20.1.0'
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.18.2'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.18.2'
+    implementation 'org.jetbrains:annotations:26.0.2'
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:${junitVersion}")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:${junitVersion}")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.10.2")
 }
 
 test {
@@ -64,53 +89,119 @@ jlink {
         requires "java.xml"
     }
 
-    options = ['--strip-debug', '--compress', '2', '--no-header-files', '--no-man-pages']
+    // JDK 25+ deprecates numeric --compress values; '2' is equivalent to 'zip-6'
+    options = ['--strip-debug', '--compress', 'zip-6', '--no-header-files', '--no-man-pages']
 
     launcher {
-        name = 'Pihole Widget'
+        // Keep launcher name consistent across packaging types (also becomes the Windows .exe name)
+        name = 'PiHole-Widgets'
+        jvmArgs = [
+            '--enable-native-access=javafx.base,javafx.graphics,javafx.controls,javafx.fxml,javafx.web,javafx.swing'
+        ]
     }
 
-    version = "1.5.2"
+    version = "2.0.0"
     description ="A desktop Widget to display Pihole data"
 
 
     jpackage {
-        // jpackageHome = '/usr/lib/jvm/jdk16'
-        // outputDir = 'my-packaging'
-        // imageOutputDir = file("$buildDir/my-packaging-image")
-        // installerOutputDir = file("$buildDir/my-packaging-installer")
-        // imageName = 'MyApp'
-        //imageOptions = ['--win-console']
-        skipInstaller = false
-        installerName = 'Widget Installer'
+        // For portable distributions we only want an app-image (no installer)
+        skipInstaller = (installerType == 'app-image')
+        installerName = 'PiHole-Widgets'
+        appVersion = version.toString().replaceAll('-SNAPSHOT', '')
+        
+        // Common installer options for all platforms
         installerOptions = [
                 '--description', project.description,
-                '--copyright', 'Copyright (C) 2022.  Reda ELFARISSI aka foxy999'
+                '--vendor', 'Reda ELFARISSI',
+                '--copyright', 'Copyright (C) 2022-202 Reda ELFARISSI aka FoKss-LTS',
+                '--license-file', 'LICENCE'
         ]
-        //if (org.gradle.internal.os.OperatingSystem.current().windows) {
-        if (installerType == 'msi') {
-            installerOptions += ['--win-per-user-install', '--win-dir-chooser', '--win-menu', '--win-shortcut']
-            imageOptions += ['--icon','src/main/resources/media/icons/icon.ico']
+        
+        // Initialize imageOptions with JVM arguments for native access to JavaFX modules
+        imageOptions = [
+            '--java-options', '--enable-native-access=javafx.base,javafx.graphics,javafx.controls,javafx.fxml,javafx.web,javafx.swing'
+        ]
+        
+        // Platform-specific configurations
+        def isWindowsPackage = (installerType in ['msi', 'exe', 'app-image'])
 
+        if (installerType == 'msi') {
+            // Windows MSI installer
+            installerOptions += [
+                '--win-per-user-install',
+                '--win-dir-chooser',
+                '--win-menu',
+                '--win-menu-group', 'PiHole Widgets',
+                '--win-shortcut',
+                '--win-upgrade-uuid', 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'  // Consistent UUID for upgrades
+            ]
         }
+        
+        if (installerType == 'exe') {
+            // Windows EXE installer (alternative to MSI)
+            installerOptions += [
+                '--win-per-user-install',
+                '--win-dir-chooser',
+                '--win-menu',
+                '--win-menu-group', 'PiHole Widgets',
+                '--win-shortcut'
+            ]
+        }
+
+        if (installerType == 'app-image') {
+            // Portable image (no installer). On Windows this produces a folder with a launcher .exe.
+            // No installerOptions are applicable here.
+        }
+
+        if (isWindowsPackage) {
+            imageOptions += ['--icon', 'src/main/resources/media/icons/icon.ico']
+        }
+        
         if (installerType == 'pkg') {
-            //imageOptions += ['--icon', 'src/main/resources/..../icon.icns']
+            // macOS PKG installer
+            installerOptions += [
+                '--mac-package-identifier', 'com.FoKss-LTS.piholewidgets',
+                '--mac-package-name', 'PiHole Widgets'
+            ]
+            // Uncomment when icon is available in .icns format
+            // imageOptions += ['--icon', 'src/main/resources/media/icons/icon.icns']
         }
+        
+        if (installerType == 'dmg') {
+            // macOS DMG installer (alternative to PKG)
+            installerOptions += [
+                '--mac-package-identifier', 'com.FoKss-LTS.piholewidgets',
+                '--mac-package-name', 'PiHole Widgets'
+            ]
+            // Uncomment when icon is available in .icns format
+            // imageOptions += ['--icon', 'src/main/resources/media/icons/icon.icns']
+        }
+        
         if (installerType in ['deb', 'rpm']) {
-            //imageOptions += ['--icon', 'src/main/resources/..../icon_256x256.png']
+            // Common Linux options
             installerOptions += [
-                    '--linux-menu-group', 'Office',
-                    '--linux-shortcut'
+                '--linux-menu-group', 'Network;Monitor',
+                '--linux-shortcut',
+                '--linux-app-category', 'Network'
             ]
+            // Uncomment when icon is available in PNG format
+            // imageOptions += ['--icon', 'src/main/resources/media/icons/icon.png']
         }
+        
         if (installerType == 'deb') {
+            // Debian/Ubuntu specific
             installerOptions += [
-                    '--linux-deb-maintainer', 'fox-inflames@outlook.com'
+                '--linux-deb-maintainer', 'fox-inflames@outlook.com',
+                '--linux-package-name', 'pihole-widgets'
             ]
         }
+        
         if (installerType == 'rpm') {
+            // Fedora/RedHat specific
             installerOptions += [
-                    '--linux-rpm-license-type', 'GPLv3'
+                '--linux-rpm-license-type', 'GPLv3',
+                '--linux-package-name', 'pihole-widgets'
             ]
         }
 
@@ -118,7 +209,7 @@ jlink {
 
 }
 
-def JLINK_DIR = "$buildDir/jpackage/Pihole Widget"
+def JLINK_DIR = "$buildDir/jpackage/PiHole-Widgets"
 /*
 tasks.jlink.doLast {
 
@@ -140,8 +231,53 @@ tasks.jlink.doLast {
 jlinkZip {
     group = 'distribution'
 }
+
 jpackage {
     doFirst {
         project.getProperty('installerType') // throws exception if its missing
     }
+}
+
+// Task to create a portable ZIP from the app-image (Windows)
+tasks.register('portableZip', Zip) {
+    group = 'distribution'
+    description = 'Creates a portable ZIP archive from the jpackage app-image'
+    
+    dependsOn 'jpackageImage'
+    
+    def appImageDir = file("${buildDir}/jpackage/PiHole-Widgets")
+    from appImageDir
+    into 'PiHole-Widgets'
+    archiveFileName = "PiHole-Widgets-${version}-portable.zip"
+    destinationDirectory = file("${buildDir}/portable")
+    
+    doFirst {
+        if (!appImageDir.exists()) {
+            throw new GradleException("App-image not found at ${appImageDir}. Run with -PinstallerType=app-image")
+        }
+    }
+}
+
+// Dependency update checker configuration
+tasks.named('dependencyUpdates').configure {
+    // Check for updates in the entire dependency tree
+    checkForGradleUpdate = true
+    outputFormatter = 'plain,html'
+    outputDir = "$buildDir/reports/dependencyUpdates"
+    reportfileName = 'dependency-updates-report'
+    
+    // Reject all non-stable versions
+    rejectVersionIf {
+        isNonStable(candidate.version)
+    }
+}
+
+/**
+ * Determines if a version string indicates an unstable release.
+ * Returns true for alpha, beta, RC, milestone, and other pre-release versions.
+ */
+boolean isNonStable(String version) {
+    def stableKeyword = ['RELEASE', 'FINAL', 'GA'].any { version.toUpperCase().contains(it) }
+    def regex = /^[0-9,.v-]+(-r)?$/
+    return !stableKeyword && !(version ==~ regex)
 }

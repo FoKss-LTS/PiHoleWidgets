@@ -3,17 +3,20 @@
 # <ins>Table of contents</ins>
 - [Overview](#overview)
   * [Features](#features)
+  * [Supported Platforms](#supported-platforms)
   * [Upcoming features](#upcoming-features)
-- [Support ](#donation)
+- [Support](#donation)
 - [Installation](#installation)
     * [Pre-Requisites](#pre-requisites)
+    * [Installation Options](#installation-options)
     * [Configuration](#configuration)
       * [Where to find the API TOKEN](#where-to-find-the-api-token)
       * [Personalize your Widget](#personalize-your-widget)
     * [Running the widget](#running-the-widget)
-- [Testing ](#testing) 
-- [Credits ](#credits)
-- [License ](#licence)
+- [Testing](#testing) 
+- [Distribution](#distribution)
+- [Credits](#credits)
+- [License](#licence)
 
 # <ins>Overview</ins>
 ## Pi-Hole DNS Widget for Desktop
@@ -23,31 +26,57 @@ It is developed with JavaFX, and uses the framework TilesFX.
 
 ##### Screen Shots
 ###### <ins>Square</ins>
-![img_5.png](Readme_imgs/img_5.png)
+![square_lightmode.png](Readme_imgs/widget/square_lightmode.png)
 
 ###### <ins>Horizontal</ins>
-![img_7.png](Readme_imgs/img_7.png)
+![horizontal_darkmode.png](Readme_imgs/widget/horizontal_darkmode.png)
 
 ### <ins>Features</ins>
 
-- Live stats from controllers servers.
-- Modern widgets.
-- Comes with a simple install/uninstall for Windows.
-- Great summary of your controllers DNS in one place.
-- Show the last blocked domain.
-- Shows last time gravity was updated.
-- Change visual aspects of Widget.
-- Change size to your needs.
-- Simple configuration.
+#### Core Features
+- **Live stats from Pi-hole servers** - Real-time monitoring of your Pi-hole DNS.
+- **Modern, customizable widgets** - Beautiful TilesFX-based interface.
+- **Great summary** - All your Pi-hole DNS stats in one place.
+- **Last blocked domain** - See what was blocked most recently.
+- **Gravity update status** - Shows when gravity was last updated.
+
+#### Themes & Customization
+- **Dark and Light themes** - Switch between elegant dark mode and clean light mode.
+- **Adjustable widget sizes** - Small, Medium, Large, XXL, or Full Screen.
+- **Multiple layouts** - Choose between Horizontal and Square layouts.
+- **Simple configuration interface** - Easy right-click access to settings.
+
+#### System Tray Integration
+- **Hide to tray** - Minimize the widget to system tray for a clean desktop.
+- **Tray context menu** - Quick access to Show, Hide, Settings, and Exit.
+- **Double-click to restore** - Easily bring back the widget from tray.
+
+#### Pi-hole Control
+- **Enable/Disable Pi-hole** - Toggle DNS blocking directly from the widget.
+- **Refresh on demand** - Manual refresh option via right-click menu.
+- **HTTP/HTTPS support** - Connect to your Pi-hole using secure or standard protocols.
+
+#### Cross-Platform
+- **Windows, macOS, and Linux support** - Native packages for all major platforms.
+- **Portable distribution** - Windows portable ZIP requires no installation.
+- **No Java installation required** - Java runtime bundled with all packages.
+
+### <ins>Supported Platforms</ins>
+
+| Platform | Installer Type | Minimum Version | Status |
+|----------|---------------|----------------|--------|
+| **Windows** | Portable EXE (app-image) | Windows 10 (64-bit) | ✅ Fully Supported |
+| **macOS** | PKG | macOS 10.15 (Catalina) | ✅ Fully Supported |
+| **Linux (Debian/Ubuntu)** | DEB | Ubuntu 20.04+ | ✅ Fully Supported |
+| **Linux (Fedora/RHEL)** | RPM | Fedora 35+ | ✅ Fully Supported |
+
+*All installers include bundled Java runtime - no separate installation required!*
 
 ### <ins>Upcoming features</ins>
 
-- Support for 2 Pi-Holes.
-- Beautiful Themes.
-- Hide to tray option.
-- Easy to install for macOS and Linux.
-- Enable/Disable Pihole from widget.
-
+- Support for AdGuardHome.
+- Additional themes and color schemes.
+- Update Gravity List
 
 # <ins>Donation</ins>
 All donations are welcome and any amount of money will help me to maintain this project :)
@@ -60,43 +89,163 @@ All donations are welcome and any amount of money will help me to maintain this 
 
 ### Pre-Requisites
 
-- Java 17+
-- Last version of Pihole.
+**For End Users (using installers):**
+- None! Java runtime is bundled with all installers.
+- Last version of Pi-hole running on your network.
+
+**For Developers (building from source):**
+- Java 25 JDK (set `JAVA_HOME` to your JDK 25 installation).
+- Git (for cloning the repository).
+- Platform-specific build tools (see [DISTRIBUTION.md](DISTRIBUTION.md) for details).
 
 ### Configuration
 The widget automatically sets its configuration to the default pi-hole local address if that doesn't work , open the configuration interface by right clicking on the widget then click on Settings.
 
-![img_8.png](Readme_imgs/img_8.png)
+![settings_rightclick.png](Readme_imgs/settings/settings_rightclick.png)
 
-Then input your controllers IP Address/Port and API Token, and click Apply.
+Then input your controllers IP Address/Port and the web password or generatedapp password, and click Apply.
 
-###### Where to find the API TOKEN
+![settings.png](Readme_imgs/settings/dns_settings.png)
 
-![img.png](Readme_imgs/img.png)
+###### Where to generate the App password
 
-![img_3.png](Readme_imgs/img_3.png)
+![alt text](Readme_imgs/pihole_interface/option%20in%20settings.png)
 
-![img_4.png](Readme_imgs/img_4.png)
+Enable Expert Settings 
+
+![img.png](Readme_imgs/pihole_interface/web_interface_API%20Settings.png)
+
+then click  on configure app password
+
+![img.png](Readme_imgs/pihole_interface/configure_app_password.png)
+
 
 ###### Personalize your widget
 
-You can set your Widget size or layout by accessing the Widget configuration panel in Settings (Restart needed).
+You can set your Widget size, layout, and theme by accessing the Widget configuration panel in Settings (Restart needed for some changes).
 
-![img_10.png](Readme_imgs/img_10.png)
+![widget_settings.png](Readme_imgs/settings/widget_settings.png)
+
+**Available options:**
+- **Size:** Small, Medium, Large, XXL, Full Screen
+- **Layout:** Horizontal, Square
+- **Theme:** Dark, Light
+- **Time to refresh:** Customizable
+
+### Installation Options
+
+#### Option 1: Download Pre-built Installers (Recommended)
+
+Download the latest installer for your platform from the [Releases page](https://github.com/FoKss-LTS/PiHoleWidgets/releases):
+
+- **Windows:** Download the Windows portable `.zip`, unzip it, and run `PiHole-Widgets.exe`
+- **macOS:** Download and run the `.pkg` installer
+- **Linux (Debian/Ubuntu):** Download the `.deb` file and install with:
+  ```bash
+  sudo dpkg -i pihole-widgets_*.deb
+  ```
+- **Linux (Fedora/RHEL):** Download the `.rpm` file and install with:
+  ```bash
+  sudo rpm -i pihole-widgets-*.rpm
+  ```
+
+All packages include the bundled Java runtime - no separate Java installation needed!
+
+#### Option 2: Build from Source
+
+All builds are done through Gradle commands directly:
+
+```bash
+# Clone the repository
+git clone https://github.com/FoKss-LTS/PiHoleWidgets.git
+cd PiHoleWidgets
+
+# Build and test
+./gradlew build test
+
+# Run the application (without installer)
+./gradlew run
+```
+
+**Create Platform Installers:**
+```bash
+# Windows portable ZIP
+./gradlew portableZip -PinstallerType=app-image
+
+# macOS PKG
+./gradlew jpackage -PinstallerType=pkg
+
+# Linux DEB (Debian/Ubuntu)
+./gradlew jpackage -PinstallerType=deb
+
+# Linux RPM (Fedora/RHEL)
+./gradlew jpackage -PinstallerType=rpm
+```
+
+For detailed build instructions, see [DISTRIBUTION.md](DISTRIBUTION.md).
 
 ### Running the widget
 
-Exe is available for **Windows**, for other OS `Gradle run` the project, or you can package it to your needs using `gradle jpackage` or whatever tool suits you.
+After installation, launch PiHole Widgets from:
+- **Windows:** Start Menu > PiHole Widgets, or run directly from the portable folder
+- **macOS:** Applications folder
+- **Linux:** Applications menu (under Network or Utilities)
 
-If you want to close Widget right-click on the Widget and a contextual menu will appear giving you the option to close it or update manually.
+**Context Menu (Right-click):**
+- **Hide to Tray** - Minimize to system tray
+- **Refresh All Now** - Manually refresh all data
+- **Settings** - Open configuration window
+- **Exit** - Close the application
 
-![img_9.png](Readme_imgs/img_9.png)
+![img_9.png](Readme_imgs/settings/settings_rightclick.png)
+
+**System Tray:**
+When the widget is hidden to tray, you can:
+- **Double-click** the tray icon to restore the widget
+- **Right-click** for Show, Hide, Settings, and Exit options
 
 # <ins>Testing</ins>
 
-App is still in Beta, not tested enough, only ran on **Windows 10**, **Mint OS** and **Ubuntu**.
+App has been tested on:
+- **Windows 10 & 11** (64-bit)
+- **macOS** (Catalina and later)
+- **Linux Mint, Ubuntu, and Fedora**
 
-if you find any bugs or want to suggest new features please go to : https://github.com/foxy999/PiHoleWidgets/issues
+Automated builds and testing are performed via GitHub Actions on all supported platforms.
+
+If you find any bugs or want to suggest new features please go to: https://github.com/FoKss-LTS/PiHoleWidgets/issues
+
+---
+
+# <ins>Distribution</ins>
+
+## For Developers & Distributors
+
+This project includes comprehensive cross-platform build support:
+
+**📚 Documentation:**
+- **[docs/QUICKSTART.md](docs/QUICKSTART.md)** - Quick reference for users and developers
+- **[DISTRIBUTION.md](DISTRIBUTION.md)** - Detailed build and distribution guide
+- **[CHANGELOG.md](CHANGELOG.md)** - Version history and release notes
+- **[docs/project_analysis.md](docs/project_analysis.md)** - Project analysis and improvement recommendations
+- **[docs/DEPENDENCY_UPDATES.md](docs/DEPENDENCY_UPDATES.md)** - Dependency update management guide
+
+**🔧 Build Commands:**
+```bash
+./gradlew build test                              # Build and test
+./gradlew run                                     # Run the application
+./gradlew portableZip -PinstallerType=app-image   # Windows portable ZIP
+./gradlew jpackage -PinstallerType=pkg            # macOS PKG
+./gradlew jpackage -PinstallerType=deb            # Linux DEB
+./gradlew jpackage -PinstallerType=rpm            # Linux RPM
+```
+
+**🚀 CI/CD:**
+- GitHub Actions automatically builds all platforms
+- Tagged releases create installers for Windows, macOS, and Linux
+- See `.github/workflows/build.yml`
+
+---
 
 
 # <ins>Credits</ins>
@@ -110,7 +259,8 @@ Shoutout to :
 </div>
 
 # <ins>Licence</ins>
-Copyright (C) 2022.  Reda ELFARISSI aka foxy999
+Copyright (C) 2022 - 2025.  Reda ELFARISSI aka FoKss-LTS
+
 
 
 This program is free software: you can redistribute it and/or modify

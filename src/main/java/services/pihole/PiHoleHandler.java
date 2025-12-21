@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 2022.  Reda ELFARISSI aka foxy999
+ *  Copyright (C) 2022 - 2025.  Reda ELFARISSI aka FoKss-LTS
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -18,237 +18,588 @@
 
 package services.pihole;
 
-import domain.pihole.Gravity;
-import domain.pihole.PiHole;
-import domain.pihole.TopAd;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
-import services.helpers.HelperService;
+import com.fasterxml.jackson.databind.JsonNode;
+import domain.configuration.PiholeConfig;
+import helpers.HttpClientUtil;
+import helpers.HttpClientUtil.HttpResponsePayload;
+import services.configuration.ConfigurationService;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.SocketTimeoutException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
+/**
+ * Handler for Pi-hole API communication.
+ * Manages authentication and data retrieval from Pi-hole servers.
+ */
 public class PiHoleHandler {
 
-    private final String IPAddress;
-    private final int Port;
-    private final String Auth;
+    // ==================== Constants ====================
+    
+    private static final Logger LOGGER = Logger.getLogger(PiHoleHandler.class.getName());
+    private static final boolean VERBOSE = Boolean.parseBoolean(System.getProperty("pihole.verbose", "false"));
+    
+    private static final String API_PATH = "/api";
+    private static final String AUTH_ENDPOINT = "/auth";
+    private static final String VERSION_ENDPOINT = "/info/version";
+    private static final String STATS_SUMMARY_ENDPOINT = "/stats/summary";
+    private static final String STATS_RECENT_BLOCKED_ENDPOINT = "/stats/recent_blocked";
+    private static final String STATS_TOP_DOMAINS_ENDPOINT = "/stats/top_domains";
 
+    // POST endpoints
+    private static final String DNS_BLOCKING_ENDPOINT = "/dns/blocking";
+    
+    private static final String QUERY_PARAM_SID = "sid";
+    private static final String HEADER_X_FTL_SID = "X-FTL-SID";
+    
+    // ==================== Instance Fields ====================
+    
+    private final String ipAddress;
+    private final int port;
+    private final String scheme;
+    private final String password;
+    private final String apiBaseUrl;
+    private final HttpClientUtil httpClient;
+    private final Clock clock;
+    
+    private String sessionId;
 
-    public PiHoleHandler(String IPAddress, int Port, String auth) {
-        this.IPAddress = IPAddress;
-        this.Port = Port;
-        this.Auth = auth;
+    // ==================== Constructor ====================
+
+    public PiHoleHandler(String ipAddress, int port, String scheme, String password) {
+        this(ipAddress, port, scheme, password, new HttpClientUtil(), Clock.systemDefaultZone(), true, true);
     }
 
-    public String getIPAddress() {
-        return IPAddress;
+    /**
+     * Internal constructor to allow unit testing with an injected HTTP client and clock.
+     */
+    PiHoleHandler(String ipAddress,
+                 int port,
+                 String scheme,
+                 String password,
+                 HttpClientUtil httpClient,
+                 Clock clock,
+                 boolean loadFromConfiguration,
+                 boolean authenticateOnConstruct) {
+        log("=== Initializing PiHoleHandler ===");
+        log("Input params - IP: " + ipAddress + ", Port: " + port + ", Scheme: " + scheme);
+        
+        if (loadFromConfiguration) {
+            // Load configuration from service
+            ConfigurationService configService = new ConfigurationService();
+            configService.readConfiguration();
+
+            var config = configService.getConfigDNS1();
+            if (config != null) {
+                this.ipAddress = config.getIPAddress();
+                this.port = config.getPort();
+                this.scheme = config.getScheme();
+                this.password = config.getAUTH();
+            } else {
+                this.ipAddress = ipAddress;
+                this.port = port;
+                this.scheme = scheme != null ? scheme : PiholeConfig.DEFAULT_SCHEME;
+                this.password = password;
+            }
+        } else {
+            this.ipAddress = ipAddress;
+            this.port = port;
+            this.scheme = scheme != null ? scheme : "http";
+            this.password = password;
+        }
+        
+        this.apiBaseUrl = buildApiBaseUrl();
+        this.httpClient = httpClient == null ? new HttpClientUtil() : httpClient;
+        this.clock = clock == null ? Clock.systemDefaultZone() : clock;
+        
+        log("API Base URL: " + this.apiBaseUrl);
+        log("Password configured: " + (this.password != null && !this.password.isBlank()));
+        
+        // Authenticate on construction
+        if (authenticateOnConstruct) {
+            authenticate();
+        }
+    }
+    
+    private String buildApiBaseUrl() {
+        return scheme + "://" + ipAddress + ":" + port + API_PATH;
     }
 
-    public PiHole getPiHoleStats() {
+    // ==================== Logging ====================
+    
+    private static void log(String message) {
+        if (VERBOSE) {
+            LOGGER.log(Level.FINE, () -> "[PiHole] " + message);
+        }
+    }
+    
+    private static void logInfo(String message) {
+        LOGGER.log(Level.INFO, () -> message);
+    }
+    
+    private static void logError(String message, Throwable t) {
+        LOGGER.log(Level.SEVERE, message, t);
+    }
 
-        String output = getApiResponseAsString("summary", "");
-        JSONParser parser = new JSONParser();
-        JSONObject jsonResult = null;
-        if (output != null && output.equals("")) return null;
+    // ==================== Authentication ====================
 
-        // Transform Raw result to JSON
+    private void authenticate() {
+        log("=== authenticate() called ===");
+        
+        if (password == null || password.isBlank()) {
+            log("Password is required for authentication");
+            return;
+        }
+        
+        String url = apiBaseUrl + AUTH_ENDPOINT;
+        log("Auth URL: " + url);
+        
+        Map<String, String> requestBody = new HashMap<>();
+        requestBody.put("password", password);
+        
+        try {
+            HttpResponsePayload response = httpClient.postJson(url, requestBody, Collections.emptyMap());
+            
+            log("Response status code: " + response.statusCode());
+            
+            if (!response.isSuccessful()) {
+                log("Authentication failed with HTTP " + response.statusCode());
+                logInfo("Authentication failed: HTTP " + response.statusCode());
+                return;
+            }
+            
+            parseAuthResponse(response);
+            
+        } catch (IOException e) {
+            logError("Authentication failed with IOException", e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logError("Authentication interrupted", e);
+        }
+        
+        log("=== Authentication complete ===");
+    }
+    
+    private void parseAuthResponse(HttpResponsePayload response) {
+        Optional<JsonNode> jsonOpt = response.bodyAsJson();
+        
+        if (jsonOpt.isEmpty()) {
+            log("Failed to parse JSON response: " + response.bodyText());
+            return;
+        }
+        
+        JsonNode json = jsonOpt.get();
+        log("Parsed JSON response successfully");
+        
+        if (!json.has("session")) {
+            log("No 'session' object in response");
+            return;
+        }
+        
+        JsonNode session = json.get("session");
+        
+        if (session.has("sid") && !session.get("sid").isNull()) {
+            this.sessionId = session.get("sid").asText();
+            log("Session ID obtained: " + maskSessionId(sessionId));
+            logInfo("Session ID: " + maskSessionId(sessionId));
+        }
+        
+        if (session.has("valid")) {
+            boolean isValid = session.get("valid").asBoolean();
+            log("Session valid: " + isValid);
+        }
+        
+        if (session.has("message")) {
+            String message = session.get("message").asText();
+            log("Session message: " + message);
+        }
+    }
+    
+    private String maskSessionId(String sid) {
+        if (sid == null || sid.length() < 10) {
+            return "***";
+        }
+        return sid.substring(0, 10) + "...";
+    }
+
+    // ==================== API Methods ====================
+
+    /**
+     * Retrieves Pi-hole statistics as raw JSON string.
+     */
+    public String getPiHoleStats() {
+        log("=== getPiHoleStats() called ===");
+        log("Session ID: " + maskSessionId(sessionId));
 
         try {
-
-            jsonResult = (JSONObject) parser.parse(output);
-
-
-        } catch (ParseException ioe) {
-            ioe.printStackTrace();
-        }
-
-        if (jsonResult != null) {
-            JSONObject gravity_json = (JSONObject) jsonResult.get("gravity_last_updated");
-            JSONObject relative_json = (JSONObject) gravity_json.get("relative");
-
-            boolean file_exists = (boolean) gravity_json.get("file_exists");
-            Long absolute = (Long) gravity_json.get("absolute");
-            Long days = (Long) relative_json.get("days");
-            Long hours = (Long) relative_json.get("hours");
-            Long minutes = (Long) relative_json.get("minutes");
-
-            Gravity gravity = new Gravity(file_exists, absolute, days, hours, minutes);
-            try {
-
-                Long domains_being_blocked = Long.parseLong(HelperService.convertJsonToLong(jsonResult.get("domains_being_blocked")));
-                Long dns_queries_today = Long.parseLong(HelperService.convertJsonToLong(jsonResult.get("dns_queries_today")));
-                Long ads_blocked_today = Long.parseLong(HelperService.convertJsonToLong(jsonResult.get("ads_blocked_today")));
-                Double ads_percentage_today = Double.parseDouble(HelperService.convertJsonToLong(jsonResult.get("ads_percentage_today")));
-                Long unique_domains = Long.parseLong(HelperService.convertJsonToLong(jsonResult.get("unique_domains")));
-                Long queries_forwarded = Long.parseLong(HelperService.convertJsonToLong(jsonResult.get("queries_forwarded")));
-                Long queries_cached = Long.parseLong(HelperService.convertJsonToLong(jsonResult.get("queries_cached")));
-                Long clients_ever_seen = Long.parseLong((String) jsonResult.get("clients_ever_seen"));
-                Long unique_clients = Long.parseLong((String) jsonResult.get("unique_clients"));
-                Long dns_queries_all_types = Long.parseLong(HelperService.convertJsonToLong(jsonResult.get("dns_queries_all_types")));
-                Long reply_NODATA = Long.parseLong(HelperService.convertJsonToLong(jsonResult.get("reply_NODATA")));
-                Long reply_NXDOMAIN = Long.parseLong(HelperService.convertJsonToLong(jsonResult.get("reply_NXDOMAIN")));
-                Long reply_CNAME = Long.parseLong(HelperService.convertJsonToLong(jsonResult.get("reply_CNAME")));
-                Long reply_IP = Long.parseLong(HelperService.convertJsonToLong(jsonResult.get("reply_IP")));
-                Long privacy_level = Long.parseLong((String) jsonResult.get("privacy_level"));
-                String status = (String) jsonResult.get("status");
-
-
-                return new PiHole(domains_being_blocked, dns_queries_today, ads_blocked_today, ads_percentage_today, unique_domains, queries_forwarded, queries_cached, clients_ever_seen, unique_clients, dns_queries_all_types, reply_NODATA, reply_NXDOMAIN, reply_CNAME, reply_IP, privacy_level, status, gravity);
-            } catch (NumberFormatException nfe) {
-                System.out.println("NumberFormatException: " + nfe.getMessage());
-                return null;
-            }
-        }
-        return null;
-    }
-
-    public String getLastBlocked() {
-        if (Auth != null && !Auth.isEmpty()) {
-            String output = getApiResponseAsString("recentBlocked", "");
-            if (output != null && output.equals("")) return "";
-
-            return output;
-
-        } else return "Please verify your Authentication Token";
-    }
-
-    public String getVersion() {
-
-        String output = getApiResponseAsString("type%20&%20version", "");
-        if (output != null && output.equals("")) return "";
-
-        // Transform Raw result to JSON
-
-        JSONParser parser = new JSONParser();
-        JSONObject jsonResult = null;
-        try {
-            jsonResult = (JSONObject) parser.parse(output);
-        } catch (ParseException e) {
-            e.printStackTrace();
-        }
-        if (jsonResult != null) return jsonResult.get("version").toString();
-        return "";
-    }
-
-    public List<TopAd> getTopXBlocked(int x) {
-        if (Auth != null && !Auth.isEmpty()) {
-
-            String output = getApiResponseAsString("topItems", String.valueOf(x));
-
-            if (output != null && output.equals("")) return null;
-
-            // Transform Raw result to JSON
-
-            JSONParser parser = new JSONParser();
-            try {
-
-                JSONObject jsonResult = (JSONObject) parser.parse(output);
-                JSONObject topADS = (JSONObject) jsonResult.get("top_ads");
-                List<TopAd> list = new ArrayList<>();
-
-                topADS.forEach((key, value) -> list.add(new TopAd((String) key, (Long) value)));
-
-                list.sort((s1, s2) -> Long.compare(s2.getNumberBlocked(), s1.getNumberBlocked()));
-
-                return list;
-            } catch (ParseException e) {
-                e.printStackTrace();
-                return null;
-            }
-        } else return null;
-    }
-
-    public String getGravityLastUpdate() {
-
-        PiHole pihole1 = getPiHoleStats();
-        if (pihole1 != null) {
-            String textToDisplay = "";
-            long days = pihole1.getGravity().getDays();
-            if (days <= 1) textToDisplay += days + " day";
-            else textToDisplay += days + " days";
-
-            long hours = pihole1.getGravity().getHours();
-            if (hours <= 1) textToDisplay += " " + hours + " hour";
-            else textToDisplay += " " + hours + " hours";
-
-            long mins = pihole1.getGravity().getMinutes();
-            if (mins <= 1) textToDisplay += " " + mins + " min";
-            else textToDisplay += " " + mins + " mins";
-
-            return textToDisplay;
-        }
-        return "";
-    }
-
-
-    private String getApiResponseAsString(String Param, String ParamVal) {
-
-        String fullAuth = "";
-        String fullParam = "";
-        String fullParamVal = "";
-        InputStreamReader in;
-        BufferedReader br;
-
-        int responseCode;
-
-        if (!Param.isEmpty()) fullParam = "?" + Param;
-
-
-        if (!ParamVal.isEmpty()) fullParamVal = "=" + ParamVal;
-
-        if (Auth != null && !Auth.isEmpty()) fullAuth = "&auth=" + this.Auth;
-
-        HttpURLConnection conn=null;
-        if (!IPAddress.isEmpty()) {
-            try {
-                URL url = new URL("http://" + IPAddress + ":" + Port + "/admin/api.php" + fullParam + fullParamVal + fullAuth);
-
-                conn = (HttpURLConnection) url.openConnection();
-
-
-                conn.setConnectTimeout(1000);
-                conn.setReadTimeout(1000);
-                conn.setRequestMethod("GET");
-                conn.setRequestProperty("Accept", "application/json");
-
-                responseCode = conn.getResponseCode();
-
-
-                System.out.println(conn.getResponseMessage());
-                if (responseCode == HttpURLConnection.HTTP_OK) {
-                    String server_response;
-                    in = new InputStreamReader(conn.getInputStream());
-                    br = new BufferedReader(in);
-
-                    server_response = br.readLine();
-                    return server_response;
-                } else {
-                    System.out.println("Failed : HTTP Error code : " + responseCode);
-                    conn.disconnect();
-                    return "";
-                }
-
-            } catch (SocketTimeoutException et) {
-            System.out.println("Timed out: Can't login to API: Check your PiHole server ?");
-            } catch (IOException e) {
-                System.out.println("API Error for:" + IPAddress + " " + e.getMessage());
+            HttpResponsePayload response = getApi(STATS_SUMMARY_ENDPOINT, Collections.emptyMap());
+            if (!response.isSuccessful()) {
+                log("Failed to get stats - HTTP " + response.statusCode());
                 return "";
             }
-            finally {
-                if (conn != null) {
-                    conn.disconnect();
+            return response.bodyText();
+        } catch (IOException e) {
+            logError("IOException while fetching stats summary", e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logError("Interrupted while fetching stats summary", e);
+        }
+        return "";
+    }
+
+    /**
+     * Retrieves the last blocked domain.
+     */
+    public String getLastBlocked() {
+        log("=== getLastBlocked() called ===");
+
+        try {
+            Map<String, String> queryParams = new HashMap<>();
+            queryParams.put("count", "1");
+            HttpResponsePayload response = getApi(STATS_RECENT_BLOCKED_ENDPOINT, queryParams);
+
+            if (!response.isSuccessful()) {
+                log("Failed to get recent blocked - HTTP " + response.statusCode());
+                return "";
+            }
+
+            Optional<JsonNode> jsonOpt = response.bodyAsJson();
+            if (jsonOpt.isEmpty()) {
+                log("Failed to parse recent blocked JSON response");
+                return "";
+            }
+
+            JsonNode json = jsonOpt.get();
+            JsonNode blocked = json.get("blocked");
+            if (blocked != null && blocked.isArray() && blocked.size() > 0) {
+                return blocked.get(0).asText("");
+            }
+            return "";
+
+        } catch (IOException e) {
+            logError("IOException while fetching recent blocked", e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logError("Interrupted while fetching recent blocked", e);
+        }
+        return "";
+    }
+
+    /**
+     * Retrieves the Pi-hole version information.
+     */
+    public String getVersion() {
+        log("=== getVersion() called ===");
+
+        String url = apiBaseUrl + VERSION_ENDPOINT;
+        log("Version URL: " + url);
+        
+        try {
+            Map<String, String> queryParams = authQueryParams();
+            
+            HttpResponsePayload response = httpClient.get(url, queryParams, Collections.emptyMap());
+            
+            log("Version response status: " + response.statusCode());
+            
+            if (!response.isSuccessful()) {
+                log("Failed to get version - HTTP " + response.statusCode());
+                return "";
+            }
+            
+            return parseVersionResponse(response);
+            
+        } catch (IOException e) {
+            logError("IOException while fetching version", e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logError("Interrupted while fetching version", e);
+        }
+        
+        return "";
+    }
+    
+    private String parseVersionResponse(HttpResponsePayload response) {
+        Optional<JsonNode> jsonOpt = response.bodyAsJson();
+        
+        if (jsonOpt.isEmpty()) {
+            log("Failed to parse version JSON response");
+            return "";
+        }
+        
+        JsonNode json = jsonOpt.get();
+        log("Version JSON parsed successfully");
+        
+        if (!json.has("version")) {
+            log("No 'version' key in response");
+            return "";
+        }
+        
+        JsonNode versionNode = json.get("version");
+        
+        // Try FTL version first
+        String version = extractVersion(versionNode, "ftl");
+        if (!version.isEmpty()) {
+            log("Returning FTL version: " + version);
+            return version;
+        }
+        
+        // Fallback to core version
+        version = extractVersion(versionNode, "core");
+        if (!version.isEmpty()) {
+            log("Returning core version: " + version);
+            return version;
+        }
+        
+        log("Could not extract version from response");
+        return "";
+    }
+    
+    private String extractVersion(JsonNode versionNode, String component) {
+        if (versionNode.has(component)) {
+            JsonNode componentNode = versionNode.get(component);
+            if (componentNode.has("local")) {
+                JsonNode localNode = componentNode.get("local");
+                if (localNode.has("version")) {
+                    return localNode.get("version").asText("");
                 }
             }
         }
         return "";
     }
 
+    /**
+     * Retrieves top X blocked domains as raw JSON string.
+     */
+    public String getTopXBlocked(int count) {
+        log("=== getTopXBlocked(" + count + ") called ===");
+        if (count <= 0) {
+            return "";
+        }
+
+        try {
+            Map<String, String> queryParams = new HashMap<>();
+            queryParams.put("blocked", "true");
+            queryParams.put("count", String.valueOf(count));
+
+            HttpResponsePayload response = getApi(STATS_TOP_DOMAINS_ENDPOINT, queryParams);
+
+            if (!response.isSuccessful()) {
+                log("Failed to get top blocked domains - HTTP " + response.statusCode());
+                return "";
+            }
+
+            return response.bodyText();
+
+        } catch (IOException e) {
+            logError("IOException while fetching top blocked domains", e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logError("Interrupted while fetching top blocked domains", e);
+        }
+
+        return "";
+    }
+
+    /**
+     * Retrieves the gravity last update time as a formatted string.
+     */
+    public String getGravityLastUpdate() {
+        log("=== getGravityLastUpdate() called ===");
+
+        try {
+            HttpResponsePayload response = getApi(STATS_SUMMARY_ENDPOINT, Collections.emptyMap());
+
+            if (!response.isSuccessful()) {
+                log("Failed to get stats for gravity last update - HTTP " + response.statusCode());
+                return "";
+            }
+
+            Optional<JsonNode> jsonOpt = response.bodyAsJson();
+            if (jsonOpt.isEmpty()) {
+                log("Failed to parse stats JSON response");
+                return "";
+            }
+
+            JsonNode gravity = jsonOpt.get().get("gravity");
+            long lastUpdate = 0L;
+            if (gravity != null && gravity.has("last_update")) {
+                lastUpdate = gravity.get("last_update").asLong(0L);
+            }
+
+            if (lastUpdate <= 0L) {
+                return "Gravity: unknown";
+            }
+
+            return formatRelativeEpochSeconds(lastUpdate);
+
+        } catch (IOException e) {
+            logError("IOException while fetching gravity last update", e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logError("Interrupted while fetching gravity last update", e);
+        }
+        return "";
+    }
+
+    /**
+     * Changes current blocking status (Pi-hole v6+): POST /dns/blocking
+     *
+     * Request body:
+     * - blocking: boolean (required)
+     * - timer: number|null (optional) seconds until automatic reversal; null to cancel any running timer
+     *
+     * Returns raw JSON response from Pi-hole, or empty string on failure.
+     */
+    public String setDnsBlocking(boolean blocking, Integer timerSeconds) {
+        log("=== setDnsBlocking(blocking=" + blocking + ", timerSeconds=" + timerSeconds + ") called ===");
+        Map<String, Object> body = new HashMap<>();
+        body.put("blocking", blocking);
+        // If null -> explicitly send null so the server can clear timers
+        body.put("timer", timerSeconds);
+
+        try {
+            HttpResponsePayload response = postApi(DNS_BLOCKING_ENDPOINT, body, Collections.emptyMap());
+            if (!response.isSuccessful()) {
+                log("Failed to set dns blocking - HTTP " + response.statusCode());
+                return "";
+            }
+            return response.bodyText();
+        } catch (IOException e) {
+            logError("IOException while setting dns blocking", e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logError("Interrupted while setting dns blocking", e);
+        }
+        return "";
+    }
+
+    /**
+     * Retrieves current DNS blocking status (Pi-hole v6+): GET /dns/blocking
+     *
+     * Returns raw JSON response from Pi-hole, or empty string on failure.
+     */
+    public String getDnsBlockingStatus() {
+        log("=== getDnsBlockingStatus() called ===");
+        try {
+            HttpResponsePayload response = getApi(DNS_BLOCKING_ENDPOINT, Collections.emptyMap());
+            if (!response.isSuccessful()) {
+                log("Failed to get dns blocking status - HTTP " + response.statusCode());
+                return "";
+            }
+            return response.bodyText();
+        } catch (IOException e) {
+            logError("IOException while fetching dns blocking status", e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logError("Interrupted while fetching dns blocking status", e);
+        }
+        return "";
+    }
+
+    // ==================== Internal Helpers ====================
+
+    private Map<String, String> authQueryParams() {
+        if (sessionId == null || sessionId.isBlank()) {
+            return new HashMap<>();
+        }
+        Map<String, String> params = new HashMap<>();
+        params.put(QUERY_PARAM_SID, sessionId);
+        return params;
+    }
+
+    private HttpResponsePayload getApi(String endpoint, Map<String, String> extraQueryParams)
+            throws IOException, InterruptedException {
+        String url = apiBaseUrl + endpoint;
+        Map<String, String> queryParams = authQueryParams();
+        if (extraQueryParams != null && !extraQueryParams.isEmpty()) {
+            queryParams.putAll(extraQueryParams);
+        }
+        return httpClient.get(url, queryParams, Collections.emptyMap());
+    }
+
+    /**
+     * Generic POST helper for Pi-hole API endpoints.
+     *
+     * Applies authentication in two forms when available:
+     * - query param: sid=...
+     * - header: X-FTL-SID: ...
+     *
+     * This mirrors the API docs which allow either form.
+     */
+    private HttpResponsePayload postApi(String endpoint,
+                                       Object jsonBody,
+                                       Map<String, String> extraQueryParams)
+            throws IOException, InterruptedException {
+        // If we have a password but no session yet, try to authenticate lazily.
+        if ((sessionId == null || sessionId.isBlank()) && password != null && !password.isBlank()) {
+            authenticate();
+        }
+
+        String url = apiBaseUrl + endpoint;
+
+        Map<String, String> queryParams = authQueryParams();
+        if (extraQueryParams != null && !extraQueryParams.isEmpty()) {
+            queryParams.putAll(extraQueryParams);
+        }
+
+        Map<String, String> headers = new HashMap<>();
+        if (sessionId != null && !sessionId.isBlank()) {
+            headers.put(HEADER_X_FTL_SID, sessionId);
+        }
+
+        return httpClient.postJson(url, jsonBody, queryParams, headers);
+    }
+
+    private String formatRelativeEpochSeconds(long epochSeconds) {
+        Instant now = Instant.now(clock);
+        Instant then = Instant.ofEpochSecond(epochSeconds);
+        Duration d = Duration.between(then, now);
+        if (d.isNegative()) {
+            d = Duration.ZERO;
+        }
+
+        long days = d.toDays();
+        long hours = d.toHours() - days * 24;
+        long minutes = d.toMinutes() - (days * 24 * 60) - (hours * 60);
+
+        if (days > 0) {
+            return "Gravity: " + days + "d " + hours + "h ago";
+        }
+        if (hours > 0) {
+            return "Gravity: " + hours + "h " + minutes + "m ago";
+        }
+        if (minutes > 0) {
+            return "Gravity: " + minutes + "m ago";
+        }
+        return "Gravity: just now";
+    }
+
+    // ==================== Getters ====================
+
+    public String getIPAddress() {
+        return ipAddress;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
+    public String getScheme() {
+        return scheme;
+    }
+
+    public String getSessionId() {
+        return sessionId;
+    }
+
+    public void setSessionId(String sessionId) {
+        this.sessionId = sessionId;
+    }
 }

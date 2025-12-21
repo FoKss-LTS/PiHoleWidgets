@@ -6,7 +6,7 @@
 
 <!--
   ~
-  ~  Copyright (C) 2022.  Reda ELFARISSI aka foxy999
+  ~  Copyright (C) 2022 - 2025.  Reda ELFARISSI aka FoKss-LTS
   ~ This program is free software: you can redistribute it and/or modify
   ~ it under the terms of the GNU General Public License as published by
   ~ the Free Software Foundation, either version 3 of the License, or
@@ -22,8 +22,8 @@
   ~
   -->
 
-<Pane fx:id="rootPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="300.0" prefWidth="300.0" style="-fx-background-color: rgba(42, 42, 42, 1);" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1">
-    <Label fx:id="dakLabel" layoutX="160.0" layoutY="285.0" text="Copyright (C) 2022. By Reda ELFARISSI aka foxy999" textFill="WHITE">
+<Pane fx:id="rootPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="300.0" prefWidth="300.0" style="-fx-background-color: rgba(42, 42, 42, 1);" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1">
+    <Label fx:id="dakLabel" layoutX="66.0" layoutY="285.0" text="Copyright (C) 2025. By Reda ELFARISSI aka FoKss-LTS" textFill="WHITE">
         <font>
             <Font size="9.0" />
         </font>
