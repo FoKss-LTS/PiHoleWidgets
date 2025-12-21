@@ -77,24 +77,9 @@ gradle-app.setting
 .idea/
 .vscode/
 
-# Gradle and Maven with auto-import
-# When using Gradle or Maven with auto-import, you should exclude module files,
-# since they will be recreated, and may cause churn.  Uncomment if using
-# auto-import.
-# .idea/artifacts
-# .idea/compiler.xml
-# .idea/jarRepositories.xml
-# .idea/modules.xml
-# .idea/*.iml
-# .idea/modules
-# *.iml
-# *.ipr
 
 # CMake
 cmake-build-*/
-
-# Mongo Explorer plugin
-.idea/**/mongoSettings.xml
 
 # File-based project format
 *.iws
@@ -102,32 +87,8 @@ cmake-build-*/
 # IntelliJ
 out/
 
-# mpeltonen/sbt-idea plugin
-.idea_modules/
 
-# JIRA plugin
-atlassian-ide-plugin.xml
 
-# Cursive Clojure plugin
-.idea/replstate.xml
-
-# SonarLint plugin
-.idea/sonarlint/
-
-# Crashlytics plugin (for Android Studio and IntelliJ)
-com_crashlytics_export_strings.xml
-crashlytics.properties
-crashlytics-build.properties
-fabric.properties
-
-# Editor-based Rest Client
-.idea/httpRequests
-
-# Android studio 3.1+ serialized cache file
-.idea/caches/build_file_checksums.ser
-
-# End of https://www.toptal.com/developers/gitignore/api/windows,java,gradle
-
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 /.gradle
+recreatetag.bat

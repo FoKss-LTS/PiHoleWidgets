@@ -29,11 +29,16 @@ jobs:
       - name: Create Windows portable ZIP
         run: .\gradlew.bat portableZip -PinstallerType=app-image
 
+      - name: Build and Package MSI
+        run: .\gradlew.bat jpackage -PinstallerType=msi
+
       - name: Upload Windows Artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-portable
-          path: build/portable/*.zip
+          path: |
+            build/portable/*.zip
+            build/jpackage/*.msi
 
   build-macos:
     name: Build macOS
@@ -138,6 +143,7 @@ jobs:
           body_path: release_notes.md
           files: |
             release-artifacts/*.zip
+            release-artifacts/*.msi
             release-artifacts/*.pkg
             release-artifacts/*.deb
             release-artifacts/*.rpm
