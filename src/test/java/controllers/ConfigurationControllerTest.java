@@ -1,6 +1,6 @@
 package controllers;
 
-import domain.configuration.PiholeConfig;
+import domain.configuration.DnsBlockerConfig;
 import domain.configuration.WidgetConfig;
 import javafx.application.Platform;
 import javafx.embed.swing.JFXPanel;
@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class ConfigurationControllerTest {
 
     private ConfigurationController controller;
-    private PiholeConfig testPiholeConfig;
+    private DnsBlockerConfig testPiholeConfig;
     private WidgetConfig testWidgetConfig;
 
     @BeforeAll
@@ -33,7 +33,7 @@ class ConfigurationControllerTest {
 
     @BeforeEach
     void setUp() {
-        testPiholeConfig = new PiholeConfig("192.168.1.1", 80, "http", "testtoken");
+        testPiholeConfig = DnsBlockerConfig.forPiHole("192.168.1.1", 80, "http", "testtoken");
         testWidgetConfig = new WidgetConfig("Medium", "Square", "Dark");
         controller = new ConfigurationController(testPiholeConfig, testWidgetConfig);
     }
@@ -42,7 +42,8 @@ class ConfigurationControllerTest {
     void testConstructor() {
         assertNotNull(controller);
         // Constructor should store the configs
-        // We can't directly access private fields, but we can test through public methods
+        // We can't directly access private fields, but we can test through public
+        // methods
     }
 
     @Test
@@ -63,11 +64,12 @@ class ConfigurationControllerTest {
     void testParsePortWithValidPort() {
         // Test parsePort logic through reflection or by testing the behavior
         // Since parsePort is private, we test it indirectly through saveConfiguration
-        // But saveConfiguration requires FXML fields, so we'll test the logic separately
-        
+        // But saveConfiguration requires FXML fields, so we'll test the logic
+        // separately
+
         // Create a test TextField
         TextField portField = new TextField("8080");
-        
+
         // We can't directly test private methods, but we can verify the controller
         // handles valid configurations correctly
         assertNotNull(controller);
@@ -130,7 +132,7 @@ class ConfigurationControllerTest {
         TextField field1 = new TextField("test");
         TextField field2 = new TextField("");
         TextField field3 = null;
-        
+
         // Since getTextOrEmpty is private, we verify the controller exists
         assertNotNull(controller);
     }
@@ -140,7 +142,7 @@ class ConfigurationControllerTest {
         ComboBox<String> comboBox = new ComboBox<>();
         comboBox.getItems().addAll("Option1", "Option2");
         comboBox.setValue("Option1");
-        
+
         // Since getSelectedOrDefault is private, we verify the controller exists
         assertNotNull(controller);
     }
@@ -149,7 +151,7 @@ class ConfigurationControllerTest {
     void testSetComboBoxValue() {
         ComboBox<String> comboBox = new ComboBox<>();
         comboBox.getItems().addAll("Option1", "Option2");
-        
+
         // Since setComboBoxValue is private, we verify the controller exists
         assertNotNull(controller);
     }
@@ -157,7 +159,7 @@ class ConfigurationControllerTest {
     @Test
     void testSetTextFieldValue() {
         TextField field = new TextField();
-        
+
         // Since setTextFieldValue is private, we verify the controller exists
         assertNotNull(controller);
     }
@@ -189,4 +191,3 @@ class ConfigurationControllerTest {
         });
     }
 }
-

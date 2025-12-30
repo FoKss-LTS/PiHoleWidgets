@@ -1,7 +1,7 @@
 package controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import domain.configuration.PiholeConfig;
+import domain.configuration.DnsBlockerConfig;
 import domain.configuration.WidgetConfig;
 import javafx.application.Platform;
 import javafx.embed.swing.JFXPanel;
@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class WidgetControllerTest {
 
     private WidgetController controller;
-    private PiholeConfig testPiholeConfig;
+    private DnsBlockerConfig testPiholeConfig;
     private WidgetConfig testWidgetConfig;
     private static final ObjectMapper JSON = new ObjectMapper();
 
@@ -33,7 +33,7 @@ class WidgetControllerTest {
 
     @BeforeEach
     void setUp() {
-        testPiholeConfig = new PiholeConfig("192.168.1.1", 80, "http", "testtoken");
+        testPiholeConfig = DnsBlockerConfig.forPiHole("192.168.1.1", 80, "http", "testtoken");
         testWidgetConfig = new WidgetConfig("Medium", "Square", "Dark");
         controller = new WidgetController(testPiholeConfig, testWidgetConfig);
     }
@@ -60,7 +60,7 @@ class WidgetControllerTest {
 
     @Test
     void testSetConfigDNS1() {
-        PiholeConfig newConfig = new PiholeConfig("192.168.1.2", 443, "https", "newtoken");
+        DnsBlockerConfig newConfig = DnsBlockerConfig.forPiHole("192.168.1.2", 443, "https", "newtoken");
         controller.setConfigDNS1(newConfig);
         assertEquals(newConfig, controller.getConfigDNS1());
     }
@@ -79,9 +79,9 @@ class WidgetControllerTest {
 
     @Test
     void testApplyConfiguration() {
-        PiholeConfig newPiholeConfig = new PiholeConfig("192.168.1.2", 443, "https", "newtoken");
+        DnsBlockerConfig newPiholeConfig = DnsBlockerConfig.forPiHole("192.168.1.2", 443, "https", "newtoken");
         WidgetConfig newWidgetConfig = new WidgetConfig("Large", "Horizontal", "Light");
-        
+
         // applyConfiguration may throw exceptions if JavaFX is not fully initialized
         // We test that it doesn't throw unexpected exceptions
         try {
@@ -169,7 +169,7 @@ class WidgetControllerTest {
     }
 
     // Note: Testing private methods like parseSummaryStats, combineStats, etc.
-    // would require reflection or extracting them to package-private/testable methods.
+    // would require reflection or extracting them to package-private/testable
+    // methods.
     // For now, we focus on public API and integration points.
 }
-

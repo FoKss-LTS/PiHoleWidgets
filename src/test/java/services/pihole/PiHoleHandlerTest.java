@@ -1,5 +1,6 @@
 package services.pihole;
 
+import domain.configuration.DnsBlockerConfig;
 import helpers.HttpClientUtil;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,15 +53,11 @@ class PiHoleHandlerTest {
         });
 
         PiHoleHandler handler = new PiHoleHandler(
-                "localhost",
-                port,
-                "http",
-                "pw",
+                DnsBlockerConfig.forPiHole("localhost", port, "http", "pw"),
                 new HttpClientUtil(),
                 Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
                 false,
-                false
-        );
+                false);
         handler.setSessionId("SID123");
 
         String json = handler.getPiHoleStats();
@@ -80,15 +77,11 @@ class PiHoleHandlerTest {
         });
 
         PiHoleHandler handler = new PiHoleHandler(
-                "localhost",
-                port,
-                "http",
-                "pw",
+                DnsBlockerConfig.forPiHole("localhost", port, "http", "pw"),
                 new HttpClientUtil(),
                 Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
                 false,
-                false
-        );
+                false);
         handler.setSessionId("abc");
 
         String lastBlocked = handler.getLastBlocked();
@@ -106,19 +99,16 @@ class PiHoleHandlerTest {
         AtomicReference<URI> uriRef = new AtomicReference<>();
         server.createContext("/api/stats/top_domains", exchange -> {
             uriRef.set(exchange.getRequestURI());
-            respondJson(exchange, 200, "{\"domains\":[{\"domain\":\"a.com\",\"count\":10}],\"blocked_queries\":10,\"total_queries\":100,\"took\":0.001}");
+            respondJson(exchange, 200,
+                    "{\"domains\":[{\"domain\":\"a.com\",\"count\":10}],\"blocked_queries\":10,\"total_queries\":100,\"took\":0.001}");
         });
 
         PiHoleHandler handler = new PiHoleHandler(
-                "localhost",
-                port,
-                "http",
-                "pw",
+                DnsBlockerConfig.forPiHole("localhost", port, "http", "pw"),
                 new HttpClientUtil(),
                 Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
                 false,
-                false
-        );
+                false);
         handler.setSessionId("SID");
 
         String json = handler.getTopXBlocked(5);
@@ -138,20 +128,15 @@ class PiHoleHandlerTest {
         Instant now = Instant.parse("2025-01-01T00:00:00Z");
         long lastUpdate = Instant.parse("2024-12-31T23:00:00Z").getEpochSecond();
 
-        server.createContext("/api/stats/summary", exchange ->
-                respondJson(exchange, 200, "{\"gravity\":{\"last_update\":" + lastUpdate + "},\"took\":0.001}")
-        );
+        server.createContext("/api/stats/summary", exchange -> respondJson(exchange, 200,
+                "{\"gravity\":{\"last_update\":" + lastUpdate + "},\"took\":0.001}"));
 
         PiHoleHandler handler = new PiHoleHandler(
-                "localhost",
-                port,
-                "http",
-                "pw",
+                DnsBlockerConfig.forPiHole("localhost", port, "http", "pw"),
                 new HttpClientUtil(),
                 Clock.fixed(now, ZoneOffset.UTC),
                 false,
-                false
-        );
+                false);
         handler.setSessionId("S");
 
         String formatted = handler.getGravityLastUpdate();
@@ -168,15 +153,11 @@ class PiHoleHandlerTest {
         });
 
         PiHoleHandler handler = new PiHoleHandler(
-                "localhost",
-                port,
-                "http",
-                "",
+                DnsBlockerConfig.forPiHole("localhost", port, "http", ""),
                 new HttpClientUtil(),
                 Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
                 false,
-                false
-        );
+                false);
 
         String json = handler.getPiHoleStats();
 
@@ -202,15 +183,11 @@ class PiHoleHandlerTest {
         });
 
         PiHoleHandler handler = new PiHoleHandler(
-                "localhost",
-                port,
-                "http",
-                "pw",
+                DnsBlockerConfig.forPiHole("localhost", port, "http", "pw"),
                 new HttpClientUtil(),
                 Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
                 false,
-                false
-        );
+                false);
         handler.setSessionId("SID123");
 
         String json = handler.setDnsBlocking(false, 60);
@@ -226,7 +203,7 @@ class PiHoleHandlerTest {
         assertTrue(bodyRef.get().contains("\"blocking\":false"));
         assertTrue(bodyRef.get().contains("\"timer\":60"));
     }
-    
+
     @Test
     void getDnsBlockingStatusCallsEndpointWithSidAndReturnsRawJson() {
         AtomicReference<URI> uriRef = new AtomicReference<>();
@@ -234,21 +211,17 @@ class PiHoleHandlerTest {
             uriRef.set(exchange.getRequestURI());
             respondJson(exchange, 200, "{\"blocking\":\"enabled\",\"took\":0.001}");
         });
-        
+
         PiHoleHandler handler = new PiHoleHandler(
-                "localhost",
-                port,
-                "http",
-                "pw",
+                DnsBlockerConfig.forPiHole("localhost", port, "http", "pw"),
                 new HttpClientUtil(),
                 Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
                 false,
-                false
-        );
+                false);
         handler.setSessionId("SIDXYZ");
-        
+
         String json = handler.getDnsBlockingStatus();
-        
+
         assertNotNull(json);
         assertTrue(json.contains("\"blocking\""));
         assertNotNull(uriRef.get());
@@ -269,9 +242,8 @@ class PiHoleHandlerTest {
     }
 
     private String readAll(InputStream is) throws IOException {
-        if (is == null) return "";
+        if (is == null)
+            return "";
         return new String(is.readAllBytes(), StandardCharsets.UTF_8);
     }
 }
-
-

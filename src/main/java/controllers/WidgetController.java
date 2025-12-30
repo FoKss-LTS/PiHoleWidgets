@@ -20,7 +20,7 @@ package controllers;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import domain.configuration.PiholeConfig;
+import domain.configuration.DnsBlockerConfig;
 import domain.configuration.WidgetConfig;
 import eu.hansolo.tilesfx.Tile;
 import eu.hansolo.tilesfx.TileBuilder;
@@ -53,7 +53,8 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.Screen;
 import javafx.util.Duration;
-import services.pihole.PiHoleHandler;
+import services.DnsBlockerHandler;
+import services.DnsBlockerHandlerFactory;
 
 import java.net.URL;
 import java.time.Instant;
@@ -143,21 +144,21 @@ public class WidgetController implements Initializable {
     private VBox dataTable;
     private FlowGridPane gridPane;
 
-    // Pi-hole handler
-    private PiHoleHandler piholeDns1;
+    // DNS blocker handler (supports both Pi-hole and AdGuard Home)
+    private DnsBlockerHandler dnsBlockerHandler;
     /*
      * DNS2 support intentionally disabled.
      * User request:
      * "no need for 2 DNS management, comment all code related to 2 DNSs"
      *
-     * private PiHoleHandler piholeDns2;
+     * private DnsBlockerHandler dnsBlocker2;
      */
 
     // Configuration
-    private PiholeConfig configDNS1;
+    private DnsBlockerConfig configDNS1;
     /*
      * DNS2 support intentionally disabled.
-     * private PiholeConfig configDNS2;
+     * private DnsBlockerConfig configDNS2;
      */
     private WidgetConfig widgetConfig;
     private long statusRefreshIntervalSec = DEFAULT_STATUS_REFRESH_INTERVAL;
@@ -185,7 +186,7 @@ public class WidgetController implements Initializable {
 
     // ==================== Constructor ====================
 
-    public WidgetController(PiholeConfig configDNS1, WidgetConfig widgetConfig) {
+    public WidgetController(DnsBlockerConfig configDNS1, WidgetConfig widgetConfig) {
         log("=== WidgetController constructor called ===");
         log("ConfigDNS1: " + formatConfig(configDNS1));
         log("WidgetConfig: " + formatWidgetConfig(widgetConfig));
@@ -423,16 +424,13 @@ public class WidgetController implements Initializable {
         log("=== refreshPihole() called ===");
 
         if (configDNS1 != null) {
-            log("Creating PiHoleHandler for DNS1: " + configDNS1.getIPAddress() + ":" + configDNS1.getPort());
-            piholeDns1 = new PiHoleHandler(
-                    configDNS1.getIPAddress(),
-                    configDNS1.getPort(),
-                    configDNS1.getScheme(),
-                    configDNS1.getAUTH());
-            logInfo("PiHole DNS1 version: " + piholeDns1.getVersion());
-            log("PiHoleHandler DNS1 created");
+            log("Creating DNS blocker handler for: " + configDNS1.platform() + " at " +
+                    configDNS1.getIPAddress() + ":" + configDNS1.getPort());
+            dnsBlockerHandler = DnsBlockerHandlerFactory.createHandler(configDNS1);
+            logInfo("DNS Blocker (" + configDNS1.platform() + ") version: " + dnsBlockerHandler.getVersion());
+            log("DNS blocker handler created");
         } else {
-            log("ConfigDNS1 is null, skipping DNS1 handler creation");
+            log("ConfigDNS1 is null, skipping DNS handler creation");
         }
         /*
          * DNS2 support intentionally disabled.
@@ -440,15 +438,11 @@ public class WidgetController implements Initializable {
          * "no need for 2 DNS management, comment all code related to 2 DNSs"
          *
          * if (configDNS2 != null) {
-         * log("Creating PiHoleHandler for DNS2: " + configDNS2.getIPAddress() + ":" +
-         * configDNS2.getPort());
-         * piholeDns2 = new PiHoleHandler(
-         * configDNS2.getIPAddress(),
-         * configDNS2.getPort(),
-         * configDNS2.getScheme(),
-         * configDNS2.getAUTH()
-         * );
-         * log("PiHoleHandler DNS2 created");
+         * log("Creating DNS blocker handler for DNS2: " + configDNS2.platform() +
+         * " at " +
+         * configDNS2.getIPAddress() + ":" + configDNS2.getPort());
+         * dnsBlocker2 = DnsBlockerHandlerFactory.createHandler(configDNS2);
+         * log("DNS blocker handler DNS2 created");
          * } else {
          * log("ConfigDNS2 is null, skipping DNS2 handler creation");
          * }
@@ -476,7 +470,7 @@ public class WidgetController implements Initializable {
      * DNS2 support intentionally disabled.
      */
     private String fetchPiholeStatsJson() {
-        return (piholeDns1 != null) ? piholeDns1.getPiHoleStats() : "";
+        return (dnsBlockerHandler != null) ? dnsBlockerHandler.getStats() : "";
     }
 
     // ==================== Data Inflation Methods ====================
@@ -499,8 +493,8 @@ public class WidgetController implements Initializable {
             CombinedStats combined = combineStats(s1, SummaryStats.inactive());
 
             String lastBlocked = "";
-            if (piholeDns1 != null) {
-                lastBlocked = piholeDns1.getLastBlocked();
+            if (dnsBlockerHandler != null) {
+                lastBlocked = dnsBlockerHandler.getLastBlocked();
             }
             String finalLastBlocked = lastBlocked == null ? "" : lastBlocked;
 
@@ -550,24 +544,24 @@ public class WidgetController implements Initializable {
             String statsJson = fetchPiholeStatsJson();
             SummaryStats s1 = parseSummaryStats(statsJson);
 
-            Boolean b1 = (piholeDns1 != null && statsJson != null && !statsJson.isBlank())
-                    ? fetchDnsBlockingEnabled(piholeDns1)
+            Boolean b1 = (dnsBlockerHandler != null && statsJson != null && !statsJson.isBlank())
+                    ? fetchDnsBlockingEnabled(dnsBlockerHandler)
                     : null;
             BlockingState state = computeBlockingStateSingle(b1, s1);
             this.blockingState = state;
 
-            final String ipsText = (piholeDns1 != null && piholeDns1.getIPAddress() != null)
-                    ? piholeDns1.getIPAddress()
+            final String ipsText = (dnsBlockerHandler != null && configDNS1 != null)
+                    ? configDNS1.getIPAddress()
                     : "";
 
             String apiVersion = "";
-            if (piholeDns1 != null)
-                apiVersion = piholeDns1.getVersion();
+            if (dnsBlockerHandler != null)
+                apiVersion = dnsBlockerHandler.getVersion();
             String finalApiVersion = apiVersion == null ? "" : apiVersion;
 
             String gravityUpdate = "";
-            if (piholeDns1 != null)
-                gravityUpdate = piholeDns1.getGravityLastUpdate();
+            if (dnsBlockerHandler != null)
+                gravityUpdate = dnsBlockerHandler.getGravityLastUpdate();
             String finalGravityUpdate = gravityUpdate == null ? "" : gravityUpdate;
 
             Platform.runLater(() -> {
@@ -629,12 +623,12 @@ public class WidgetController implements Initializable {
     public void inflateTopXData() {
         log("=== inflateTopXData() called ===");
         runAsync(() -> {
-            if (piholeDns1 == null) {
+            if (dnsBlockerHandler == null) {
                 log("WARNING: Pi-hole inactive, skipping topX update");
                 return;
             }
 
-            PiHoleHandler handler = piholeDns1;
+            DnsBlockerHandler handler = dnsBlockerHandler;
 
             log("Fetching top " + topX + " blocked domains...");
             String topBlockedJson = handler.getTopXBlocked(topX);
@@ -906,8 +900,8 @@ public class WidgetController implements Initializable {
 
             if (currentEnabled == null) {
                 // Best-effort refresh from status endpoint (preferred) then summary fallback
-                if (piholeDns1 != null)
-                    currentEnabled = fetchDnsBlockingEnabled(piholeDns1);
+                if (dnsBlockerHandler != null)
+                    currentEnabled = fetchDnsBlockingEnabled(dnsBlockerHandler);
             }
 
             // Toggle: if still unknown, alternate locally so clicks still toggle
@@ -922,10 +916,10 @@ public class WidgetController implements Initializable {
             log("Toggling DNS blocking -> " + (targetEnable ? "ENABLED" : "DISABLED"));
 
             // Apply to all configured instances (best effort)
-            if (piholeDns1 != null)
-                piholeDns1.setDnsBlocking(targetEnable, null);
+            if (dnsBlockerHandler != null)
+                dnsBlockerHandler.setDnsBlocking(targetEnable, null);
             // DNS2 support intentionally disabled.
-            // if (piholeDns2 != null) piholeDns2.setDnsBlocking(targetEnable, null);
+            // if (dnsBlocker2 != null) dnsBlocker2.setDnsBlocking(targetEnable, null);
 
             // Refresh LED/status immediately after change
             inflateActiveData();
@@ -1043,7 +1037,7 @@ public class WidgetController implements Initializable {
         return enabled ? BlockingState.ENABLED : BlockingState.DISABLED;
     }
 
-    private Boolean fetchDnsBlockingEnabled(PiHoleHandler handler) {
+    private Boolean fetchDnsBlockingEnabled(DnsBlockerHandler handler) {
         if (handler == null)
             return null;
 
@@ -1054,7 +1048,7 @@ public class WidgetController implements Initializable {
             return enabled;
 
         // Fallback: summary (some versions include status info there)
-        String summaryJson = handler.getPiHoleStats();
+        String summaryJson = handler.getStats();
         return parseDnsBlockingEnabledSafe(summaryJson);
     }
 
@@ -1315,9 +1309,9 @@ public class WidgetController implements Initializable {
                 : domain.substring(0, DOMAIN_TRUNCATE_LENGTH) + TRUNCATION_SUFFIX;
     }
 
-    private String formatConfig(PiholeConfig config) {
+    private String formatConfig(DnsBlockerConfig config) {
         return config != null
-                ? config.getIPAddress() + ":" + config.getPort()
+                ? config.getIPAddress() + ":" + config.getPort() + " (" + config.platform() + ")"
                 : "null";
     }
 
@@ -1340,12 +1334,12 @@ public class WidgetController implements Initializable {
         return gridPane;
     }
 
-    public PiholeConfig getConfigDNS1() {
+    public DnsBlockerConfig getConfigDNS1() {
         log("getConfigDNS1() - returning: " + formatConfig(configDNS1));
         return configDNS1;
     }
 
-    public void setConfigDNS1(PiholeConfig configDNS1) {
+    public void setConfigDNS1(DnsBlockerConfig configDNS1) {
         log("setConfigDNS1() - setting to: " + formatConfig(configDNS1));
         this.configDNS1 = configDNS1;
     }
@@ -1381,7 +1375,7 @@ public class WidgetController implements Initializable {
     /**
      * Applies new DNS and widget configuration values and refreshes the UI.
      */
-    public void applyConfiguration(PiholeConfig newConfigDNS1, WidgetConfig newWidgetConfig) {
+    public void applyConfiguration(DnsBlockerConfig newConfigDNS1, WidgetConfig newWidgetConfig) {
         setConfigDNS1(newConfigDNS1);
         setWidgetConfig(newWidgetConfig);
         refreshPihole();

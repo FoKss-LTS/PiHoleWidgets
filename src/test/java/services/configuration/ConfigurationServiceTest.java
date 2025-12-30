@@ -1,6 +1,7 @@
 package services.configuration;
 
-import domain.configuration.PiholeConfig;
+import domain.configuration.DnsBlockerConfig;
+import domain.configuration.DnsBlockerType;
 import domain.configuration.WidgetConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Note: These tests use the actual user home directory for configuration files.
  */
 class ConfigurationServiceTest {
-    
+
     private ConfigurationService configService;
     private Path configFilePath;
     private boolean configFileExisted;
@@ -25,12 +26,13 @@ class ConfigurationServiceTest {
     @BeforeEach
     void setUp() {
         configService = new ConfigurationService();
-        // ConfigurationService uses System.getProperty("user.home") which is set at class load time
+        // ConfigurationService uses System.getProperty("user.home") which is set at
+        // class load time
         // So we work with the actual user home directory
         String home = System.getProperty("user.home");
         configFilePath = Path.of(home, "Pihole Widget", "settings.json");
         configFileExisted = Files.exists(configFilePath);
-        
+
         // Backup existing config if it exists
         if (configFileExisted) {
             try {
@@ -80,11 +82,11 @@ class ConfigurationServiceTest {
         } catch (IOException e) {
             // Ignore
         }
-        
+
         assertFalse(Files.exists(configFilePath));
-        
+
         configService.readConfiguration();
-        
+
         assertTrue(Files.exists(configFilePath));
     }
 
@@ -93,35 +95,35 @@ class ConfigurationServiceTest {
         // Create a valid config file
         Files.createDirectories(configFilePath.getParent());
         String json = """
-            {
-              "DNS1": {
-                "Scheme": "https",
-                "IP": "192.168.1.1",
-                "Port": 443,
-                "Authentication Token": "token123"
-              },
-              "Widget": {
-                "Size": "Large",
-                "Layout": "Horizontal",
-                "Theme": "Light",
-                "UpdateStatusSec": 10,
-                "UpdateFluidSec": 20,
-                "UpdateActiveSec": 30,
-                "UpdateTopXSec": 40
-              }
-            }
-            """;
+                {
+                  "DNS1": {
+                    "Scheme": "https",
+                    "IP": "192.168.1.1",
+                    "Port": 443,
+                    "Authentication Token": "token123"
+                  },
+                  "Widget": {
+                    "Size": "Large",
+                    "Layout": "Horizontal",
+                    "Theme": "Light",
+                    "UpdateStatusSec": 10,
+                    "UpdateFluidSec": 20,
+                    "UpdateActiveSec": 30,
+                    "UpdateTopXSec": 40
+                  }
+                }
+                """;
         Files.writeString(configFilePath, json);
-        
+
         configService.readConfiguration();
-        
-        PiholeConfig dns1 = configService.getConfigDNS1();
+
+        DnsBlockerConfig dns1 = configService.getConfigDNS1();
         assertNotNull(dns1);
         assertEquals("192.168.1.1", dns1.getIPAddress());
         assertEquals(443, dns1.getPort());
         assertEquals("https", dns1.getScheme());
         assertEquals("token123", dns1.getAUTH());
-        
+
         WidgetConfig widget = configService.getWidgetConfig();
         assertNotNull(widget);
         assertEquals("Large", widget.getSize());
@@ -137,18 +139,18 @@ class ConfigurationServiceTest {
     void testReadConfigurationWithMissingDns1() throws IOException {
         Files.createDirectories(configFilePath.getParent());
         String json = """
-            {
-              "Widget": {
-                "Size": "Medium",
-                "Layout": "Square",
-                "Theme": "Dark"
-              }
-            }
-            """;
+                {
+                  "Widget": {
+                    "Size": "Medium",
+                    "Layout": "Square",
+                    "Theme": "Dark"
+                  }
+                }
+                """;
         Files.writeString(configFilePath, json);
-        
+
         configService.readConfiguration();
-        
+
         assertNull(configService.getConfigDNS1());
         assertNotNull(configService.getWidgetConfig());
     }
@@ -157,19 +159,19 @@ class ConfigurationServiceTest {
     void testReadConfigurationWithMissingWidget() throws IOException {
         Files.createDirectories(configFilePath.getParent());
         String json = """
-            {
-              "DNS1": {
-                "Scheme": "http",
-                "IP": "192.168.1.1",
-                "Port": 80,
-                "Authentication Token": "token"
-              }
-            }
-            """;
+                {
+                  "DNS1": {
+                    "Scheme": "http",
+                    "IP": "192.168.1.1",
+                    "Port": 80,
+                    "Authentication Token": "token"
+                  }
+                }
+                """;
         Files.writeString(configFilePath, json);
-        
+
         configService.readConfiguration();
-        
+
         assertNotNull(configService.getConfigDNS1());
         assertNotNull(configService.getWidgetConfig());
         // Should use defaults
@@ -180,7 +182,7 @@ class ConfigurationServiceTest {
     void testReadConfigurationWithInvalidJson() throws IOException {
         Files.createDirectories(configFilePath.getParent());
         Files.writeString(configFilePath, "invalid json");
-        
+
         // Should not throw exception, but configs should be null or default
         assertDoesNotThrow(() -> configService.readConfiguration());
     }
@@ -188,13 +190,12 @@ class ConfigurationServiceTest {
     @Test
     void testWriteConfigFile() {
         boolean result = configService.writeConfigFile(
-            "https", "192.168.1.1", 443, "token1",
-            "http", "192.168.1.2", 80, "token2",
-            "Large", "Horizontal", "Light",
-            true, true, true,
-            10, 20, 30, 40
-        );
-        
+                DnsBlockerType.PIHOLE, "https", "192.168.1.1", 443, "", "token1",
+                DnsBlockerType.PIHOLE, "http", "192.168.1.2", 80, "", "token2",
+                "Large", "Horizontal", "Light",
+                true, true, true,
+                10, 20, 30, 40);
+
         assertTrue(result);
         assertTrue(Files.exists(configFilePath));
     }
@@ -217,17 +218,16 @@ class ConfigurationServiceTest {
         } catch (IOException e) {
             // Ignore cleanup errors
         }
-        
+
         // Note: The directory might still exist from previous tests, so we just verify
         // that writeConfigFile creates it if needed and creates the file
         boolean result = configService.writeConfigFile(
-            "http", "192.168.1.1", 80, "token",
-            "http", "", 80, "",
-            "Medium", "Square", "Dark",
-            true, true, true,
-            5, 15, 60, 5
-        );
-        
+                DnsBlockerType.PIHOLE, "http", "192.168.1.1", 80, "", "token",
+                DnsBlockerType.PIHOLE, "http", "", 80, "", "",
+                "Medium", "Square", "Dark",
+                true, true, true,
+                5, 15, 60, 5);
+
         assertTrue(result);
         // Verify the file was created (which implies directory was created if needed)
         assertTrue(Files.exists(configFilePath));
@@ -238,24 +238,23 @@ class ConfigurationServiceTest {
     void testWriteAndReadConfiguration() {
         // Write configuration
         configService.writeConfigFile(
-            "https", "192.168.1.1", 443, "mytoken",
-            "http", "", 80, "",
-            "Large", "Horizontal", "Light",
-            true, true, true,
-            10, 20, 30, 40
-        );
-        
+                DnsBlockerType.PIHOLE, "https", "192.168.1.1", 443, "", "mytoken",
+                DnsBlockerType.PIHOLE, "http", "", 80, "", "",
+                "Large", "Horizontal", "Light",
+                true, true, true,
+                10, 20, 30, 40);
+
         // Create new service instance and read
         ConfigurationService newService = new ConfigurationService();
         newService.readConfiguration();
-        
-        PiholeConfig dns1 = newService.getConfigDNS1();
+
+        DnsBlockerConfig dns1 = newService.getConfigDNS1();
         assertNotNull(dns1);
         assertEquals("192.168.1.1", dns1.getIPAddress());
         assertEquals(443, dns1.getPort());
         assertEquals("https", dns1.getScheme());
         assertEquals("mytoken", dns1.getAUTH());
-        
+
         WidgetConfig widget = newService.getWidgetConfig();
         assertNotNull(widget);
         assertEquals("Large", widget.getSize());
@@ -270,7 +269,7 @@ class ConfigurationServiceTest {
     @Test
     void testSaveEmptyConfiguration() {
         boolean result = configService.saveEmptyConfiguration();
-        
+
         assertTrue(result);
         assertTrue(Files.exists(configFilePath));
     }
@@ -279,28 +278,26 @@ class ConfigurationServiceTest {
     void testGetConfigDNS2ReturnsNull() {
         // DNS2 support is disabled, should always return null
         assertNull(configService.getConfigDNS2());
-        
+
         configService.readConfiguration();
-        
+
         assertNull(configService.getConfigDNS2());
     }
 
     @Test
     void testWriteConfigFileWithNullTheme() {
         boolean result = configService.writeConfigFile(
-            "http", "192.168.1.1", 80, "token",
-            "http", "", 80, "",
-            "Medium", "Square", null,
-            true, true, true,
-            5, 15, 60, 5
-        );
-        
+                DnsBlockerType.PIHOLE, "http", "192.168.1.1", 80, "", "token",
+                DnsBlockerType.PIHOLE, "http", "", 80, "", "",
+                "Medium", "Square", null,
+                true, true, true,
+                5, 15, 60, 5);
+
         assertTrue(result);
-        
+
         // Read back and verify default theme is used
         ConfigurationService newService = new ConfigurationService();
         newService.readConfiguration();
         assertEquals(WidgetConfig.DEFAULT_THEME, newService.getWidgetConfig().getTheme());
     }
 }
-

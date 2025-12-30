@@ -19,9 +19,10 @@
 package services.pihole;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import domain.configuration.PiholeConfig;
+import domain.configuration.DnsBlockerConfig;
 import helpers.HttpClientUtil;
 import helpers.HttpClientUtil.HttpResponsePayload;
+import services.DnsBlockerHandler;
 import services.configuration.ConfigurationService;
 
 import java.io.IOException;
@@ -38,14 +39,15 @@ import java.util.logging.Logger;
 /**
  * Handler for Pi-hole API communication.
  * Manages authentication and data retrieval from Pi-hole servers.
+ * Implements the DnsBlockerHandler interface for platform abstraction.
  */
-public class PiHoleHandler {
+public class PiHoleHandler implements DnsBlockerHandler {
 
     // ==================== Constants ====================
-    
+
     private static final Logger LOGGER = Logger.getLogger(PiHoleHandler.class.getName());
     private static final boolean VERBOSE = Boolean.parseBoolean(System.getProperty("pihole.verbose", "false"));
-    
+
     private static final String API_PATH = "/api";
     private static final String AUTH_ENDPOINT = "/auth";
     private static final String VERSION_ENDPOINT = "/info/version";
@@ -55,12 +57,12 @@ public class PiHoleHandler {
 
     // POST endpoints
     private static final String DNS_BLOCKING_ENDPOINT = "/dns/blocking";
-    
+
     private static final String QUERY_PARAM_SID = "sid";
     private static final String HEADER_X_FTL_SID = "X-FTL-SID";
-    
+
     // ==================== Instance Fields ====================
-    
+
     private final String ipAddress;
     private final int port;
     private final String scheme;
@@ -68,160 +70,176 @@ public class PiHoleHandler {
     private final String apiBaseUrl;
     private final HttpClientUtil httpClient;
     private final Clock clock;
-    
+
     private String sessionId;
 
     // ==================== Constructor ====================
 
-    public PiHoleHandler(String ipAddress, int port, String scheme, String password) {
-        this(ipAddress, port, scheme, password, new HttpClientUtil(), Clock.systemDefaultZone(), true, true);
+    /**
+     * Constructor that accepts a DnsBlockerConfig.
+     * This is the primary constructor for production use.
+     */
+    public PiHoleHandler(DnsBlockerConfig config) {
+        this(config, new HttpClientUtil(), Clock.systemDefaultZone(), true, true);
     }
 
     /**
-     * Internal constructor to allow unit testing with an injected HTTP client and clock.
+     * Legacy constructor for backward compatibility.
+     * 
+     * @deprecated Use {@link #PiHoleHandler(DnsBlockerConfig)} instead
      */
-    PiHoleHandler(String ipAddress,
-                 int port,
-                 String scheme,
-                 String password,
-                 HttpClientUtil httpClient,
-                 Clock clock,
-                 boolean loadFromConfiguration,
-                 boolean authenticateOnConstruct) {
+    @Deprecated
+    public PiHoleHandler(String ipAddress, int port, String scheme, String password) {
+        this(DnsBlockerConfig.forPiHole(ipAddress, port, scheme, password),
+                new HttpClientUtil(), Clock.systemDefaultZone(), true, true);
+    }
+
+    /**
+     * Internal constructor to allow unit testing with an injected HTTP client and
+     * clock.
+     */
+    PiHoleHandler(DnsBlockerConfig config,
+            HttpClientUtil httpClient,
+            Clock clock,
+            boolean loadFromConfiguration,
+            boolean authenticateOnConstruct) {
         log("=== Initializing PiHoleHandler ===");
-        log("Input params - IP: " + ipAddress + ", Port: " + port + ", Scheme: " + scheme);
-        
+        log("Input params - IP: " + config.ipAddress() + ", Port: " + config.port() + ", Scheme: " + config.scheme());
+
         if (loadFromConfiguration) {
             // Load configuration from service
             ConfigurationService configService = new ConfigurationService();
             configService.readConfiguration();
 
-            var config = configService.getConfigDNS1();
-            if (config != null) {
-                this.ipAddress = config.getIPAddress();
-                this.port = config.getPort();
-                this.scheme = config.getScheme();
-                this.password = config.getAUTH();
+            var loadedConfig = configService.getConfigDNS1();
+            if (loadedConfig != null) {
+                this.ipAddress = loadedConfig.getIPAddress();
+                this.port = loadedConfig.getPort();
+                this.scheme = loadedConfig.getScheme();
+                this.password = loadedConfig.getAUTH();
             } else {
-                this.ipAddress = ipAddress;
-                this.port = port;
-                this.scheme = scheme != null ? scheme : PiholeConfig.DEFAULT_SCHEME;
-                this.password = password;
+                this.ipAddress = config.ipAddress();
+                this.port = config.port();
+                this.scheme = config.scheme() != null ? config.scheme() : DnsBlockerConfig.DEFAULT_SCHEME;
+                this.password = config.authToken();
             }
         } else {
-            this.ipAddress = ipAddress;
-            this.port = port;
-            this.scheme = scheme != null ? scheme : "http";
-            this.password = password;
+            this.ipAddress = config.ipAddress();
+            this.port = config.port();
+            this.scheme = config.scheme() != null ? config.scheme() : "http";
+            this.password = config.authToken();
         }
-        
+
         this.apiBaseUrl = buildApiBaseUrl();
         this.httpClient = httpClient == null ? new HttpClientUtil() : httpClient;
         this.clock = clock == null ? Clock.systemDefaultZone() : clock;
-        
+
         log("API Base URL: " + this.apiBaseUrl);
         log("Password configured: " + (this.password != null && !this.password.isBlank()));
-        
+
         // Authenticate on construction
         if (authenticateOnConstruct) {
             authenticate();
         }
     }
-    
+
     private String buildApiBaseUrl() {
         return scheme + "://" + ipAddress + ":" + port + API_PATH;
     }
 
     // ==================== Logging ====================
-    
+
     private static void log(String message) {
         if (VERBOSE) {
             LOGGER.log(Level.FINE, () -> "[PiHole] " + message);
         }
     }
-    
+
     private static void logInfo(String message) {
         LOGGER.log(Level.INFO, () -> message);
     }
-    
+
     private static void logError(String message, Throwable t) {
         LOGGER.log(Level.SEVERE, message, t);
     }
 
     // ==================== Authentication ====================
 
-    private void authenticate() {
+    @Override
+    public boolean authenticate() {
         log("=== authenticate() called ===");
-        
+
         if (password == null || password.isBlank()) {
             log("Password is required for authentication");
-            return;
+            return false;
         }
-        
+
         String url = apiBaseUrl + AUTH_ENDPOINT;
         log("Auth URL: " + url);
-        
+
         Map<String, String> requestBody = new HashMap<>();
         requestBody.put("password", password);
-        
+
         try {
             HttpResponsePayload response = httpClient.postJson(url, requestBody, Collections.emptyMap());
-            
+
             log("Response status code: " + response.statusCode());
-            
+
             if (!response.isSuccessful()) {
                 log("Authentication failed with HTTP " + response.statusCode());
                 logInfo("Authentication failed: HTTP " + response.statusCode());
-                return;
+                return false;
             }
-            
+
             parseAuthResponse(response);
-            
+            log("=== Authentication complete ===");
+            return sessionId != null && !sessionId.isBlank();
+
         } catch (IOException e) {
             logError("Authentication failed with IOException", e);
+            return false;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             logError("Authentication interrupted", e);
+            return false;
         }
-        
-        log("=== Authentication complete ===");
     }
-    
+
     private void parseAuthResponse(HttpResponsePayload response) {
         Optional<JsonNode> jsonOpt = response.bodyAsJson();
-        
+
         if (jsonOpt.isEmpty()) {
             log("Failed to parse JSON response: " + response.bodyText());
             return;
         }
-        
+
         JsonNode json = jsonOpt.get();
         log("Parsed JSON response successfully");
-        
+
         if (!json.has("session")) {
             log("No 'session' object in response");
             return;
         }
-        
+
         JsonNode session = json.get("session");
-        
+
         if (session.has("sid") && !session.get("sid").isNull()) {
             this.sessionId = session.get("sid").asText();
             log("Session ID obtained: " + maskSessionId(sessionId));
             logInfo("Session ID: " + maskSessionId(sessionId));
         }
-        
+
         if (session.has("valid")) {
             boolean isValid = session.get("valid").asBoolean();
             log("Session valid: " + isValid);
         }
-        
+
         if (session.has("message")) {
             String message = session.get("message").asText();
             log("Session message: " + message);
         }
     }
-    
+
     private String maskSessionId(String sid) {
         if (sid == null || sid.length() < 10) {
             return "***";
@@ -230,6 +248,15 @@ public class PiHoleHandler {
     }
 
     // ==================== API Methods ====================
+
+    /**
+     * Retrieves Pi-hole statistics as raw JSON string.
+     * Implements DnsBlockerHandler.getStats().
+     */
+    @Override
+    public String getStats() {
+        return getPiHoleStats();
+    }
 
     /**
      * Retrieves Pi-hole statistics as raw JSON string.
@@ -257,6 +284,7 @@ public class PiHoleHandler {
     /**
      * Retrieves the last blocked domain.
      */
+    @Override
     public String getLastBlocked() {
         log("=== getLastBlocked() called ===");
 
@@ -295,72 +323,73 @@ public class PiHoleHandler {
     /**
      * Retrieves the Pi-hole version information.
      */
+    @Override
     public String getVersion() {
         log("=== getVersion() called ===");
 
         String url = apiBaseUrl + VERSION_ENDPOINT;
         log("Version URL: " + url);
-        
+
         try {
             Map<String, String> queryParams = authQueryParams();
-            
+
             HttpResponsePayload response = httpClient.get(url, queryParams, Collections.emptyMap());
-            
+
             log("Version response status: " + response.statusCode());
-            
+
             if (!response.isSuccessful()) {
                 log("Failed to get version - HTTP " + response.statusCode());
                 return "";
             }
-            
+
             return parseVersionResponse(response);
-            
+
         } catch (IOException e) {
             logError("IOException while fetching version", e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             logError("Interrupted while fetching version", e);
         }
-        
+
         return "";
     }
-    
+
     private String parseVersionResponse(HttpResponsePayload response) {
         Optional<JsonNode> jsonOpt = response.bodyAsJson();
-        
+
         if (jsonOpt.isEmpty()) {
             log("Failed to parse version JSON response");
             return "";
         }
-        
+
         JsonNode json = jsonOpt.get();
         log("Version JSON parsed successfully");
-        
+
         if (!json.has("version")) {
             log("No 'version' key in response");
             return "";
         }
-        
+
         JsonNode versionNode = json.get("version");
-        
+
         // Try FTL version first
         String version = extractVersion(versionNode, "ftl");
         if (!version.isEmpty()) {
             log("Returning FTL version: " + version);
             return version;
         }
-        
+
         // Fallback to core version
         version = extractVersion(versionNode, "core");
         if (!version.isEmpty()) {
             log("Returning core version: " + version);
             return version;
         }
-        
+
         log("Could not extract version from response");
         return "";
     }
-    
+
     private String extractVersion(JsonNode versionNode, String component) {
         if (versionNode.has(component)) {
             JsonNode componentNode = versionNode.get(component);
@@ -377,6 +406,7 @@ public class PiHoleHandler {
     /**
      * Retrieves top X blocked domains as raw JSON string.
      */
+    @Override
     public String getTopXBlocked(int count) {
         log("=== getTopXBlocked(" + count + ") called ===");
         if (count <= 0) {
@@ -410,6 +440,7 @@ public class PiHoleHandler {
     /**
      * Retrieves the gravity last update time as a formatted string.
      */
+    @Override
     public String getGravityLastUpdate() {
         log("=== getGravityLastUpdate() called ===");
 
@@ -453,10 +484,12 @@ public class PiHoleHandler {
      *
      * Request body:
      * - blocking: boolean (required)
-     * - timer: number|null (optional) seconds until automatic reversal; null to cancel any running timer
+     * - timer: number|null (optional) seconds until automatic reversal; null to
+     * cancel any running timer
      *
      * Returns raw JSON response from Pi-hole, or empty string on failure.
      */
+    @Override
     public String setDnsBlocking(boolean blocking, Integer timerSeconds) {
         log("=== setDnsBlocking(blocking=" + blocking + ", timerSeconds=" + timerSeconds + ") called ===");
         Map<String, Object> body = new HashMap<>();
@@ -485,6 +518,7 @@ public class PiHoleHandler {
      *
      * Returns raw JSON response from Pi-hole, or empty string on failure.
      */
+    @Override
     public String getDnsBlockingStatus() {
         log("=== getDnsBlockingStatus() called ===");
         try {
@@ -534,8 +568,8 @@ public class PiHoleHandler {
      * This mirrors the API docs which allow either form.
      */
     private HttpResponsePayload postApi(String endpoint,
-                                       Object jsonBody,
-                                       Map<String, String> extraQueryParams)
+            Object jsonBody,
+            Map<String, String> extraQueryParams)
             throws IOException, InterruptedException {
         // If we have a password but no session yet, try to authenticate lazily.
         if ((sessionId == null || sessionId.isBlank()) && password != null && !password.isBlank()) {

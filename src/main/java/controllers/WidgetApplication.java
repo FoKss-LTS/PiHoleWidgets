@@ -18,7 +18,7 @@
 
 package controllers;
 
-import domain.configuration.PiholeConfig;
+import domain.configuration.DnsBlockerConfig;
 import domain.configuration.WidgetConfig;
 import helpers.ThemeManager;
 import javafx.application.Application;
@@ -80,7 +80,7 @@ public class WidgetApplication extends Application {
 
     // ==================== Static Application State ====================
 
-    private static PiholeConfig configDNS1;
+    private static DnsBlockerConfig configDNS1;
     private static WidgetConfig widgetConfig;
 
     private static Parent configurationRoot;
