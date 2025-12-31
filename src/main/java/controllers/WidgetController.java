@@ -621,6 +621,7 @@ public class WidgetController implements Initializable {
     }
 
     public void inflateTopXData() {
+        System.out.println("===== inflateTopXData() called from WidgetController =====");
         log("=== inflateTopXData() called ===");
         runAsync(() -> {
             if (dnsBlockerHandler == null) {
@@ -1102,21 +1103,25 @@ public class WidgetController implements Initializable {
             return List.of();
         try {
             JsonNode root = JSON.readTree(json);
-            JsonNode domains = root.path("domains");
-            if (!domains.isArray())
+            // Pi-hole format: {"top_ads": {"domain1.com": 123, "domain2.com": 456}}
+            JsonNode topAds = root.path("top_ads");
+            if (!topAds.isObject())
                 return List.of();
 
             List<TopDomain> result = new ArrayList<>();
-            for (JsonNode item : domains) {
-                String domain = item.path("domain").asText("");
-                long count = item.path("count").asLong(0L);
+            var fields = topAds.fields();
+            while (fields.hasNext()) {
+                var entry = fields.next();
+                String domain = entry.getKey();
+                long count = entry.getValue().asLong(0L);
                 if (domain == null || domain.isBlank())
                     continue;
                 result.add(new TopDomain(domain, Math.max(0L, count)));
             }
             return result;
         } catch (Exception e) {
-            log("WARNING: Failed to parse top domains JSON: " + e.getMessage());
+            System.out.println("WARNING: Failed to parse top domains JSON: " + e.getMessage());
+            e.printStackTrace();
             return List.of();
         }
     }

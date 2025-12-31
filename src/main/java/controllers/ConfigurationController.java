@@ -29,6 +29,7 @@ import javafx.scene.control.Accordion;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TitledPane;
 import javafx.stage.Window;
@@ -100,6 +101,8 @@ public class ConfigurationController implements Initializable {
     @FXML
     private TextField tfAuth1;
     @FXML
+    private TextField tfUsername1;
+    @FXML
     private TextField tfUpdateStatus;
     @FXML
     private TextField tfUpdateFluid;
@@ -120,6 +123,8 @@ public class ConfigurationController implements Initializable {
     private ComboBox<String> comboBoxTheme;
     @FXML
     private ComboBox<String> comboBoxScheme1;
+    @FXML
+    private ComboBox<String> comboBoxPlatform1;
     // DNS2 support intentionally disabled.
     // @FXML private ComboBox<String> comboBoxScheme2;
 
@@ -138,10 +143,8 @@ public class ConfigurationController implements Initializable {
     private TextField TF_Port1;
     @FXML
     private TextField TF_AUTH1;
-    // DNS2 support intentionally disabled.
-    // @FXML private TextField TF_IP2;
-    // @FXML private TextField TF_Port2;
-    // @FXML private TextField TG_AUTH2;
+    @FXML
+    private TextField TF_Username1;
     @FXML
     private ComboBox<String> ComboBoxSize;
     @FXML
@@ -150,6 +153,12 @@ public class ConfigurationController implements Initializable {
     private ComboBox<String> ComboBoxTheme;
     @FXML
     private ComboBox<String> ComboBox_Scheme1;
+    @FXML
+    private ComboBox<String> ComboBox_Platform1;
+    @FXML
+    private Label Label_Username1;
+    @FXML
+    private Label Label_Password1;
     // DNS2 support intentionally disabled.
     // @FXML private ComboBox<String> ComboBox_Scheme2;
 
@@ -229,6 +238,10 @@ public class ConfigurationController implements Initializable {
             comboBoxTheme = ComboBoxTheme;
         if (comboBoxScheme1 == null)
             comboBoxScheme1 = ComboBox_Scheme1;
+        if (comboBoxPlatform1 == null)
+            comboBoxPlatform1 = ComboBox_Platform1;
+        if (tfUsername1 == null)
+            tfUsername1 = TF_Username1;
         // DNS2 support intentionally disabled.
         // if (tfIp2 == null) tfIp2 = TF_IP2;
         // if (tfPort2 == null) tfPort2 = TF_Port2;
@@ -257,6 +270,17 @@ public class ConfigurationController implements Initializable {
         if (comboBoxScheme1 != null) {
             comboBoxScheme1.setItems(FXCollections.observableArrayList(SCHEMES));
             comboBoxScheme1.setValue(DEFAULT_SCHEME);
+        }
+
+        // Platform options for DNS1
+        if (comboBoxPlatform1 != null) {
+            comboBoxPlatform1.setItems(FXCollections.observableArrayList(
+                    DnsBlockerType.PIHOLE.getDisplayName(),
+                    DnsBlockerType.ADGUARD_HOME.getDisplayName()));
+            comboBoxPlatform1.setValue(DnsBlockerType.PIHOLE.getDisplayName()); // Default to Pi-hole
+
+            // Add listener to show/hide username field based on platform
+            comboBoxPlatform1.setOnAction(_ -> updateUsernameFieldVisibility());
         }
 
         /*
@@ -321,6 +345,33 @@ public class ConfigurationController implements Initializable {
         }
     }
 
+    /**
+     * Updates the visibility of the username field based on the selected platform.
+     * AdGuard Home requires a username for Basic Auth, Pi-hole does not.
+     */
+    private void updateUsernameFieldVisibility() {
+        if (comboBoxPlatform1 == null)
+            return;
+
+        String selectedPlatform = comboBoxPlatform1.getValue();
+        boolean isAdGuardHome = DnsBlockerType.ADGUARD_HOME.getDisplayName().equals(selectedPlatform);
+
+        // Show/hide username field and label
+        if (tfUsername1 != null) {
+            tfUsername1.setVisible(isAdGuardHome);
+            tfUsername1.setManaged(isAdGuardHome);
+        }
+        if (Label_Username1 != null) {
+            Label_Username1.setVisible(isAdGuardHome);
+            Label_Username1.setManaged(isAdGuardHome);
+        }
+
+        // Update password label text
+        if (Label_Password1 != null) {
+            Label_Password1.setText(isAdGuardHome ? "Password:" : "App Password:");
+        }
+    }
+
     // ==================== Configuration Management ====================
 
     @FXML
@@ -358,8 +409,13 @@ public class ConfigurationController implements Initializable {
         // log("Saving - DNS2: " + scheme2 + "://" + ip2 + ":" + port2);
         log("Saving - Widget: size=" + size + ", layout=" + layout + ", theme=" + theme);
 
+        // Parse platform selection
+        String platformStr = getSelectedOrDefault(comboBoxPlatform1, DnsBlockerType.PIHOLE.getDisplayName());
+        DnsBlockerType platform = DnsBlockerType.fromDisplayName(platformStr);
+        String username = getTextOrEmpty(tfUsername1);
+
         configService.writeConfigFile(
-                DnsBlockerType.PIHOLE, scheme1, ip1, port1, "", getTextOrEmpty(tfAuth1),
+                platform, scheme1, ip1, port1, username, getTextOrEmpty(tfAuth1),
                 // DNS2 support intentionally disabled - parameters kept for backward compatible
                 // signature.
                 DnsBlockerType.PIHOLE, DnsBlockerConfig.DEFAULT_SCHEME, "", DnsBlockerConfig.DEFAULT_PORT, "", "",
@@ -382,14 +438,26 @@ public class ConfigurationController implements Initializable {
         // Populate DNS1 fields
         if (configDNS1 != null) {
             log("Loading DNS1: " + configDNS1.getIPAddress());
+
+            // Set platform
+            if (comboBoxPlatform1 != null) {
+                setComboBoxValue(comboBoxPlatform1, configDNS1.platform().getDisplayName(),
+                        DnsBlockerType.PIHOLE.getDisplayName());
+                updateUsernameFieldVisibility(); // Update field visibility based on loaded platform
+            }
+
             setComboBoxValue(comboBoxScheme1, configDNS1.getScheme(), DEFAULT_SCHEME);
             setTextFieldValue(tfIp1, configDNS1.getIPAddress());
             setTextFieldValue(tfPort1, String.valueOf(configDNS1.getPort()));
+            setTextFieldValue(tfUsername1, configDNS1.username() != null ? configDNS1.username() : "");
             setTextFieldValue(tfAuth1, configDNS1.getAUTH());
         } else {
             log("DNS1 config is null, using defaults");
+            setComboBoxValue(comboBoxPlatform1, DnsBlockerType.PIHOLE.getDisplayName(),
+                    DnsBlockerType.PIHOLE.getDisplayName());
             setComboBoxValue(comboBoxScheme1, DEFAULT_SCHEME, DEFAULT_SCHEME);
             setTextFieldValue(tfIp1, "");
+            updateUsernameFieldVisibility(); // Update field visibility for default platform
         }
 
         /*

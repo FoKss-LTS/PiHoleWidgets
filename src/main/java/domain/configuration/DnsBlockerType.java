@@ -90,4 +90,26 @@ public enum DnsBlockerType {
     public String toString() {
         return displayName;
     }
+
+    /**
+     * Parses a display name into a DnsBlockerType.
+     * Used specifically for UI combobox selections.
+     *
+     * @param displayName the display name to parse
+     * @return the corresponding DnsBlockerType, defaults to PIHOLE if not found
+     */
+    public static DnsBlockerType fromDisplayName(String displayName) {
+        if (displayName == null || displayName.isBlank()) {
+            return PIHOLE; // Default
+        }
+
+        for (DnsBlockerType type : values()) {
+            if (type.displayName.equals(displayName)) {
+                return type;
+            }
+        }
+
+        // Fallback to fromString for backward compatibility
+        return fromString(displayName);
+    }
 }

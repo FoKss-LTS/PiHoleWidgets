@@ -55,6 +55,7 @@ public class AdGuardHomeHandler implements DnsBlockerHandler {
     private static final String QUERYLOG_ENDPOINT = "/querylog";
     private static final String DNS_INFO_ENDPOINT = "/dns_info";
     private static final String DNS_CONFIG_ENDPOINT = "/dns_config";
+    private static final String FILTERING_STATUS_ENDPOINT = "/filtering/status";
 
     // ==================== Instance Fields ====================
 
@@ -223,6 +224,10 @@ public class AdGuardHomeHandler implements DnsBlockerHandler {
                 piHoleFormat.put("query_time_avg", avgTimeMs);
             }
 
+            // Get blocklist count from /filtering/status
+            int domainsBeingBlocked = getEnabledFiltersCount();
+            piHoleFormat.put("domains_being_blocked", domainsBeingBlocked);
+
             // Add status from /status endpoint
             piHoleFormat.put("status", "enabled");
 
@@ -315,7 +320,7 @@ public class AdGuardHomeHandler implements DnsBlockerHandler {
 
     @Override
     public String getTopXBlocked(int count) {
-        log("=== getTopXBlocked(" + count + ") called ===");
+        System.out.println("=== AdGuard getTopXBlocked(" + count + ") called ===");
         if (count <= 0) {
             return "";
         }
@@ -324,63 +329,98 @@ public class AdGuardHomeHandler implements DnsBlockerHandler {
             HttpResponsePayload response = getApi(STATS_ENDPOINT, Collections.emptyMap());
 
             if (!response.isSuccessful()) {
-                log("Failed to get stats for top blocked - HTTP " + response.statusCode());
+                System.out.println("Failed to get stats for top blocked - HTTP " + response.statusCode());
                 return "";
             }
 
             Optional<JsonNode> jsonOpt = response.bodyAsJson();
             if (jsonOpt.isEmpty()) {
-                log("Failed to parse stats JSON response");
+                System.out.println("Failed to parse stats JSON response");
                 return "";
             }
 
             JsonNode json = jsonOpt.get();
             // AdGuard Home returns top_blocked_domains array
             if (json.has("top_blocked_domains")) {
+                System.out.println("Found top_blocked_domains in response");
                 JsonNode topBlocked = json.get("top_blocked_domains");
-
-                // Transform to Pi-hole format
-                ObjectNode piHoleFormat = objectMapper.createObjectNode();
-                ObjectNode domains = objectMapper.createObjectNode();
-
-                int added = 0;
-                if (topBlocked.isArray()) {
-                    for (JsonNode entry : topBlocked) {
-                        if (added >= count)
-                            break;
-
-                        String domain = "";
-                        int hits = 0;
-
-                        // AdGuard format: either array [domain, count] or object
-                        if (entry.isArray() && entry.size() >= 2) {
-                            domain = entry.get(0).asText();
-                            hits = entry.get(1).asInt();
-                        } else if (entry.isObject()) {
-                            if (entry.has("domain"))
-                                domain = entry.get("domain").asText();
-                            if (entry.has("count"))
-                                hits = entry.get("count").asInt();
-                        }
-
-                        if (!domain.isEmpty()) {
-                            domains.put(domain, hits);
-                            added++;
-                        }
-                    }
-                }
-
-                piHoleFormat.set("top_ads", domains);
-                return objectMapper.writeValueAsString(piHoleFormat);
+                return formatTopBlocked(topBlocked, count);
             }
 
-            return "";
+            // Also try blocked_filtering which might have the data
+            if (json.has("blocked_filtering")) {
+                System.out.println("Found blocked_filtering in response");
+                JsonNode blockedFiltering = json.get("blocked_filtering");
+                return formatTopBlocked(blockedFiltering, count);
+            }
+
+            System.out.println("No top_blocked_domains found in stats response");
+            return "{}";
 
         } catch (Exception e) {
-            logError("Exception while fetching top blocked domains", e);
+            System.out.println("Exception while fetching top blocked domains: " + e.getMessage());
+            e.printStackTrace();
         }
 
-        return "";
+        return "{}";
+    }
+
+    /**
+     * Formats top blocked domains data into Pi-hole compatible JSON.
+     */
+    private String formatTopBlocked(JsonNode topBlocked, int count) {
+        try {
+            System.out.println("=== formatTopBlocked called with count: " + count + " ===");
+            System.out.println("topBlocked isArray: " + topBlocked.isArray());
+
+            // Transform to Pi-hole format
+            ObjectNode piHoleFormat = objectMapper.createObjectNode();
+            ObjectNode domains = objectMapper.createObjectNode();
+
+            int added = 0;
+            if (topBlocked.isArray()) {
+                System.out.println("topBlocked array size: " + topBlocked.size());
+                for (JsonNode entry : topBlocked) {
+                    if (added >= count)
+                        break;
+
+                    String domain = "";
+                    int hits = 0;
+
+                    // AdGuard format: object with single key-value pair {"domain.com": 123}
+                    if (entry.isObject()) {
+                        var fields = entry.fields();
+                        if (fields.hasNext()) {
+                            var field = fields.next();
+                            domain = field.getKey();
+                            hits = field.getValue().asInt();
+                            System.out.println("Parsed domain: " + domain + " hits: " + hits);
+                        }
+                    }
+                    // Also support array format [domain, count] for compatibility
+                    else if (entry.isArray() && entry.size() >= 2) {
+                        domain = entry.get(0).asText();
+                        hits = entry.get(1).asInt();
+                        System.out.println("Parsed domain (array): " + domain + " hits: " + hits);
+                    }
+
+                    if (!domain.isEmpty()) {
+                        domains.put(domain, hits);
+                        added++;
+                    }
+                }
+            }
+
+            piHoleFormat.set("top_ads", domains);
+            String result = objectMapper.writeValueAsString(piHoleFormat);
+            System.out.println("formatTopBlocked result: " + result);
+            return result;
+
+        } catch (Exception e) {
+            System.out.println("Failed to format top blocked domains: " + e.getMessage());
+            e.printStackTrace();
+            return "{}";
+        }
     }
 
     @Override
@@ -388,24 +428,40 @@ public class AdGuardHomeHandler implements DnsBlockerHandler {
         log("=== getGravityLastUpdate() called ===");
 
         try {
-            HttpResponsePayload response = getApi(STATUS_ENDPOINT, Collections.emptyMap());
+            HttpResponsePayload response = getApi(FILTERING_STATUS_ENDPOINT, Collections.emptyMap());
 
             if (!response.isSuccessful()) {
-                log("Failed to get status for filter update - HTTP " + response.statusCode());
+                log("Failed to get filtering status - HTTP " + response.statusCode());
                 return "";
             }
 
             Optional<JsonNode> jsonOpt = response.bodyAsJson();
             if (jsonOpt.isEmpty()) {
-                log("Failed to parse status JSON response");
+                log("Failed to parse filtering status JSON response");
                 return "";
             }
 
             JsonNode json = jsonOpt.get();
-            // AdGuard Home has filters_updated_at timestamp
-            if (json.has("filters_updated_at")) {
-                String timestamp = json.get("filters_updated_at").asText();
-                return formatFilterUpdateTime(timestamp);
+            // Get the most recent filter update time
+            if (json.has("filters")) {
+                JsonNode filters = json.get("filters");
+                String mostRecentUpdate = null;
+
+                // Find the most recent last_updated timestamp
+                if (filters.isArray()) {
+                    for (JsonNode filter : filters) {
+                        if (filter.has("last_updated") && filter.get("enabled").asBoolean(false)) {
+                            String timestamp = filter.get("last_updated").asText();
+                            if (mostRecentUpdate == null || timestamp.compareTo(mostRecentUpdate) > 0) {
+                                mostRecentUpdate = timestamp;
+                            }
+                        }
+                    }
+                }
+
+                if (mostRecentUpdate != null && !mostRecentUpdate.isEmpty()) {
+                    return formatFilterUpdateTime(mostRecentUpdate);
+                }
             }
 
             return "Filters: unknown";
@@ -417,6 +473,52 @@ public class AdGuardHomeHandler implements DnsBlockerHandler {
             logError("Interrupted while fetching filter update time", e);
         }
         return "";
+    }
+
+    /**
+     * Gets the count of enabled filters from /filtering/status.
+     * 
+     * @return count of enabled filters
+     */
+    private int getEnabledFiltersCount() {
+        try {
+            HttpResponsePayload response = getApi(FILTERING_STATUS_ENDPOINT, Collections.emptyMap());
+
+            if (!response.isSuccessful()) {
+                log("Failed to get filtering status for count - HTTP " + response.statusCode());
+                return 0;
+            }
+
+            Optional<JsonNode> jsonOpt = response.bodyAsJson();
+            if (jsonOpt.isEmpty()) {
+                return 0;
+            }
+
+            JsonNode json = jsonOpt.get();
+            if (json.has("filters")) {
+                JsonNode filters = json.get("filters");
+                int totalRules = 0;
+
+                if (filters.isArray()) {
+                    for (JsonNode filter : filters) {
+                        if (filter.has("enabled") && filter.get("enabled").asBoolean(false)) {
+                            // Sum up the rules_count from each enabled filter
+                            if (filter.has("rules_count")) {
+                                totalRules += filter.get("rules_count").asInt(0);
+                            }
+                        }
+                    }
+                }
+
+                log("Total blocked domains from enabled filters: " + totalRules);
+                return totalRules;
+            }
+
+            return 0;
+        } catch (Exception e) {
+            logError("Exception while fetching filter count", e);
+            return 0;
+        }
     }
 
     private String formatFilterUpdateTime(String timestamp) {
