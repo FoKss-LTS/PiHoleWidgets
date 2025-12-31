@@ -30,8 +30,8 @@ package domain.configuration;
  * @param scheme    the URL scheme (http or https)
  * @param username  the username for Basic Auth (AdGuard Home) or empty for
  *                  Pi-hole
- * @param authToken the authentication token (Pi-hole app password or AdGuard
- *                  Home password)
+ * @param password  the password used for authentication (Pi-hole app password or
+ *                  AdGuard Home password)
  */
 public record DnsBlockerConfig(
         DnsBlockerType platform,
@@ -39,7 +39,7 @@ public record DnsBlockerConfig(
         int port,
         String scheme,
         String username,
-        String authToken) {
+        String password) {
 
     // Default configuration values
     public static final DnsBlockerType DEFAULT_PLATFORM = DnsBlockerType.PIHOLE;
@@ -47,7 +47,12 @@ public record DnsBlockerConfig(
     public static final String DEFAULT_IP = "pi.hole";
     public static final int DEFAULT_PORT = 80;
     public static final String DEFAULT_USERNAME = "";
-    public static final String DEFAULT_AUTH_TOKEN = "";
+    public static final String DEFAULT_PASSWORD = "";
+    /**
+     * @deprecated Use {@link #DEFAULT_PASSWORD}. Kept for backward compatibility.
+     */
+    @Deprecated
+    public static final String DEFAULT_AUTH_TOKEN = DEFAULT_PASSWORD;
 
     /**
      * Compact constructor with validation.
@@ -66,8 +71,8 @@ public record DnsBlockerConfig(
         if (username == null) {
             username = DEFAULT_USERNAME;
         }
-        if (authToken == null) {
-            authToken = DEFAULT_AUTH_TOKEN;
+        if (password == null) {
+            password = DEFAULT_PASSWORD;
         }
         // Validate port range
         if (port <= 0 || port > 65535) {
@@ -79,16 +84,16 @@ public record DnsBlockerConfig(
      * Creates a DnsBlockerConfig with default port and username (Pi-hole style).
      * For backward compatibility with existing Pi-hole configurations.
      */
-    public DnsBlockerConfig(String ipAddress, String scheme, String authToken) {
-        this(DEFAULT_PLATFORM, ipAddress, DEFAULT_PORT, scheme, DEFAULT_USERNAME, authToken);
+    public DnsBlockerConfig(String ipAddress, String scheme, String password) {
+        this(DEFAULT_PLATFORM, ipAddress, DEFAULT_PORT, scheme, DEFAULT_USERNAME, password);
     }
 
     /**
      * Creates a DnsBlockerConfig with default port.
      * For backward compatibility with existing Pi-hole configurations.
      */
-    public DnsBlockerConfig(String ipAddress, int port, String scheme, String authToken) {
-        this(DEFAULT_PLATFORM, ipAddress, port, scheme, DEFAULT_USERNAME, authToken);
+    public DnsBlockerConfig(String ipAddress, int port, String scheme, String password) {
+        this(DEFAULT_PLATFORM, ipAddress, port, scheme, DEFAULT_USERNAME, password);
     }
 
     /**
@@ -103,9 +108,9 @@ public record DnsBlockerConfig(
     /**
      * Creates a DnsBlockerConfig for Pi-hole with app password.
      */
-    public static DnsBlockerConfig forPiHole(String ipAddress, int port, String scheme, String authToken) {
+    public static DnsBlockerConfig forPiHole(String ipAddress, int port, String scheme, String password) {
         return new DnsBlockerConfig(DnsBlockerType.PIHOLE, ipAddress, port, scheme,
-                DEFAULT_USERNAME, authToken);
+                DEFAULT_USERNAME, password);
     }
 
     // Legacy getter methods for backward compatibility
@@ -124,7 +129,7 @@ public record DnsBlockerConfig(
     }
 
     public String getAUTH() {
-        return authToken;
+        return password;
     }
 
     public String getUsername() {
@@ -143,11 +148,18 @@ public record DnsBlockerConfig(
     }
 
     /**
-     * Checks if this configuration has a valid auth token (app password or
-     * password).
+     * Checks if this configuration has a valid password (app password or password).
      */
+    public boolean hasValidPassword() {
+        return password != null && !password.isBlank();
+    }
+
+    /**
+     * @deprecated Use {@link #hasValidPassword()}. Kept for backward compatibility.
+     */
+    @Deprecated
     public boolean hasValidAuthToken() {
-        return authToken != null && !authToken.isBlank();
+        return hasValidPassword();
     }
 
     /**
@@ -160,11 +172,11 @@ public record DnsBlockerConfig(
 
     /**
      * Checks if this configuration is fully valid for the selected platform.
-     * Pi-hole requires: address and auth token
-     * AdGuard Home requires: address, username, and password (auth token)
+     * Pi-hole requires: address and password
+     * AdGuard Home requires: address, username, and password
      */
     public boolean isFullyValid() {
-        boolean basicValid = hasValidAddress() && hasValidAuthToken();
+        boolean basicValid = hasValidAddress() && hasValidPassword();
 
         if (platform == DnsBlockerType.ADGUARD_HOME) {
             return basicValid && hasValidUsername();
@@ -178,5 +190,14 @@ public record DnsBlockerConfig(
      */
     public String buildBaseUrl() {
         return scheme + "://" + ipAddress + ":" + port;
+    }
+
+    /**
+     * @deprecated Use {@link #password()}. Kept for backward compatibility with older
+     * callers that still use the authToken naming.
+     */
+    @Deprecated
+    public String authToken() {
+        return password;
     }
 }

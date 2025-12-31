@@ -90,7 +90,7 @@
                               <Font size="12.0" />
                            </font>
                         </Label>
-                        <TextField fx:id="TF_AUTH1" layoutX="120.0" layoutY="174.0" prefHeight="26.0" promptText="Enter app password" AnchorPane.rightAnchor="484.0" />
+                        <TextField fx:id="TF_AUTH1" layoutX="120.0" layoutY="174.0" prefHeight="26.0" promptText="Enter password" AnchorPane.rightAnchor="484.0" />
                      </children>
                   </AnchorPane>
                </ScrollPane>

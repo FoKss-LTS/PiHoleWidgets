@@ -182,7 +182,7 @@ public class WidgetApplication extends Application {
     }
 
     private boolean hasValidDnsConfig() {
-        // Check if DNS1 has both valid address AND auth token
+        // Check if DNS1 has both valid address AND password
         boolean dns1Valid = configDNS1 != null && configDNS1.isFullyValid();
         // DNS2 support intentionally disabled.
         // boolean dns2Valid = configDNS2 != null && configDNS2.isFullyValid();
@@ -205,7 +205,7 @@ public class WidgetApplication extends Application {
             String message;
             if (configDNS1 == null || !configDNS1.hasValidAddress()) {
                 message = "Please configure your Pi-hole IP address and app password to connect to your Pi-hole server.";
-            } else if (!configDNS1.hasValidAuthToken()) {
+            } else if (!configDNS1.hasValidPassword()) {
                 message = "App Password Required\n\nPlease configure your Pi-hole app password to connect to your Pi-hole server.";
             } else {
                 message = "Please complete your Pi-hole configuration.";

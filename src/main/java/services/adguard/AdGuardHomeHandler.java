@@ -92,7 +92,7 @@ public class AdGuardHomeHandler implements DnsBlockerHandler {
         this.port = config.port();
         this.scheme = config.scheme() != null ? config.scheme() : "http";
         this.username = config.username() != null ? config.username() : "";
-        this.password = config.authToken() != null ? config.authToken() : "";
+        this.password = config.password() != null ? config.password() : "";
         this.apiBaseUrl = buildApiBaseUrl();
         this.httpClient = httpClient != null ? httpClient : new HttpClientUtil();
         this.objectMapper = new ObjectMapper();

@@ -101,7 +101,7 @@ jlink {
 
     launcher {
         // Keep launcher name consistent across packaging types (also becomes the Windows .exe name)
-        name = 'PiHole-Widgets'
+        name = 'DNSBlocker Widgets'
         jvmArgs = [
             '--enable-native-access=javafx.base,javafx.graphics,javafx.controls,javafx.fxml,javafx.web,javafx.swing'
         ]
@@ -114,14 +114,14 @@ jlink {
     jpackage {
         // For portable distributions we only want an app-image (no installer)
         skipInstaller = (installerType == 'app-image')
-        installerName = 'PiHole-Widgets'
+        installerName = 'DNSBlocker Widgets'
         appVersion = version.toString().replaceAll('-SNAPSHOT', '')
         
         // Common installer options for all platforms
         installerOptions = [
                 '--description', project.description,
                 '--vendor', 'Reda ELFARISSI',
-                '--copyright', 'Copyright (C) 2022-202 Reda ELFARISSI aka FoKss-LTS',
+                '--copyright', 'Copyright (C) 2022-2025 Reda ELFARISSI aka FoKss-LTS',
                 '--license-file', 'LICENCE'
         ]
         
@@ -200,7 +200,7 @@ jlink {
             // Debian/Ubuntu specific
             installerOptions += [
                 '--linux-deb-maintainer', 'fox-inflames@outlook.com',
-                '--linux-package-name', 'pihole-widgets'
+                '--linux-package-name', 'DNSBlocker Widgets'
             ]
         }
         
@@ -208,7 +208,7 @@ jlink {
             // Fedora/RedHat specific
             installerOptions += [
                 '--linux-rpm-license-type', 'GPLv3',
-                '--linux-package-name', 'pihole-widgets'
+                '--linux-package-name', 'DNSBlocker Widgets'
             ]
         }
 
@@ -216,7 +216,7 @@ jlink {
 
 }
 
-def JLINK_DIR = "$buildDir/jpackage/PiHole-Widgets"
+def JLINK_DIR = "$buildDir/jpackage/DNSBlocker Widgets"
 /*
 tasks.jlink.doLast {
 
@@ -263,10 +263,10 @@ tasks.register('portableZip', Zip) {
     
     dependsOn 'jpackageImage'
     
-    def appImageDir = file("${buildDir}/jpackage/PiHole-Widgets")
+    def appImageDir = file("${buildDir}/jpackage/DNSBlocker Widgets")
     from appImageDir
-    into 'PiHole-Widgets'
-    archiveFileName = "PiHole-Widgets-${version}-portable.zip"
+    into 'DNSBlocker Widgets'
+    archiveFileName = "DNSBlocker Widgets-${version}-portable.zip"
     destinationDirectory = file("${buildDir}/portable")
     
     doFirst {

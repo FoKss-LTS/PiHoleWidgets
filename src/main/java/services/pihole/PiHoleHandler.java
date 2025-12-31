@@ -124,13 +124,13 @@ public class PiHoleHandler implements DnsBlockerHandler {
                 this.ipAddress = config.ipAddress();
                 this.port = config.port();
                 this.scheme = config.scheme() != null ? config.scheme() : DnsBlockerConfig.DEFAULT_SCHEME;
-                this.password = config.authToken();
+                this.password = config.password();
             }
         } else {
             this.ipAddress = config.ipAddress();
             this.port = config.port();
             this.scheme = config.scheme() != null ? config.scheme() : "http";
-            this.password = config.authToken();
+            this.password = config.password();
         }
 
         this.apiBaseUrl = buildApiBaseUrl();

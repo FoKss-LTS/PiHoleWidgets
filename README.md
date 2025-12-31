@@ -138,15 +138,15 @@ You can set your Widget size, layout, and theme by accessing the Widget configur
 
 Download the latest installer for your platform from the [Releases page](https://github.com/FoKss-LTS/PiHoleWidgets/releases):
 
-- **Windows:** Download the Windows portable `.zip`, unzip it, and run `PiHole-Widgets.exe`
+- **Windows:** Download the Windows portable `.zip`, unzip it, and run `DNSBlocker Widgets.exe`
 - **macOS:** Download and run the `.pkg` installer
 - **Linux (Debian/Ubuntu):** Download the `.deb` file and install with:
   ```bash
-  sudo dpkg -i pihole-widgets_*.deb
+  sudo dpkg -i DNSBlocker Widgets_*.deb
   ```
 - **Linux (Fedora/RHEL):** Download the `.rpm` file and install with:
   ```bash
-  sudo rpm -i pihole-widgets-*.rpm
+  sudo rpm -i DNSBlocker Widgets-*.rpm
   ```
 
 All packages include the bundled Java runtime - no separate Java installation needed!

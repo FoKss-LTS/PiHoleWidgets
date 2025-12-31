@@ -127,8 +127,8 @@ cd PiHoleWidgets
 
 #### Output
 
-- **Portable app-image folder:** `build/jpackage/PiHole-Widgets/` (contains `PiHole-Widgets.exe`)
-- **Portable ZIP:** `build/portable/PiHole-Widgets-{version}-portable.zip`
+- **Portable app-image folder:** `build/jpackage/DNSBlocker Widgets/` (contains `DNSBlocker Widgets.exe`)
+- **Portable ZIP:** `build/portable/DNSBlocker Widgets-{version}-portable.zip`
 
 #### Distribution Notes
 
@@ -153,7 +153,7 @@ cd PiHoleWidgets
 
 #### Output
 
-- **PKG Installer:** `build/jpackage/PiHole-Widgets-{version}.pkg`
+- **PKG Installer:** `build/jpackage/DNSBlocker Widgets-{version}.pkg`
 - **Installation Location:** `/Applications/DNSBlocker Widgets.app`
 
 #### Distribution Notes
@@ -176,32 +176,32 @@ cd PiHoleWidgets
 
 #### Output
 
-- **DEB Package:** `build/jpackage/pihole-widgets_{version}_amd64.deb`
-- **RPM Package:** `build/jpackage/pihole-widgets-{version}.x86_64.rpm`
+- **DEB Package:** `build/jpackage/DNSBlocker Widgets_{version}_amd64.deb`
+- **RPM Package:** `build/jpackage/DNSBlocker Widgets-{version}.x86_64.rpm`
 
 #### Installation
 
 **Debian/Ubuntu:**
 
 ```bash
-sudo dpkg -i pihole-widgets_*.deb
+sudo dpkg -i DNSBlocker Widgets_*.deb
 sudo apt-get install -f  # Install dependencies if needed
 ```
 
 **Fedora/RHEL:**
 
 ```bash
-sudo rpm -i pihole-widgets-*.rpm
+sudo rpm -i DNSBlocker Widgets-*.rpm
 ```
 
 **Uninstallation:**
 
 ```bash
 # Debian/Ubuntu
-sudo apt-get remove pihole-widgets
+sudo apt-get remove DNSBlocker Widgets
 
 # Fedora/RHEL
-sudo rpm -e pihole-widgets
+sudo rpm -e DNSBlocker Widgets
 ```
 
 ---
@@ -300,10 +300,10 @@ To sign the Windows portable launcher executable:
 
 ```powershell
 # Using signtool from Windows SDK
-signtool sign /f certificate.pfx /p password /tr http://timestamp.digicert.com build/jpackage/PiHole-Widgets/*.exe
+signtool sign /f certificate.pfx /p password /tr http://timestamp.digicert.com build/jpackage/DNSBlocker Widgets/*.exe
 
 # With hardware token
-signtool sign /n "Certificate Name" /tr http://timestamp.digicert.com build/jpackage/PiHole-Widgets/*.exe
+signtool sign /n "Certificate Name" /tr http://timestamp.digicert.com build/jpackage/DNSBlocker Widgets/*.exe
 ```
 
 ### macOS Code Signing and Notarization
@@ -313,28 +313,28 @@ signtool sign /n "Certificate Name" /tr http://timestamp.digicert.com build/jpac
 ```bash
 # Sign with Developer ID Installer certificate
 productsign --sign "Developer ID Installer: Your Name (TEAM_ID)" \
-  build/jpackage/PiHole-Widgets-2.0.0.pkg \
-  build/jpackage/PiHole-Widgets-2.0.0-signed.pkg
+  build/jpackage/DNSBlocker Widgets-2.0.0.pkg \
+  build/jpackage/DNSBlocker Widgets-2.0.0-signed.pkg
 ```
 
 #### Step 2: Notarize with Apple
 
 ```bash
 # Submit for notarization
-xcrun notarytool submit build/jpackage/PiHole-Widgets-2.0.0-signed.pkg \
+xcrun notarytool submit build/jpackage/DNSBlocker Widgets-2.0.0-signed.pkg \
   --apple-id "your-email@example.com" \
   --team-id "TEAM_ID" \
   --password "app-specific-password" \
   --wait
 
 # Staple the notarization ticket
-xcrun stapler staple build/jpackage/PiHole-Widgets-2.0.0-signed.pkg
+xcrun stapler staple build/jpackage/DNSBlocker Widgets-2.0.0-signed.pkg
 ```
 
 #### Step 3: Verify
 
 ```bash
-spctl -a -vvv -t install build/jpackage/PiHole-Widgets-2.0.0-signed.pkg
+spctl -a -vvv -t install build/jpackage/DNSBlocker Widgets-2.0.0-signed.pkg
 ```
 
 ### Linux Package Signing
@@ -343,14 +343,14 @@ spctl -a -vvv -t install build/jpackage/PiHole-Widgets-2.0.0-signed.pkg
 
 ```bash
 # Sign with GPG key
-dpkg-sig --sign builder build/jpackage/pihole-widgets_*.deb
+dpkg-sig --sign builder build/jpackage/DNSBlocker Widgets_*.deb
 ```
 
 #### RPM Package Signing
 
 ```bash
 # Sign with GPG key
-rpm --addsign build/jpackage/pihole-widgets-*.rpm
+rpm --addsign build/jpackage/DNSBlocker Widgets-*.rpm
 ```
 
 ---

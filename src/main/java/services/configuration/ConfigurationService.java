@@ -60,7 +60,9 @@ public class ConfigurationService {
     private static final String KEY_IP = "IP";
     private static final String KEY_PORT = "Port";
     private static final String KEY_USERNAME = "Username";
-    private static final String KEY_AUTH = "Authentication Token";
+    private static final String KEY_PASSWORD = "Password";
+    // Backward-compatible legacy key (older versions wrote this)
+    private static final String KEY_AUTH_LEGACY = "Authentication Token";
     private static final String KEY_SIZE = "Size";
     private static final String KEY_LAYOUT = "Layout";
     private static final String KEY_THEME = "Theme";
@@ -132,9 +134,13 @@ public class ConfigurationService {
         int port = getIntOrDefault(node, KEY_PORT, DnsBlockerConfig.DEFAULT_PORT);
         String scheme = getTextOrDefault(node, KEY_SCHEME, DnsBlockerConfig.DEFAULT_SCHEME);
         String username = getTextOrDefault(node, KEY_USERNAME, DnsBlockerConfig.DEFAULT_USERNAME);
-        String auth = getTextOrDefault(node, KEY_AUTH, "");
+        String password = getTextOrDefault(node, KEY_PASSWORD, "");
+        if (password == null || password.isBlank()) {
+            // Backward compatibility: read legacy key if new one is missing/blank
+            password = getTextOrDefault(node, KEY_AUTH_LEGACY, "");
+        }
 
-        return new DnsBlockerConfig(platform, ip, port, scheme, username, auth);
+        return new DnsBlockerConfig(platform, ip, port, scheme, username, password);
     }
 
     private WidgetConfig parseWidgetConfig(JsonNode node) {
@@ -211,7 +217,7 @@ public class ConfigurationService {
         dns1Node.put(KEY_IP, ip1);
         dns1Node.put(KEY_PORT, port1);
         dns1Node.put(KEY_USERNAME, username1 != null ? username1 : "");
-        dns1Node.put(KEY_AUTH, auth1);
+        dns1Node.put(KEY_PASSWORD, auth1);
         root.set(KEY_DNS1, dns1Node);
 
         /*
@@ -224,7 +230,7 @@ public class ConfigurationService {
          * dns2Node.put(KEY_SCHEME, scheme2);
          * dns2Node.put(KEY_IP, ip2);
          * dns2Node.put(KEY_PORT, port2);
-         * dns2Node.put(KEY_AUTH, auth2);
+         * dns2Node.put(KEY_PASSWORD, auth2);
          * root.set(KEY_DNS2, dns2Node);
          */
 
