@@ -68,9 +68,12 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Properties;
 import java.util.ResourceBundle;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -170,6 +173,18 @@ public class WidgetController implements Initializable {
 
     // Centralized scheduler for all periodic tasks
     private ScheduledExecutorService scheduler;
+    private ExecutorService ioExecutor;
+
+    private ScheduledFuture<?> statusFuture;
+    private ScheduledFuture<?> fluidFuture;
+    private ScheduledFuture<?> activeFuture;
+    private ScheduledFuture<?> topXFuture;
+
+    // Single-flight guards to avoid overlapping refresh work under slow networks
+    private final AtomicBoolean statusInFlight = new AtomicBoolean(false);
+    private final AtomicBoolean fluidInFlight = new AtomicBoolean(false);
+    private final AtomicBoolean activeInFlight = new AtomicBoolean(false);
+    private final AtomicBoolean topXInFlight = new AtomicBoolean(false);
 
     private enum BlockingState {
         ENABLED, DISABLED, MIXED, UNKNOWN
@@ -217,25 +232,26 @@ public class WidgetController implements Initializable {
         configureLayout();
         applyTopXFromConfig();
 
-        log("Calling refreshPihole()...");
-        refreshPihole();
-
         log("Calling initTiles()...");
         initTiles();
 
         log("Wiring DNS blocking toggle (LED circle click)...");
         setupDnsBlockingToggle();
 
-        log("Starting schedulers...");
-        applyIntervalsFromConfig();
-        initializeSchedulers();
-        log("All schedulers started");
-
         setupCopyrightLabel();
         setupGridPane();
 
         log("Initializing context menu...");
         initializeContextMenu();
+
+        // Create handler + do an initial refresh only AFTER tiles are built to avoid NPE races.
+        log("Calling refreshPihole()...");
+        refreshPihole();
+
+        log("Starting schedulers...");
+        applyIntervalsFromConfig();
+        initializeSchedulers();
+        log("All schedulers started");
         log("=== Widget initialization complete ===");
     }
 
@@ -374,19 +390,27 @@ public class WidgetController implements Initializable {
     }
 
     private void initializeSchedulers() {
-        log("Initializing centralized scheduler with virtual threads...");
+        log("Initializing scheduler triggers + IO executor (virtual threads)...");
 
-        // Use virtual threads for lightweight scheduling (Java 21+ feature)
-        scheduler = Executors.newScheduledThreadPool(4, Thread.ofVirtual()
-                .name("pihole-widget-", 0)
+        // Scheduler only triggers; actual IO/parsing runs on ioExecutor to avoid
+        // blocking the scheduler threads and to prevent "double scheduling".
+        scheduler = Executors.newSingleThreadScheduledExecutor(Thread.ofVirtual()
+                .name("dnsblocker-scheduler-", 0)
+                .factory());
+        ioExecutor = Executors.newThreadPerTaskExecutor(Thread.ofVirtual()
+                .name("dnsblocker-io-", 0)
                 .factory());
 
-        scheduler.scheduleAtFixedRate(this::inflateStatusData, 0, statusRefreshIntervalSec, TimeUnit.SECONDS);
-        scheduler.scheduleAtFixedRate(this::inflateActiveData, 0, activeRefreshIntervalSec, TimeUnit.SECONDS);
-        scheduler.scheduleAtFixedRate(this::inflateFluidData, 0, fluidRefreshIntervalSec, TimeUnit.SECONDS);
-        scheduler.scheduleAtFixedRate(this::inflateTopXData, 0, topXRefreshIntervalSec, TimeUnit.SECONDS);
+        statusFuture = scheduler.scheduleAtFixedRate(() -> triggerInflate(statusInFlight, this::inflateStatusDataOnce),
+                0, statusRefreshIntervalSec, TimeUnit.SECONDS);
+        activeFuture = scheduler.scheduleAtFixedRate(() -> triggerInflate(activeInFlight, this::inflateActiveDataOnce),
+                0, activeRefreshIntervalSec, TimeUnit.SECONDS);
+        fluidFuture = scheduler.scheduleAtFixedRate(() -> triggerInflate(fluidInFlight, this::inflateFluidDataOnce),
+                0, fluidRefreshIntervalSec, TimeUnit.SECONDS);
+        topXFuture = scheduler.scheduleAtFixedRate(() -> triggerInflate(topXInFlight, this::inflateTopXDataOnce),
+                0, topXRefreshIntervalSec, TimeUnit.SECONDS);
 
-        log("All schedulers initialized - Status: " + statusRefreshIntervalSec + "s, " +
+        log("Schedulers initialized - Status: " + statusRefreshIntervalSec + "s, " +
                 "Active: " + activeRefreshIntervalSec + "s, " +
                 "Fluid: " + fluidRefreshIntervalSec + "s, " +
                 "TopX: " + topXRefreshIntervalSec + "s");
@@ -395,11 +419,29 @@ public class WidgetController implements Initializable {
     private void runAsync(Runnable task) {
         if (task == null)
             return;
-        if (scheduler != null && !scheduler.isShutdown()) {
-            scheduler.execute(task);
+        if (ioExecutor != null && !ioExecutor.isShutdown()) {
+            ioExecutor.execute(task);
         } else {
             Thread.ofVirtual().name("pihole-widget-once-", 0).start(task);
         }
+    }
+
+    private void triggerInflate(AtomicBoolean inFlight, Runnable job) {
+        if (job == null || inFlight == null)
+            return;
+        if (!inFlight.compareAndSet(false, true)) {
+            // Previous run still executing; skip to prevent overlap/backlog.
+            return;
+        }
+        runAsync(() -> {
+            try {
+                job.run();
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Periodic refresh task failed", e);
+            } finally {
+                inFlight.set(false);
+            }
+        });
     }
 
     /**
@@ -408,25 +450,50 @@ public class WidgetController implements Initializable {
      */
     public void shutdown() {
         log("Shutting down schedulers...");
-        if (scheduler != null && !scheduler.isShutdown()) {
-            scheduler.shutdown();
-            try {
-                if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
-                    scheduler.shutdownNow();
-                }
-            } catch (InterruptedException e) {
-                scheduler.shutdownNow();
-                Thread.currentThread().interrupt();
-            }
-        }
+        cancelScheduledFutures();
+        shutdownExecutor(scheduler);
+        shutdownExecutor(ioExecutor);
+
         log("Schedulers shut down");
         scheduler = null;
+        ioExecutor = null;
     }
 
     private void restartSchedulers() {
         shutdown();
         initializeSchedulers();
         inflateAllData();
+    }
+
+    private void cancelScheduledFutures() {
+        cancelFuture(statusFuture);
+        cancelFuture(activeFuture);
+        cancelFuture(fluidFuture);
+        cancelFuture(topXFuture);
+        statusFuture = null;
+        activeFuture = null;
+        fluidFuture = null;
+        topXFuture = null;
+    }
+
+    private void cancelFuture(ScheduledFuture<?> f) {
+        if (f != null) {
+            f.cancel(false);
+        }
+    }
+
+    private void shutdownExecutor(java.util.concurrent.ExecutorService executor) {
+        if (executor == null || executor.isShutdown())
+            return;
+        executor.shutdown();
+        try {
+            if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executor.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
     }
 
     // ==================== Pi-hole Data Management ====================
@@ -476,14 +543,6 @@ public class WidgetController implements Initializable {
         log("inflateAllData() complete");
     }
 
-    /**
-     * Fetches Pi-hole stats from the single configured instance as a JSON string.
-     * DNS2 support intentionally disabled.
-     */
-    private String fetchPiholeStatsJson() {
-        return (dnsBlockerHandler != null) ? dnsBlockerHandler.getStats() : "";
-    }
-
     // ==================== Data Inflation Methods ====================
 
     private static String formatStatsFetchedAt(Instant fetchedAt) {
@@ -498,181 +557,185 @@ public class WidgetController implements Initializable {
 
     public void inflateStatusData() {
         log("=== inflateStatusData() called ===");
-        runAsync(() -> {
-            String statsJson = fetchPiholeStatsJson();
-            SummaryStats s1 = parseSummaryStats(statsJson);
-            CombinedStats combined = combineStats(s1, SummaryStats.inactive());
-
-            String lastBlocked = "";
-            if (dnsBlockerHandler != null) {
-                lastBlocked = dnsBlockerHandler.getLastBlocked();
-            }
-            String finalLastBlocked = lastBlocked == null ? "" : lastBlocked;
-
-            Platform.runLater(() -> {
-                log("inflateStatusData - updating UI...");
-
-                statusTile.setLeftValue(combined.totalQueries());
-                statusTile.setMiddleValue(combined.blockedQueries());
-                statusTile.setRightValue(combined.acceptedQueries());
-                statusTile.setDescription(HelperService.getHumanReadablePriceFromNumber(combined.domainsBlocked()));
-                statusTile.setText(finalLastBlocked);
-
-                log("inflateStatusData complete");
-            });
-        });
+        triggerInflate(statusInFlight, this::inflateStatusDataOnce);
     }
 
     public void inflateFluidData() {
         log("=== inflateFluidData() called ===");
-        runAsync(() -> {
-            String statsJson = fetchPiholeStatsJson();
-            if (statsJson == null || statsJson.isBlank()) {
-                log("WARNING: DNS blocker inactive, skipping fluid update");
-                return;
-            }
-            final Instant fetchedAt = Instant.now();
-
-            SummaryStats s1 = parseSummaryStats(statsJson);
-            CombinedStats combined = combineStats(s1, SummaryStats.inactive());
-
-            double adsPercentage = combined.percentBlocked();
-            String statsFetchedText = formatStatsFetchedAt(fetchedAt);
-
-            Platform.runLater(() -> {
-                log("inflateFluidData - updating UI...");
-                fluidTile.setValue(adsPercentage);
-                fluidTile.setTitle("Widget Version: " + WIDGET_VERSION);
-                fluidTile.setText("Stats fetched at " + statsFetchedText);
-                log("inflateFluidData complete");
-            });
-        });
+        triggerInflate(fluidInFlight, this::inflateFluidDataOnce);
     }
 
     public void inflateActiveData() {
         log("=== inflateActiveData() called ===");
-        runAsync(() -> {
-            String statsJson = fetchPiholeStatsJson();
-            SummaryStats s1 = parseSummaryStats(statsJson);
-
-            Boolean b1 = (dnsBlockerHandler != null && statsJson != null && !statsJson.isBlank())
-                    ? fetchDnsBlockingEnabled(dnsBlockerHandler)
-                    : null;
-            BlockingState state = computeBlockingStateSingle(b1, s1);
-            this.blockingState = state;
-
-            final String ipsText = (dnsBlockerHandler != null && configDNS1 != null)
-                    ? configDNS1.getIPAddress()
-                    : "";
-
-            String apiVersion = "";
-            if (dnsBlockerHandler != null)
-                apiVersion = dnsBlockerHandler.getVersion();
-            String finalApiVersion = apiVersion == null ? "" : apiVersion;
-
-            String gravityUpdate = "";
-            if (dnsBlockerHandler != null)
-                gravityUpdate = dnsBlockerHandler.getGravityLastUpdate();
-            String finalGravityUpdate = gravityUpdate == null ? "" : gravityUpdate;
-
-            Platform.runLater(() -> {
-                log("inflateActiveData - updating UI...");
-
-                var apiTitle = finalApiVersion.isBlank()
-                        ? "API Version: N/A"
-                        : "API Version: " + finalApiVersion;
-                var gravityLabel = finalGravityUpdate.isBlank()
-                        ? "Gravity Last Update: N/A"
-                        : finalGravityUpdate;
-
-                ledTile.setTitle(apiTitle);
-                ledTile.setDescription((statsJson == null || statsJson.isBlank()) ? "No active DNS blocker" : ipsText);
-
-                if (statsJson == null || statsJson.isBlank()) {
-                    ledTile.setActiveColor(Color.RED);
-                    ledTile.setActive(false);
-                    ledTile.setText(gravityLabel);
-                    ledTile.setTooltipText("No active DNS blocker");
-                    return;
-                }
-
-                // Color reflects DNS blocking status (the LED “circle”)
-                switch (state) {
-                    case ENABLED -> {
-                        ledTile.setActiveColor(Color.LIGHTGREEN);
-                        ledTile.setActive(true);
-                        ledTile.setText(gravityLabel);
-                        ledTile.setTooltipText("DNS blocking is ENABLED (click LED circle to disable)");
-                    }
-                    case DISABLED -> {
-                        ledTile.setActiveColor(Color.RED);
-                        ledTile.setActive(false);
-                        ledTile.setText(gravityLabel);
-                        ledTile.setTooltipText("DNS blocking is DISABLED (click LED circle to enable)");
-                    }
-                    case MIXED -> {
-                        // DNS2 support intentionally disabled: MIXED state cannot happen with a single
-                        // instance.
-                        ledTile.setActiveColor(Color.ORANGE);
-                        ledTile.setActive(true);
-                        ledTile.setText(gravityLabel);
-                        ledTile.setTooltipText("Click LED circle to toggle DNS blocking");
-                    }
-                    case UNKNOWN -> {
-                        ledTile.setActiveColor(Color.LIGHTGREEN);
-                        ledTile.setActive(true);
-                        ledTile.setText(gravityLabel);
-                        ledTile.setTooltipText("Click LED circle to toggle DNS blocking");
-                    }
-                }
-
-                log("inflateActiveData complete");
-            });
-        });
+        triggerInflate(activeInFlight, this::inflateActiveDataOnce);
     }
 
     public void inflateTopXData() {
         log("=== inflateTopXData() called ===");
-        runAsync(() -> {
-            if (dnsBlockerHandler == null) {
-                log("WARNING: DNS blocker inactive, skipping topX update");
+        triggerInflate(topXInFlight, this::inflateTopXDataOnce);
+    }
+
+    private void inflateStatusDataOnce() {
+        final DnsBlockerHandler handler = this.dnsBlockerHandler;
+        final Tile tile = this.statusTile;
+        if (tile == null) {
+            return;
+        }
+
+        String statsJson = (handler != null) ? handler.getStats() : "";
+        SummaryStats s1 = parseSummaryStats(statsJson);
+        CombinedStats combined = combineStats(s1, SummaryStats.inactive());
+
+        String lastBlocked = (handler != null) ? handler.getLastBlocked() : "";
+        String finalLastBlocked = lastBlocked == null ? "" : lastBlocked;
+
+        Platform.runLater(() -> {
+            if (statusTile == null) {
+                return;
+            }
+            statusTile.setLeftValue(combined.totalQueries());
+            statusTile.setMiddleValue(combined.blockedQueries());
+            statusTile.setRightValue(combined.acceptedQueries());
+            statusTile.setDescription(HelperService.getHumanReadablePriceFromNumber(combined.domainsBlocked()));
+            statusTile.setText(finalLastBlocked);
+        });
+    }
+
+    private void inflateFluidDataOnce() {
+        final DnsBlockerHandler handler = this.dnsBlockerHandler;
+        if (fluidTile == null) {
+            return;
+        }
+
+        String statsJson = (handler != null) ? handler.getStats() : "";
+        if (statsJson == null || statsJson.isBlank()) {
+            return;
+        }
+        final Instant fetchedAt = Instant.now();
+
+        SummaryStats s1 = parseSummaryStats(statsJson);
+        CombinedStats combined = combineStats(s1, SummaryStats.inactive());
+
+        double adsPercentage = combined.percentBlocked();
+        String statsFetchedText = formatStatsFetchedAt(fetchedAt);
+
+        Platform.runLater(() -> {
+            if (fluidTile == null) {
+                return;
+            }
+            fluidTile.setValue(adsPercentage);
+            fluidTile.setTitle("Widget Version: " + WIDGET_VERSION);
+            fluidTile.setText("Stats fetched at " + statsFetchedText);
+        });
+    }
+
+    private void inflateActiveDataOnce() {
+        final DnsBlockerHandler handler = this.dnsBlockerHandler;
+        final String ipsText = (handler != null && configDNS1 != null) ? configDNS1.getIPAddress() : "";
+        if (ledTile == null) {
+            return;
+        }
+
+        String statsJson = (handler != null) ? handler.getStats() : "";
+        SummaryStats s1 = parseSummaryStats(statsJson);
+
+        Boolean enabled = (handler != null && statsJson != null && !statsJson.isBlank())
+                ? fetchDnsBlockingEnabled(handler)
+                : null;
+        BlockingState state = computeBlockingStateSingle(enabled, s1);
+        this.blockingState = state;
+
+        String apiVersion = (handler != null) ? handler.getVersion() : "";
+        String gravityUpdate = (handler != null) ? handler.getGravityLastUpdate() : "";
+
+        String finalApiVersion = apiVersion == null ? "" : apiVersion;
+        String finalGravityUpdate = gravityUpdate == null ? "" : gravityUpdate;
+
+        Platform.runLater(() -> {
+            if (ledTile == null) {
                 return;
             }
 
-            DnsBlockerHandler handler = dnsBlockerHandler;
+            var apiTitle = finalApiVersion.isBlank()
+                    ? "API Version: N/A"
+                    : "API Version: " + finalApiVersion;
+            var gravityLabel = finalGravityUpdate.isBlank()
+                    ? "Gravity Last Update: N/A"
+                    : finalGravityUpdate;
 
-            log("Fetching top " + topX + " blocked domains...");
-            String topBlockedJson = handler.getTopXBlocked(topX);
-            List<TopDomain> domains = parseTopBlockedDomains(topBlockedJson).stream()
-                    .sorted(Comparator.comparingLong(TopDomain::count).reversed())
-                    .limit(Math.max(1, topX))
-                    .toList();
+            ledTile.setTitle(apiTitle);
+            ledTile.setDescription((statsJson == null || statsJson.isBlank()) ? "No active DNS blocker" : ipsText);
 
-            Platform.runLater(() -> {
-                log("inflateTopXData - updating UI...");
+            if (statsJson == null || statsJson.isBlank()) {
+                ledTile.setActiveColor(Color.RED);
+                ledTile.setActive(false);
+                ledTile.setText(gravityLabel);
+                ledTile.setTooltipText("No active DNS blocker");
+                return;
+            }
 
-                HBox header = createTopXHeader();
-                HBox spacerRow = createSpacerRow();
-
-                List<Node> rows = new ArrayList<>();
-                rows.add(header);
-                rows.add(spacerRow);
-
-                int rank = 1;
-                for (TopDomain d : domains) {
-                    String full = d.domain();
-                    String truncated = truncateDomain(full);
-                    String countText = HelperService.getHumanReadablePriceFromNumber(d.count());
-                    rows.add(createTopBlockedItem(rank, full, truncated, countText));
-                    rank++;
+            switch (state) {
+                case ENABLED -> {
+                    ledTile.setActiveColor(Color.LIGHTGREEN);
+                    ledTile.setActive(true);
+                    ledTile.setText(gravityLabel);
+                    ledTile.setTooltipText("DNS blocking is ENABLED (click LED circle to disable)");
                 }
+                case DISABLED -> {
+                    ledTile.setActiveColor(Color.RED);
+                    ledTile.setActive(false);
+                    ledTile.setText(gravityLabel);
+                    ledTile.setTooltipText("DNS blocking is DISABLED (click LED circle to enable)");
+                }
+                case MIXED, UNKNOWN -> {
+                    ledTile.setActiveColor(Color.LIGHTGREEN);
+                    ledTile.setActive(true);
+                    ledTile.setText(gravityLabel);
+                    ledTile.setTooltipText("Click LED circle to toggle DNS blocking");
+                }
+            }
+        });
+    }
 
-                dataTable.getChildren().setAll(rows);
-                // Ensure correct title in case TopX was changed via config.
-                topXTile.setTitle("Top " + topX + " Blocked");
+    private void inflateTopXDataOnce() {
+        final DnsBlockerHandler handler = this.dnsBlockerHandler;
+        if (handler == null) {
+            return;
+        }
+        if (dataTable == null || topXTile == null) {
+            return;
+        }
 
-                log("inflateTopXData complete");
-            });
+        final int count = Math.max(1, topX);
+        String topBlockedJson = handler.getTopXBlocked(count);
+        List<TopDomain> domains = parseTopBlockedDomains(topBlockedJson).stream()
+                .sorted(Comparator.comparingLong(TopDomain::count).reversed())
+                .limit(count)
+                .toList();
+
+        Platform.runLater(() -> {
+            if (dataTable == null || topXTile == null) {
+                return;
+            }
+
+            HBox header = createTopXHeader();
+            HBox spacerRow = createSpacerRow();
+
+            List<Node> rows = new ArrayList<>();
+            rows.add(header);
+            rows.add(spacerRow);
+
+            int rank = 1;
+            for (TopDomain d : domains) {
+                String full = d.domain();
+                String truncated = truncateDomain(full);
+                String countText = HelperService.getHumanReadablePriceFromNumber(d.count());
+                rows.add(createTopBlockedItem(rank, full, truncated, countText));
+                rank++;
+            }
+
+            dataTable.getChildren().setAll(rows);
+            topXTile.setTitle("Top " + topX + " Blocked");
         });
     }
 
@@ -1158,8 +1221,7 @@ public class WidgetController implements Initializable {
 
             return List.of();
         } catch (Exception e) {
-            System.out.println("WARNING: Failed to parse top domains JSON: " + e.getMessage());
-            e.printStackTrace();
+            LOGGER.log(Level.WARNING, "Failed to parse top domains JSON", e);
             return List.of();
         }
     }

@@ -35,6 +35,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.nio.charset.StandardCharsets;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -121,7 +122,7 @@ public class AdGuardHomeHandler implements DnsBlockerHandler {
             return "";
         }
         String credentials = username + ":" + password;
-        String encoded = Base64.getEncoder().encodeToString(credentials.getBytes());
+        String encoded = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
         return "Basic " + encoded;
     }
 
