@@ -24,11 +24,14 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import domain.configuration.DnsBlockerConfig;
 import domain.configuration.DnsBlockerType;
 import domain.configuration.WidgetConfig;
-import helpers.HelperService;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
+import java.time.Instant;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -99,7 +102,7 @@ public class ConfigurationService {
         // Create config file if it doesn't exist
         if (!Files.exists(configFilePath)) {
             log("Configuration file not found, creating default");
-            saveEmptyConfiguration();
+            writeDefaultConfiguration(false);
         }
 
         try {
@@ -116,8 +119,45 @@ public class ConfigurationService {
             // log("DNS2: " + (configDNS2 != null ? configDNS2.getIPAddress() : "null"));
 
         } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "Failed to read configuration", e);
+            LOGGER.log(Level.SEVERE, "Failed to read configuration (will attempt self-heal)", e);
+            selfHealCorruptConfiguration();
         }
+    }
+
+    private void selfHealCorruptConfiguration() {
+        try {
+            backupCorruptFile();
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Failed to backup corrupt configuration file: " + configFilePath, e);
+        }
+
+        // Force-write defaults and re-read.
+        writeDefaultConfiguration(true);
+
+        try {
+            JsonNode root = objectMapper.readTree(configFilePath.toFile());
+            configDNS1 = parseDnsConfig(root.get(KEY_DNS1));
+            widgetConfig = parseWidgetConfig(root.get(KEY_WIDGET));
+        } catch (Exception e) {
+            // Last resort: keep safe defaults in memory.
+            LOGGER.log(Level.SEVERE, "Self-heal failed; using in-memory defaults", e);
+            configDNS1 = null;
+            widgetConfig = WidgetConfig.defaultConfig();
+        }
+    }
+
+    private void backupCorruptFile() throws IOException {
+        if (!Files.exists(configFilePath)) {
+            return;
+        }
+        Path parent = configFilePath.getParent();
+        if (parent != null) {
+            Files.createDirectories(parent);
+        }
+        String ts = String.valueOf(Instant.now().toEpochMilli());
+        Path backup = configFilePath.resolveSibling(FILE_NAME + ".corrupt." + ts);
+        Files.move(configFilePath, backup, StandardCopyOption.REPLACE_EXISTING);
+        log("Backed up corrupt config to: " + backup);
     }
 
     private DnsBlockerConfig parseDnsConfig(JsonNode node) {
@@ -174,21 +214,20 @@ public class ConfigurationService {
      * Creates the configuration file with default values.
      */
     public boolean saveEmptyConfiguration() {
-        log("Creating empty configuration file");
+        return writeDefaultConfiguration(false);
+    }
 
-        // Safety: never overwrite an existing settings.json. This method is intended
-        // only for first-run initialization when the file is missing.
-        if (Files.exists(configFilePath)) {
-            log("Configuration file already exists; skipping default write: " + configFilePath);
+    private boolean writeDefaultConfiguration(boolean overwrite) {
+        log("Writing default configuration (overwrite=" + overwrite + ")");
+
+        if (!overwrite && Files.exists(configFilePath)) {
             return true;
         }
-
-        // Ensure parent directory exists
-        HelperService.createFile(HOME, FILE_NAME, FOLDER_NAME);
 
         return writeConfigFile(
                 DnsBlockerType.PIHOLE, DnsBlockerConfig.DEFAULT_SCHEME, DnsBlockerConfig.DEFAULT_IP,
                 DnsBlockerConfig.DEFAULT_PORT, DnsBlockerConfig.DEFAULT_USERNAME, "",
+                // DNS2 params retained for legacy signature but unused.
                 DnsBlockerType.PIHOLE, DnsBlockerConfig.DEFAULT_SCHEME, "",
                 DnsBlockerConfig.DEFAULT_PORT, DnsBlockerConfig.DEFAULT_USERNAME, "",
                 WidgetConfig.DEFAULT_SIZE, WidgetConfig.DEFAULT_LAYOUT, WidgetConfig.DEFAULT_THEME,
@@ -255,8 +294,9 @@ public class ConfigurationService {
             // Ensure parent directory exists
             Files.createDirectories(configFilePath.getParent());
 
-            objectMapper.writerWithDefaultPrettyPrinter()
-                    .writeValue(configFilePath.toFile(), root);
+            // Atomic write: write to temp file then move into place.
+            String json = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(root);
+            writeStringAtomically(configFilePath, json);
 
             log("Configuration written successfully");
             return true;
@@ -264,6 +304,24 @@ public class ConfigurationService {
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "Failed to write configuration", e);
             return false;
+        }
+    }
+
+    private void writeStringAtomically(Path target, String content) throws IOException {
+        Path parent = target.getParent();
+        if (parent != null) {
+            Files.createDirectories(parent);
+        }
+
+        Path tmp = target.resolveSibling(target.getFileName().toString() + ".tmp");
+        Files.writeString(tmp, content == null ? "" : content, StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+
+        try {
+            Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+        } catch (IOException atomicUnsupported) {
+            // Fallback when ATOMIC_MOVE isn't supported.
+            Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING);
         }
     }
 
