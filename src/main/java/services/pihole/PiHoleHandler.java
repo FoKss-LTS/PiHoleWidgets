@@ -19,6 +19,9 @@
 package services.pihole;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import domain.configuration.DnsBlockerConfig;
 import helpers.HttpClientUtil;
 import helpers.HttpClientUtil.HttpResponsePayload;
@@ -60,6 +63,13 @@ public class PiHoleHandler implements DnsBlockerHandler {
 
     private static final String QUERY_PARAM_SID = "sid";
     private static final String HEADER_X_FTL_SID = "X-FTL-SID";
+
+    // Generic (platform-agnostic) JSON schemas returned to the UI layer.
+    private static final String SCHEMA_STATS_V1 = "dnsblocker.stats.v1";
+    private static final String SCHEMA_TOP_BLOCKED_V1 = "dnsblocker.top_blocked.v1";
+    private static final String SCHEMA_BLOCKING_STATUS_V1 = "dnsblocker.blocking_status.v1";
+
+    private static final ObjectMapper JSON = new ObjectMapper();
 
     // ==================== Instance Fields ====================
 
@@ -258,7 +268,8 @@ public class PiHoleHandler implements DnsBlockerHandler {
      */
     @Override
     public String getStats() {
-        return getPiHoleStats();
+        // Return generic schema for the widget; do not couple UI parsing to Pi-hole field names.
+        return transformSummaryToGeneric(getPiHoleStats());
     }
 
     /**
@@ -282,6 +293,61 @@ public class PiHoleHandler implements DnsBlockerHandler {
             logError("Interrupted while fetching stats summary", e);
         }
         return "";
+    }
+
+    private String transformSummaryToGeneric(String piHoleSummaryJson) {
+        if (piHoleSummaryJson == null || piHoleSummaryJson.isBlank()) {
+            return "";
+        }
+        try {
+            JsonNode root = JSON.readTree(piHoleSummaryJson);
+
+            long total = firstLong(root,
+                    path("queries", "total"),
+                    path("queries", "total_queries"),
+                    path("dns_queries_today"));
+
+            long blocked = firstLong(root,
+                    path("queries", "blocked"),
+                    path("queries", "blocked_queries"),
+                    path("ads_blocked_today"));
+
+            double percent = firstDouble(root,
+                    path("queries", "percent_blocked"),
+                    path("ads_percentage_today"));
+            if ((percent <= 0.0) && total > 0L && blocked >= 0L) {
+                percent = (blocked / (double) total) * 100.0;
+            }
+
+            long blocklistSize = firstLong(root,
+                    path("domains", "blocked"),
+                    path("domains_being_blocked"),
+                    path("gravity", "domains_being_blocked"));
+
+            ObjectNode out = JSON.createObjectNode();
+            out.put("schema", SCHEMA_STATS_V1);
+            out.put("source", "pihole");
+
+            ObjectNode queries = JSON.createObjectNode();
+            queries.put("total", Math.max(0L, total));
+            queries.put("blocked", Math.max(0L, blocked));
+            queries.put("percent_blocked", Math.max(0.0, percent));
+            out.set("queries", queries);
+
+            ObjectNode blocklist = JSON.createObjectNode();
+            blocklist.put("size", Math.max(0L, blocklistSize));
+            out.set("blocklist", blocklist);
+
+            // Prefer dedicated endpoint for blocking status; keep null here.
+            ObjectNode blocking = JSON.createObjectNode();
+            blocking.putNull("enabled");
+            out.set("blocking", blocking);
+
+            return JSON.writeValueAsString(out);
+        } catch (Exception e) {
+            logError("Failed to transform Pi-hole summary to generic schema", e);
+            return piHoleSummaryJson; // legacy fallbacks exist in the widget
+        }
     }
 
     /**
@@ -428,7 +494,7 @@ public class PiHoleHandler implements DnsBlockerHandler {
                 return "";
             }
 
-            return response.bodyText();
+            return transformTopDomainsToGeneric(response.bodyText());
 
         } catch (IOException e) {
             logError("IOException while fetching top blocked domains", e);
@@ -438,6 +504,43 @@ public class PiHoleHandler implements DnsBlockerHandler {
         }
 
         return "";
+    }
+
+    private String transformTopDomainsToGeneric(String piHoleTopDomainsJson) {
+        if (piHoleTopDomainsJson == null || piHoleTopDomainsJson.isBlank()) {
+            return "";
+        }
+        try {
+            JsonNode root = JSON.readTree(piHoleTopDomainsJson);
+            JsonNode domains = root.path("domains");
+            if (!domains.isArray()) {
+                return piHoleTopDomainsJson;
+            }
+
+            ObjectNode out = JSON.createObjectNode();
+            out.put("schema", SCHEMA_TOP_BLOCKED_V1);
+            out.put("source", "pihole");
+
+            ArrayNode copied = JSON.createArrayNode();
+            for (JsonNode item : domains) {
+                if (item != null && item.isObject()) {
+                    ObjectNode o = JSON.createObjectNode();
+                    String d = item.path("domain").asText("");
+                    long c = item.path("count").asLong(0L);
+                    if (d != null && !d.isBlank()) {
+                        o.put("domain", d);
+                        o.put("count", Math.max(0L, c));
+                        copied.add(o);
+                    }
+                }
+            }
+            out.set("domains", copied);
+
+            return JSON.writeValueAsString(out);
+        } catch (Exception e) {
+            logError("Failed to transform Pi-hole top domains to generic schema", e);
+            return piHoleTopDomainsJson;
+        }
     }
 
     /**
@@ -530,7 +633,7 @@ public class PiHoleHandler implements DnsBlockerHandler {
                 log("Failed to get dns blocking status - HTTP " + response.statusCode());
                 return "";
             }
-            return response.bodyText();
+            return transformBlockingStatusToGeneric(response.bodyText());
         } catch (IOException e) {
             logError("IOException while fetching dns blocking status", e);
         } catch (InterruptedException e) {
@@ -538,6 +641,91 @@ public class PiHoleHandler implements DnsBlockerHandler {
             logError("Interrupted while fetching dns blocking status", e);
         }
         return "";
+    }
+
+    private String transformBlockingStatusToGeneric(String piHoleBlockingJson) {
+        if (piHoleBlockingJson == null || piHoleBlockingJson.isBlank()) {
+            return "";
+        }
+        try {
+            JsonNode root = JSON.readTree(piHoleBlockingJson);
+            // Pi-hole v6: {"blocking":"enabled"/"disabled"} or boolean-like strings.
+            JsonNode n = root.path("blocking");
+            Boolean enabled = null;
+            if (n != null && !n.isMissingNode() && !n.isNull()) {
+                if (n.isBoolean()) {
+                    enabled = n.asBoolean();
+                } else {
+                    String txt = n.asText("");
+                    if (txt.equalsIgnoreCase("enabled") || txt.equalsIgnoreCase("true"))
+                        enabled = true;
+                    else if (txt.equalsIgnoreCase("disabled") || txt.equalsIgnoreCase("false"))
+                        enabled = false;
+                }
+            }
+
+            ObjectNode out = JSON.createObjectNode();
+            out.put("schema", SCHEMA_BLOCKING_STATUS_V1);
+            out.put("source", "pihole");
+            ObjectNode blocking = JSON.createObjectNode();
+            if (enabled == null) {
+                blocking.putNull("enabled");
+            } else {
+                blocking.put("enabled", enabled);
+            }
+            out.set("blocking", blocking);
+            return JSON.writeValueAsString(out);
+        } catch (Exception e) {
+            logError("Failed to transform Pi-hole blocking status to generic schema", e);
+            return piHoleBlockingJson;
+        }
+    }
+
+    // Minimal JSON path helpers (local to this handler to avoid controller coupling)
+    private static String[] path(String... parts) {
+        return parts;
+    }
+
+    private static JsonNode nodeAt(JsonNode root, String[] p) {
+        JsonNode n = root;
+        for (String k : p) {
+            if (n == null)
+                return null;
+            n = n.path(k);
+        }
+        return n;
+    }
+
+    private static long firstLong(JsonNode root, String[]... paths) {
+        for (String[] p : paths) {
+            JsonNode n = nodeAt(root, p);
+            if (n != null && n.isNumber()) {
+                return n.asLong(0L);
+            }
+            if (n != null && n.isTextual()) {
+                try {
+                    return Long.parseLong(n.asText().trim());
+                } catch (Exception ignored) {
+                }
+            }
+        }
+        return 0L;
+    }
+
+    private static double firstDouble(JsonNode root, String[]... paths) {
+        for (String[] p : paths) {
+            JsonNode n = nodeAt(root, p);
+            if (n != null && n.isNumber()) {
+                return n.asDouble(0.0);
+            }
+            if (n != null && n.isTextual()) {
+                try {
+                    return Double.parseDouble(n.asText().trim());
+                } catch (Exception ignored) {
+                }
+            }
+        }
+        return 0.0;
     }
 
     // ==================== Internal Helpers ====================

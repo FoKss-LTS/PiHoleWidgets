@@ -82,7 +82,7 @@ public class WidgetController implements Initializable {
     // ==================== Constants ====================
 
     private static final String WIDGET_VERSION = loadVersion();
-    private static final int DEFAULT_TOP_X = 5;
+    private static final int DEFAULT_TOP_X = 2;
     private static final int DOMAIN_TRUNCATE_LENGTH = 20;
     private static final String TRUNCATION_SUFFIX = "..";
     private static final String RANK_ICON_PATH_PATTERN = "/media/images/%d.png";
@@ -950,14 +950,14 @@ public class WidgetController implements Initializable {
             JsonNode root = JSON.readTree(json);
 
             long total = firstLong(root,
-                    // AdGuard Home native stats key (if transformStatsResponse returns original JSON)
+                    // Generic schema (dnsblocker.stats.v1) and other nested formats
                     path("num_dns_queries"),
                     path("queries", "total"),
                     path("queries", "total_queries"),
                     path("dns_queries_today"));
 
             long blocked = firstLong(root,
-                    // AdGuard Home native stats key (if transformStatsResponse returns original JSON)
+                    // Generic schema (dnsblocker.stats.v1) and other nested formats
                     path("num_blocked_filtering"),
                     path("queries", "blocked"),
                     path("queries", "blocked_queries"),
@@ -971,6 +971,8 @@ public class WidgetController implements Initializable {
             }
 
             long domainsBlocked = firstLong(root,
+                    // Generic schema (dnsblocker.stats.v1)
+                    path("blocklist", "size"),
                     path("domains", "blocked"),
                     path("domains_being_blocked"),
                     path("gravity", "domains_being_blocked"));
@@ -1071,11 +1073,13 @@ public class WidgetController implements Initializable {
         if (root == null)
             return null;
 
-        // Common patterns across Pi-hole APIs:
+        // Generic + common patterns:
+        // - blocking.enabled: true/false (generic schema)
         // - status: "enabled" / "disabled"
         // - blocking: "enabled" / "disabled"
         // - blocking: true/false
         JsonNode statusNode = firstNode(root,
+                path("blocking", "enabled"),
                 path("status"),
                 path("blocking"),
                 path("dns", "blocking"),

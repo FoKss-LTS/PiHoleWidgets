@@ -20,6 +20,7 @@ package services.adguard;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import domain.configuration.DnsBlockerConfig;
 import helpers.HttpClientUtil;
@@ -56,6 +57,12 @@ public class AdGuardHomeHandler implements DnsBlockerHandler {
     private static final String DNS_INFO_ENDPOINT = "/dns_info";
     private static final String DNS_CONFIG_ENDPOINT = "/dns_config";
     private static final String FILTERING_STATUS_ENDPOINT = "/filtering/status";
+
+    // Generic (platform-agnostic) JSON schemas returned to the UI layer.
+    // The widget should not be coupled to Pi-hole field names.
+    private static final String SCHEMA_STATS_V1 = "dnsblocker.stats.v1";
+    private static final String SCHEMA_TOP_BLOCKED_V1 = "dnsblocker.top_blocked.v1";
+    private static final String SCHEMA_BLOCKING_STATUS_V1 = "dnsblocker.blocking_status.v1";
 
     // ==================== Instance Fields ====================
 
@@ -174,8 +181,8 @@ public class AdGuardHomeHandler implements DnsBlockerHandler {
                 return "";
             }
 
-            // Transform AdGuard Home stats to Pi-hole-compatible JSON
-            return transformStatsResponse(response.bodyText());
+            // Transform AdGuard Home stats to a generic schema understood by the widget
+            return transformStatsToGeneric(response.bodyText());
 
         } catch (IOException e) {
             logError("IOException while fetching stats", e);
@@ -187,52 +194,51 @@ public class AdGuardHomeHandler implements DnsBlockerHandler {
     }
 
     /**
-     * Transforms AdGuard Home stats JSON to Pi-hole-compatible format.
+     * Transforms AdGuard Home stats JSON to a platform-agnostic schema:
+     *
+     * {
+     *   "schema": "dnsblocker.stats.v1",
+     *   "queries": { "total": <long>, "blocked": <long>, "percent_blocked": <double> },
+     *   "blocklist": { "size": <long> },
+     *   "blocking": { "enabled": <boolean|null> },
+     *   "source": "adguard-home"
+     * }
      */
-    private String transformStatsResponse(String adGuardJson) {
+    private String transformStatsToGeneric(String adGuardJson) {
         try {
             JsonNode agNode = objectMapper.readTree(adGuardJson);
 
-            // Create Pi-hole-compatible JSON structure
-            ObjectNode piHoleFormat = objectMapper.createObjectNode();
-
-            // Map AdGuard Home fields to Pi-hole fields
-            // AdGuard: num_dns_queries -> Pi-hole: dns_queries_today
-            if (agNode.has("num_dns_queries")) {
-                piHoleFormat.put("dns_queries_today", agNode.get("num_dns_queries").asLong());
-            }
-
-            // AdGuard: num_blocked_filtering -> Pi-hole: ads_blocked_today
-            if (agNode.has("num_blocked_filtering")) {
-                piHoleFormat.put("ads_blocked_today", agNode.get("num_blocked_filtering").asLong());
-            }
-
-            // Calculate percentage blocked
-            long total = piHoleFormat.has("dns_queries_today") ? piHoleFormat.get("dns_queries_today").asLong() : 0;
-            long blocked = piHoleFormat.has("ads_blocked_today") ? piHoleFormat.get("ads_blocked_today").asLong() : 0;
+            long total = agNode.has("num_dns_queries") ? agNode.get("num_dns_queries").asLong(0L) : 0L;
+            long blocked = agNode.has("num_blocked_filtering") ? agNode.get("num_blocked_filtering").asLong(0L) : 0L;
             double percentage = total > 0 ? (blocked * 100.0 / total) : 0.0;
-            piHoleFormat.put("ads_percentage_today", percentage);
 
-            // AdGuard: avg_processing_time -> Pi-hole: query_time_avg (convert to
-            // milliseconds)
-            if (agNode.has("avg_processing_time")) {
-                int avgTimeMs = (int) (agNode.get("avg_processing_time").asDouble() * 1000);
-                piHoleFormat.put("query_time_avg", avgTimeMs);
-            }
+            long blocklistSize = Math.max(0L, (long) getEnabledFiltersCount());
 
-            // Get blocklist count from /filtering/status
-            int domainsBeingBlocked = getEnabledFiltersCount();
-            piHoleFormat.put("domains_being_blocked", domainsBeingBlocked);
+            ObjectNode out = objectMapper.createObjectNode();
+            out.put("schema", SCHEMA_STATS_V1);
+            out.put("source", "adguard-home");
 
-            // Do NOT hardcode status here.
-            // WidgetController may fall back to parsing DNS blocking state from the stats payload
-            // if /status fails; hardcoding "enabled" would be incorrect.
+            ObjectNode queries = objectMapper.createObjectNode();
+            queries.put("total", Math.max(0L, total));
+            queries.put("blocked", Math.max(0L, blocked));
+            queries.put("percent_blocked", Math.max(0.0, percentage));
+            out.set("queries", queries);
 
-            return objectMapper.writeValueAsString(piHoleFormat);
+            ObjectNode blocklist = objectMapper.createObjectNode();
+            blocklist.put("size", blocklistSize);
+            out.set("blocklist", blocklist);
+
+            // We intentionally do not hardcode blocking state here; the dedicated status endpoint
+            // is preferred. When unavailable, the widget can fall back to parsing other payloads.
+            ObjectNode blocking = objectMapper.createObjectNode();
+            blocking.putNull("enabled");
+            out.set("blocking", blocking);
+
+            return objectMapper.writeValueAsString(out);
 
         } catch (Exception e) {
-            logError("Failed to transform AdGuard Home stats", e);
-            return adGuardJson; // Return original on parse error
+            logError("Failed to transform AdGuard Home stats to generic schema", e);
+            return adGuardJson; // Return original on parse error (widget has legacy fallbacks)
         }
     }
 
@@ -362,15 +368,18 @@ public class AdGuardHomeHandler implements DnsBlockerHandler {
     }
 
     /**
-     * Formats top blocked domains data into Pi-hole compatible JSON.
+     * Formats top blocked domains data into a platform-agnostic schema:
+     *
+     * { "schema": "dnsblocker.top_blocked.v1", "domains": [ { "domain": "...", "count": 123 } ] }
      */
     private String formatTopBlocked(JsonNode topBlocked, int count) {
         try {
             log("=== formatTopBlocked(count=" + count + ") ===");
 
-            // Transform to Pi-hole format
-            ObjectNode piHoleFormat = objectMapper.createObjectNode();
-            ObjectNode domains = objectMapper.createObjectNode();
+            ObjectNode out = objectMapper.createObjectNode();
+            out.put("schema", SCHEMA_TOP_BLOCKED_V1);
+            out.put("source", "adguard-home");
+            ArrayNode domains = objectMapper.createArrayNode();
 
             int added = 0;
             if (topBlocked.isArray()) {
@@ -397,14 +406,17 @@ public class AdGuardHomeHandler implements DnsBlockerHandler {
                     }
 
                     if (!domain.isEmpty()) {
-                        domains.put(domain, hits);
+                        ObjectNode item = objectMapper.createObjectNode();
+                        item.put("domain", domain);
+                        item.put("count", Math.max(0, hits));
+                        domains.add(item);
                         added++;
                     }
                 }
             }
 
-            piHoleFormat.set("top_ads", domains);
-            String result = objectMapper.writeValueAsString(piHoleFormat);
+            out.set("domains", domains);
+            String result = objectMapper.writeValueAsString(out);
             return result;
 
         } catch (Exception e) {
@@ -595,18 +607,23 @@ public class AdGuardHomeHandler implements DnsBlockerHandler {
                 return "";
             }
 
-            // Transform to Pi-hole format
+            // Transform to a generic format that the widget can parse without Pi-hole coupling
             Optional<JsonNode> jsonOpt = response.bodyAsJson();
             if (jsonOpt.isPresent()) {
                 JsonNode agStatus = jsonOpt.get();
-                ObjectNode piHoleFormat = objectMapper.createObjectNode();
+                ObjectNode out = objectMapper.createObjectNode();
+                out.put("schema", SCHEMA_BLOCKING_STATUS_V1);
+                out.put("source", "adguard-home");
 
-                // AdGuard: protection_enabled -> Pi-hole: blocking
+                ObjectNode blocking = objectMapper.createObjectNode();
                 if (agStatus.has("protection_enabled")) {
-                    piHoleFormat.put("blocking", agStatus.get("protection_enabled").asBoolean());
+                    blocking.put("enabled", agStatus.get("protection_enabled").asBoolean());
+                } else {
+                    blocking.putNull("enabled");
                 }
+                out.set("blocking", blocking);
 
-                return objectMapper.writeValueAsString(piHoleFormat);
+                return objectMapper.writeValueAsString(out);
             }
 
             return response.bodyText();
