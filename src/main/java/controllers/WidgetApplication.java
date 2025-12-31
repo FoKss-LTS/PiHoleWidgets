@@ -46,6 +46,7 @@ import java.io.InputStream;
 import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.imageio.ImageIO;
 
 /**
@@ -90,6 +91,7 @@ public class WidgetApplication extends Application {
     private static WidgetController widgetController;
     private static SystemTray systemTray;
     private static TrayIcon trayIcon;
+    private static final AtomicBoolean EXITING = new AtomicBoolean(false);
 
     // ==================== Application Lifecycle ====================
 
@@ -532,12 +534,7 @@ public class WidgetApplication extends Application {
         popup.addSeparator();
 
         MenuItem exitItem = new MenuItem("Exit");
-        exitItem.addActionListener(_ -> Platform.runLater(() -> {
-            log("Exit requested from tray");
-            cleanup();
-            Platform.exit();
-            System.exit(0);
-        }));
+        exitItem.addActionListener(_ -> requestExit());
         popup.add(exitItem);
 
         return popup;
@@ -602,6 +599,36 @@ public class WidgetApplication extends Application {
         if (systemTray != null && trayIcon != null) {
             systemTray.remove(trayIcon);
         }
+    }
+
+    /**
+     * Centralized exit path for ALL UI entry points (tray/menu/context menu).
+     * Safe to call from any thread (AWT tray thread or JavaFX thread).
+     */
+    public static void requestExit() {
+        if (!EXITING.compareAndSet(false, true)) {
+            return; // already exiting
+        }
+
+        Platform.runLater(() -> {
+            log("Exit requested");
+            try {
+                cleanup();
+            } finally {
+                // Prefer a clean JavaFX shutdown. Avoid System.exit unless the JVM hangs.
+                Platform.exit();
+
+                // Fallback hard-exit after a short delay (best effort).
+                Thread.ofVirtual().name("dnsblocker-exit-fallback-", 0).start(() -> {
+                    try {
+                        Thread.sleep(2000);
+                    } catch (InterruptedException ignored) {
+                        Thread.currentThread().interrupt();
+                    }
+                    System.exit(0);
+                });
+            }
+        });
     }
 
     // ==================== Main Entry Point ====================

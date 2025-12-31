@@ -81,7 +81,8 @@ public class PiHoleHandler implements DnsBlockerHandler {
     private final HttpClientUtil httpClient;
     private final Clock clock;
 
-    private String sessionId;
+    private volatile String sessionId;
+    private final Object authLock = new Object();
 
     // ==================== Constructor ====================
 
@@ -187,34 +188,40 @@ public class PiHoleHandler implements DnsBlockerHandler {
             return false;
         }
 
-        String url = apiBaseUrl + AUTH_ENDPOINT;
-        log("Auth URL: " + url);
+        synchronized (authLock) {
+            String url = apiBaseUrl + AUTH_ENDPOINT;
+            log("Auth URL: " + url);
 
-        Map<String, String> requestBody = new HashMap<>();
-        requestBody.put("password", password);
+            Map<String, String> requestBody = new HashMap<>();
+            requestBody.put("password", password);
 
-        try {
-            HttpResponsePayload response = httpClient.postJson(url, requestBody, Collections.emptyMap());
+            try {
+                HttpResponsePayload response = httpClient.postJson(url, requestBody, Collections.emptyMap());
 
-            log("Response status code: " + response.statusCode());
+                log("Response status code: " + response.statusCode());
 
-            if (!response.isSuccessful()) {
-                log("Authentication failed with HTTP " + response.statusCode());
-                logInfo("Authentication failed: HTTP " + response.statusCode());
+                if (!response.isSuccessful()) {
+                    log("Authentication failed with HTTP " + response.statusCode());
+                    logInfo("Authentication failed: HTTP " + response.statusCode());
+                    // Ensure stale session isn't reused
+                    sessionId = null;
+                    return false;
+                }
+
+                parseAuthResponse(response);
+                log("=== Authentication complete ===");
+                return sessionId != null && !sessionId.isBlank();
+
+            } catch (IOException e) {
+                logError("Authentication failed with IOException", e);
+                sessionId = null;
+                return false;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                logError("Authentication interrupted", e);
+                sessionId = null;
                 return false;
             }
-
-            parseAuthResponse(response);
-            log("=== Authentication complete ===");
-            return sessionId != null && !sessionId.isBlank();
-
-        } catch (IOException e) {
-            logError("Authentication failed with IOException", e);
-            return false;
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            logError("Authentication interrupted", e);
-            return false;
         }
     }
 
@@ -739,6 +746,21 @@ public class PiHoleHandler implements DnsBlockerHandler {
         return params;
     }
 
+    private Map<String, String> authHeaders() {
+        Map<String, String> headers = new HashMap<>();
+        String sid = sessionId;
+        if (sid != null && !sid.isBlank()) {
+            headers.put(HEADER_X_FTL_SID, sid);
+        }
+        return headers;
+    }
+
+    private static boolean isUnauthorized(HttpResponsePayload response) {
+        if (response == null)
+            return false;
+        return response.statusCode() == 401 || response.statusCode() == 403;
+    }
+
     private HttpResponsePayload getApi(String endpoint, Map<String, String> extraQueryParams)
             throws IOException, InterruptedException {
         String url = apiBaseUrl + endpoint;
@@ -746,7 +768,22 @@ public class PiHoleHandler implements DnsBlockerHandler {
         if (extraQueryParams != null && !extraQueryParams.isEmpty()) {
             queryParams.putAll(extraQueryParams);
         }
-        return httpClient.get(url, queryParams, Collections.emptyMap());
+
+        HttpResponsePayload response = httpClient.get(url, queryParams, authHeaders());
+        if (isUnauthorized(response) && password != null && !password.isBlank()) {
+            // Session likely expired; re-auth once and retry.
+            synchronized (authLock) {
+                sessionId = null;
+                authenticate();
+            }
+            Map<String, String> retryParams = authQueryParams();
+            if (extraQueryParams != null && !extraQueryParams.isEmpty()) {
+                retryParams.putAll(extraQueryParams);
+            }
+            return httpClient.get(url, retryParams, authHeaders());
+        }
+
+        return response;
     }
 
     /**
@@ -764,7 +801,9 @@ public class PiHoleHandler implements DnsBlockerHandler {
             throws IOException, InterruptedException {
         // If we have a password but no session yet, try to authenticate lazily.
         if ((sessionId == null || sessionId.isBlank()) && password != null && !password.isBlank()) {
-            authenticate();
+            synchronized (authLock) {
+                authenticate();
+            }
         }
 
         String url = apiBaseUrl + endpoint;
@@ -774,12 +813,19 @@ public class PiHoleHandler implements DnsBlockerHandler {
             queryParams.putAll(extraQueryParams);
         }
 
-        Map<String, String> headers = new HashMap<>();
-        if (sessionId != null && !sessionId.isBlank()) {
-            headers.put(HEADER_X_FTL_SID, sessionId);
+        HttpResponsePayload response = httpClient.postJson(url, jsonBody, queryParams, authHeaders());
+        if (isUnauthorized(response) && password != null && !password.isBlank()) {
+            synchronized (authLock) {
+                sessionId = null;
+                authenticate();
+            }
+            Map<String, String> retryParams = authQueryParams();
+            if (extraQueryParams != null && !extraQueryParams.isEmpty()) {
+                retryParams.putAll(extraQueryParams);
+            }
+            return httpClient.postJson(url, jsonBody, retryParams, authHeaders());
         }
-
-        return httpClient.postJson(url, jsonBody, queryParams, headers);
+        return response;
     }
 
     private String formatRelativeEpochSeconds(long epochSeconds) {

@@ -35,6 +35,7 @@ import javafx.scene.control.TitledPane;
 import javafx.stage.Window;
 import services.configuration.ConfigurationService;
 
+import java.net.URI;
 import java.net.URL;
 import java.util.List;
 import java.util.ResourceBundle;
@@ -398,8 +399,25 @@ public class ConfigurationController implements Initializable {
         // DNS2 support intentionally disabled.
         // String scheme2 = getSelectedOrDefault(comboBoxScheme2, DEFAULT_SCHEME);
 
-        // Strip any scheme prefix from IP fields (backward compatibility)
-        String ip1 = stripScheme(getTextOrEmpty(tfIp1));
+        // Accept user pasted values like:
+        // - pi.hole
+        // - 192.168.1.2
+        // - pi.hole:8080
+        // - http(s)://pi.hole:8080
+        // but reject paths/query/fragment (those belong nowhere in "host" input).
+        ParsedHostInput parsed = parseHostInput(getTextOrEmpty(tfIp1));
+        if (!parsed.valid()) {
+            showInfoAlert("Invalid Host", parsed.errorMessage());
+            return;
+        }
+
+        String ip1 = parsed.host();
+        if (parsed.port() != null) {
+            port1 = parsed.port();
+        }
+        if (parsed.scheme() != null) {
+            scheme1 = parsed.scheme();
+        }
         // DNS2 support intentionally disabled.
         // String ip2 = stripScheme(getTextOrEmpty(tfIp2));
 
@@ -604,24 +622,135 @@ public class ConfigurationController implements Initializable {
         }
     }
 
+    private record ParsedHostInput(boolean valid, String host, Integer port, String scheme, String errorMessage) {
+    }
+
     /**
-     * Removes scheme prefix and trailing slash from a host string.
+     * Parses a "host" text field that may contain a URL or host:port.
+     *
+     * Rules:
+     * - Allows host, host:port, http(s)://host[:port]
+     * - Rejects any path/query/fragment
      */
-    private String stripScheme(String rawHost) {
-        if (rawHost == null)
-            return "";
-        String host = rawHost.trim();
-
-        if (host.startsWith("https://")) {
-            host = host.substring("https://".length());
-        } else if (host.startsWith("http://")) {
-            host = host.substring("http://".length());
+    private ParsedHostInput parseHostInput(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return new ParsedHostInput(true, "", null, null, "");
         }
 
-        if (host.endsWith("/")) {
-            host = host.substring(0, host.length() - 1);
+        String text = raw.trim();
+
+        // If it looks like a URL (has scheme or contains / ? #), parse as URI.
+        boolean looksLikeUrl = text.contains("://") || text.contains("/") || text.contains("?") || text.contains("#");
+        if (looksLikeUrl) {
+            URI uri;
+            try {
+                // If scheme is missing but it contains path-like chars, add a dummy scheme for parsing.
+                if (!text.contains("://")) {
+                    uri = URI.create("http://" + text);
+                } else {
+                    uri = URI.create(text);
+                }
+            } catch (Exception e) {
+                return new ParsedHostInput(false, "", null, null, "Host must be a hostname/IP (optionally with :port).");
+            }
+
+            String scheme = uri.getScheme();
+            String host = uri.getHost();
+            int port = uri.getPort();
+
+            // Handle cases like "http://pi.hole" where host is in authority.
+            if (host == null && uri.getRawAuthority() != null) {
+                // rawAuthority may be "host:port"
+                ParsedHostInput hp = parseHostPort(uri.getRawAuthority());
+                if (!hp.valid()) {
+                    return hp;
+                }
+                host = hp.host();
+                port = hp.port() != null ? hp.port() : -1;
+            }
+
+            if (host == null || host.isBlank()) {
+                return new ParsedHostInput(false, "", null, null, "Host must be a hostname/IP (optionally with :port).");
+            }
+
+            String path = uri.getPath();
+            if (path != null && !path.isBlank() && !"/".equals(path)) {
+                return new ParsedHostInput(false, "", null, null,
+                        "Please enter only a hostname/IP (no path like " + path + ").");
+            }
+            if (uri.getQuery() != null || uri.getFragment() != null) {
+                return new ParsedHostInput(false, "", null, null,
+                        "Please enter only a hostname/IP (no query or fragment).");
+            }
+
+            String normalizedScheme = (scheme != null && (scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https")))
+                    ? scheme.toLowerCase()
+                    : null;
+            Integer parsedPort = (port > 0 && port <= 65535) ? port : null;
+
+            return new ParsedHostInput(true, host, parsedPort, normalizedScheme, "");
         }
 
-        return host;
+        // Otherwise treat as host[:port] (no path).
+        return parseHostPort(text);
+    }
+
+    private ParsedHostInput parseHostPort(String authority) {
+        if (authority == null || authority.isBlank()) {
+            return new ParsedHostInput(true, "", null, null, "");
+        }
+        String s = authority.trim();
+
+        // Bracketed IPv6: [::1]:8080 or [::1]
+        if (s.startsWith("[") && s.contains("]")) {
+            int end = s.indexOf(']');
+            String host = s.substring(1, end);
+            if (host.isBlank()) {
+                return new ParsedHostInput(false, "", null, null, "Invalid IPv6 host.");
+            }
+            if (end == s.length() - 1) {
+                return new ParsedHostInput(true, host, null, null, "");
+            }
+            if (s.length() > end + 2 && s.charAt(end + 1) == ':') {
+                String portPart = s.substring(end + 2);
+                Integer p = parsePortString(portPart);
+                if (p == null) {
+                    return new ParsedHostInput(false, "", null, null, "Invalid port: " + portPart);
+                }
+                return new ParsedHostInput(true, host, p, null, "");
+            }
+            return new ParsedHostInput(false, "", null, null, "Invalid host format.");
+        }
+
+        // Unbracketed: try "host:port" using last colon (avoid breaking IPv6 which has many colons).
+        int firstColon = s.indexOf(':');
+        int lastColon = s.lastIndexOf(':');
+        if (firstColon != -1 && firstColon == lastColon) {
+            String host = s.substring(0, lastColon).trim();
+            String portPart = s.substring(lastColon + 1).trim();
+            if (host.isBlank()) {
+                return new ParsedHostInput(false, "", null, null, "Host is required before :port.");
+            }
+            Integer p = parsePortString(portPart);
+            if (p == null) {
+                return new ParsedHostInput(false, "", null, null, "Invalid port: " + portPart);
+            }
+            return new ParsedHostInput(true, host, p, null, "");
+        }
+
+        // If there are multiple colons, assume it's an IPv6 literal without port.
+        return new ParsedHostInput(true, s, null, null, "");
+    }
+
+    private Integer parsePortString(String text) {
+        if (text == null || text.isBlank()) {
+            return null;
+        }
+        try {
+            int p = Integer.parseInt(text.trim());
+            return (p > 0 && p <= 65535) ? p : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 }

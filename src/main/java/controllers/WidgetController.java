@@ -150,7 +150,7 @@ public class WidgetController implements Initializable {
     private FlowGridPane gridPane;
 
     // DNS blocker handler (supports both Pi-hole and AdGuard Home)
-    private DnsBlockerHandler dnsBlockerHandler;
+    private volatile DnsBlockerHandler dnsBlockerHandler;
     /*
      * DNS2 support intentionally disabled.
      * User request:
@@ -160,12 +160,12 @@ public class WidgetController implements Initializable {
      */
 
     // Configuration
-    private DnsBlockerConfig configDNS1;
+    private volatile DnsBlockerConfig configDNS1;
     /*
      * DNS2 support intentionally disabled.
      * private DnsBlockerConfig configDNS2;
      */
-    private WidgetConfig widgetConfig;
+    private volatile WidgetConfig widgetConfig;
     private long statusRefreshIntervalSec = DEFAULT_STATUS_REFRESH_INTERVAL;
     private long fluidRefreshIntervalSec = DEFAULT_FLUID_REFRESH_INTERVAL;
     private long activeRefreshIntervalSec = DEFAULT_ACTIVE_REFRESH_INTERVAL;
@@ -450,6 +450,7 @@ public class WidgetController implements Initializable {
      */
     public void shutdown() {
         log("Shutting down schedulers...");
+        resetInFlightFlags();
         cancelScheduledFutures();
         shutdownExecutor(scheduler);
         shutdownExecutor(ioExecutor);
@@ -463,6 +464,13 @@ public class WidgetController implements Initializable {
         shutdown();
         initializeSchedulers();
         inflateAllData();
+    }
+
+    private void resetInFlightFlags() {
+        statusInFlight.set(false);
+        activeInFlight.set(false);
+        fluidInFlight.set(false);
+        topXInFlight.set(false);
     }
 
     private void cancelScheduledFutures() {
@@ -1384,8 +1392,7 @@ public class WidgetController implements Initializable {
         MenuItem exitItem = new MenuItem("Exit");
         exitItem.setOnAction(_ -> {
             log("Context menu: 'Exit' clicked - shutting down");
-            shutdown();
-            System.exit(0);
+            WidgetApplication.requestExit();
         });
 
         log("Menu items created: Hide to Tray, Refresh All Now, Settings, Exit");
