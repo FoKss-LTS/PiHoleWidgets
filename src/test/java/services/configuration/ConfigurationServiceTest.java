@@ -122,7 +122,7 @@ class ConfigurationServiceTest {
         assertEquals("192.168.1.1", dns1.getIPAddress());
         assertEquals(443, dns1.getPort());
         assertEquals("https", dns1.getScheme());
-        assertEquals("token123", dns1.getAUTH());
+        assertEquals("token123", dns1.password());
 
         WidgetConfig widget = configService.getWidgetConfig();
         assertNotNull(widget);
@@ -176,34 +176,6 @@ class ConfigurationServiceTest {
         assertNotNull(configService.getWidgetConfig());
         // Should use defaults
         assertEquals(WidgetConfig.DEFAULT_SIZE, configService.getWidgetConfig().getSize());
-    }
-
-    @Test
-    void testReadConfigurationWithLegacyAuthenticationTokenKey() throws IOException {
-        // Backward compatibility: older versions wrote "Authentication Token"
-        Files.createDirectories(configFilePath.getParent());
-        String json = """
-                {
-                  "DNS1": {
-                    "Scheme": "https",
-                    "IP": "192.168.1.1",
-                    "Port": 443,
-                    "Authentication Token": "legacyToken123"
-                  },
-                  "Widget": {
-                    "Size": "Large",
-                    "Layout": "Horizontal",
-                    "Theme": "Light"
-                  }
-                }
-                """;
-        Files.writeString(configFilePath, json);
-
-        configService.readConfiguration();
-
-        DnsBlockerConfig dns1 = configService.getConfigDNS1();
-        assertNotNull(dns1);
-        assertEquals("legacyToken123", dns1.getAUTH());
     }
 
     @Test
@@ -281,7 +253,7 @@ class ConfigurationServiceTest {
         assertEquals("192.168.1.1", dns1.getIPAddress());
         assertEquals(443, dns1.getPort());
         assertEquals("https", dns1.getScheme());
-        assertEquals("mytoken", dns1.getAUTH());
+        assertEquals("mytoken", dns1.password());
 
         WidgetConfig widget = newService.getWidgetConfig();
         assertNotNull(widget);

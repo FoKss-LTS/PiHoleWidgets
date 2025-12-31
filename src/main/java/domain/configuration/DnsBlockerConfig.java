@@ -48,11 +48,6 @@ public record DnsBlockerConfig(
     public static final int DEFAULT_PORT = 80;
     public static final String DEFAULT_USERNAME = "";
     public static final String DEFAULT_PASSWORD = "";
-    /**
-     * @deprecated Use {@link #DEFAULT_PASSWORD}. Kept for backward compatibility.
-     */
-    @Deprecated
-    public static final String DEFAULT_AUTH_TOKEN = DEFAULT_PASSWORD;
 
     /**
      * Compact constructor with validation.
@@ -113,9 +108,6 @@ public record DnsBlockerConfig(
                 DEFAULT_USERNAME, password);
     }
 
-    // Legacy getter methods for backward compatibility
-    // These delegate to the record's accessor methods
-
     public String getIPAddress() {
         return ipAddress;
     }
@@ -126,10 +118,6 @@ public record DnsBlockerConfig(
 
     public String getScheme() {
         return scheme;
-    }
-
-    public String getAUTH() {
-        return password;
     }
 
     public String getUsername() {
@@ -152,14 +140,6 @@ public record DnsBlockerConfig(
      */
     public boolean hasValidPassword() {
         return password != null && !password.isBlank();
-    }
-
-    /**
-     * @deprecated Use {@link #hasValidPassword()}. Kept for backward compatibility.
-     */
-    @Deprecated
-    public boolean hasValidAuthToken() {
-        return hasValidPassword();
     }
 
     /**
@@ -190,14 +170,5 @@ public record DnsBlockerConfig(
      */
     public String buildBaseUrl() {
         return scheme + "://" + ipAddress + ":" + port;
-    }
-
-    /**
-     * @deprecated Use {@link #password()}. Kept for backward compatibility with older
-     * callers that still use the authToken naming.
-     */
-    @Deprecated
-    public String authToken() {
-        return password;
     }
 }

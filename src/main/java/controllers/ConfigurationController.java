@@ -455,7 +455,7 @@ public class ConfigurationController implements Initializable {
             setTextFieldValue(tfIp1, configDNS1.getIPAddress());
             setTextFieldValue(tfPort1, String.valueOf(configDNS1.getPort()));
             setTextFieldValue(tfUsername1, configDNS1.username() != null ? configDNS1.username() : "");
-            setTextFieldValue(tfAuth1, configDNS1.getAUTH());
+            setTextFieldValue(tfAuth1, configDNS1.password());
         } else {
             log("DNS1 config is null, using defaults");
             setComboBoxValue(comboBoxPlatform1, DnsBlockerType.PIHOLE.getDisplayName(),
@@ -476,7 +476,7 @@ public class ConfigurationController implements Initializable {
          * setComboBoxValue(comboBoxScheme2, configDNS2.getScheme(), DEFAULT_SCHEME);
          * setTextFieldValue(tfIp2, configDNS2.getIPAddress());
          * setTextFieldValue(tfPort2, String.valueOf(configDNS2.getPort()));
-         * setTextFieldValue(tfAuth2, configDNS2.getAUTH());
+ * setTextFieldValue(tfAuth2, configDNS2.password());
          * } else {
          * log("DNS2 config is null, using defaults");
          * setComboBoxValue(comboBoxScheme2, DEFAULT_SCHEME, DEFAULT_SCHEME);

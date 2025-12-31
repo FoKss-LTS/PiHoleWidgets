@@ -61,8 +61,6 @@ public class ConfigurationService {
     private static final String KEY_PORT = "Port";
     private static final String KEY_USERNAME = "Username";
     private static final String KEY_PASSWORD = "Password";
-    // Backward-compatible legacy key (older versions wrote this)
-    private static final String KEY_AUTH_LEGACY = "Authentication Token";
     private static final String KEY_SIZE = "Size";
     private static final String KEY_LAYOUT = "Layout";
     private static final String KEY_THEME = "Theme";
@@ -135,10 +133,6 @@ public class ConfigurationService {
         String scheme = getTextOrDefault(node, KEY_SCHEME, DnsBlockerConfig.DEFAULT_SCHEME);
         String username = getTextOrDefault(node, KEY_USERNAME, DnsBlockerConfig.DEFAULT_USERNAME);
         String password = getTextOrDefault(node, KEY_PASSWORD, "");
-        if (password == null || password.isBlank()) {
-            // Backward compatibility: read legacy key if new one is missing/blank
-            password = getTextOrDefault(node, KEY_AUTH_LEGACY, "");
-        }
 
         return new DnsBlockerConfig(platform, ip, port, scheme, username, password);
     }

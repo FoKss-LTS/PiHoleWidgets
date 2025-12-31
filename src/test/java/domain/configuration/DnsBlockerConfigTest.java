@@ -88,7 +88,7 @@ class DnsBlockerConfigTest {
         assertEquals("192.168.1.1", config.getIPAddress());
         assertEquals(80, config.getPort());
         assertEquals("http", config.getScheme());
-        assertEquals("token123", config.getAUTH());
+        assertEquals("token123", config.password());
     }
 
     @Test

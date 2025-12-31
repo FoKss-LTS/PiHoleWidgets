@@ -119,7 +119,7 @@ public class PiHoleHandler implements DnsBlockerHandler {
                 this.ipAddress = loadedConfig.getIPAddress();
                 this.port = loadedConfig.getPort();
                 this.scheme = loadedConfig.getScheme();
-                this.password = loadedConfig.getAUTH();
+                this.password = loadedConfig.password();
             } else {
                 this.ipAddress = config.ipAddress();
                 this.port = config.port();
