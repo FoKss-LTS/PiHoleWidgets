@@ -100,7 +100,7 @@ class ConfigurationServiceTest {
                     "Scheme": "https",
                     "IP": "192.168.1.1",
                     "Port": 443,
-                    "Authentication Token": "token123"
+                    "Password": "token123"
                   },
                   "Widget": {
                     "Size": "Large",
@@ -164,7 +164,7 @@ class ConfigurationServiceTest {
                     "Scheme": "http",
                     "IP": "192.168.1.1",
                     "Port": 80,
-                    "Authentication Token": "token"
+                    "Password": "token"
                   }
                 }
                 """;
@@ -176,6 +176,34 @@ class ConfigurationServiceTest {
         assertNotNull(configService.getWidgetConfig());
         // Should use defaults
         assertEquals(WidgetConfig.DEFAULT_SIZE, configService.getWidgetConfig().getSize());
+    }
+
+    @Test
+    void testReadConfigurationWithLegacyAuthenticationTokenKey() throws IOException {
+        // Backward compatibility: older versions wrote "Authentication Token"
+        Files.createDirectories(configFilePath.getParent());
+        String json = """
+                {
+                  "DNS1": {
+                    "Scheme": "https",
+                    "IP": "192.168.1.1",
+                    "Port": 443,
+                    "Authentication Token": "legacyToken123"
+                  },
+                  "Widget": {
+                    "Size": "Large",
+                    "Layout": "Horizontal",
+                    "Theme": "Light"
+                  }
+                }
+                """;
+        Files.writeString(configFilePath, json);
+
+        configService.readConfiguration();
+
+        DnsBlockerConfig dns1 = configService.getConfigDNS1();
+        assertNotNull(dns1);
+        assertEquals("legacyToken123", dns1.getAUTH());
     }
 
     @Test

@@ -370,6 +370,11 @@ public class ConfigurationController implements Initializable {
         if (Label_Password1 != null) {
             Label_Password1.setText(isAdGuardHome ? "Password:" : "App Password:");
         }
+
+        // Keep prompt text consistent with naming (password for both platforms)
+        if (tfAuth1 != null) {
+            tfAuth1.setPromptText("Enter password");
+        }
     }
 
     // ==================== Configuration Management ====================

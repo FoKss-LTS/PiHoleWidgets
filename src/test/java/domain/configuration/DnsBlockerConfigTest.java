@@ -16,7 +16,7 @@ class DnsBlockerConfigTest {
         assertEquals("192.168.1.1", config.ipAddress());
         assertEquals(80, config.port());
         assertEquals("http", config.scheme());
-        assertEquals("token123", config.authToken());
+        assertEquals("token123", config.password());
     }
 
     @Test
@@ -26,7 +26,7 @@ class DnsBlockerConfigTest {
         assertEquals("192.168.1.1", config.ipAddress());
         assertEquals(DnsBlockerConfig.DEFAULT_PORT, config.port());
         assertEquals("https", config.scheme());
-        assertEquals("token123", config.authToken());
+        assertEquals("token123", config.password());
     }
 
     @Test
@@ -51,10 +51,10 @@ class DnsBlockerConfigTest {
     }
 
     @Test
-    void testNullAuthTokenDefaultsToEmpty() {
+    void testNullPasswordDefaultsToEmpty() {
         var config = new DnsBlockerConfig("192.168.1.1", 80, "http", null);
 
-        assertEquals(DnsBlockerConfig.DEFAULT_AUTH_TOKEN, config.authToken());
+        assertEquals(DnsBlockerConfig.DEFAULT_PASSWORD, config.password());
     }
 
     @Test
@@ -107,18 +107,18 @@ class DnsBlockerConfigTest {
     }
 
     @Test
-    void testHasValidAuthToken() {
+    void testHasValidPassword() {
         var validConfig = new DnsBlockerConfig("192.168.1.1", 80, "http", "mytoken123");
-        assertTrue(validConfig.hasValidAuthToken());
+        assertTrue(validConfig.hasValidPassword());
 
         var invalidConfig1 = new DnsBlockerConfig("192.168.1.1", 80, "http", "");
-        assertFalse(invalidConfig1.hasValidAuthToken());
+        assertFalse(invalidConfig1.hasValidPassword());
 
         var invalidConfig2 = new DnsBlockerConfig("192.168.1.1", 80, "http", null);
-        assertFalse(invalidConfig2.hasValidAuthToken());
+        assertFalse(invalidConfig2.hasValidPassword());
 
         var invalidConfig3 = new DnsBlockerConfig("192.168.1.1", 80, "http", "   ");
-        assertFalse(invalidConfig3.hasValidAuthToken());
+        assertFalse(invalidConfig3.hasValidPassword());
     }
 
     @Test

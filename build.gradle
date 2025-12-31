@@ -200,7 +200,8 @@ jlink {
             // Debian/Ubuntu specific
             installerOptions += [
                 '--linux-deb-maintainer', 'fox-inflames@outlook.com',
-                '--linux-package-name', 'DNSBlocker Widgets'
+                // Linux package names must not contain spaces; use lowercase + hyphens.
+                '--linux-package-name', 'dnsblocker-widgets'
             ]
         }
         
@@ -208,7 +209,8 @@ jlink {
             // Fedora/RedHat specific
             installerOptions += [
                 '--linux-rpm-license-type', 'GPLv3',
-                '--linux-package-name', 'DNSBlocker Widgets'
+                // Linux package names must not contain spaces; use lowercase + hyphens.
+                '--linux-package-name', 'dnsblocker-widgets'
             ]
         }
 

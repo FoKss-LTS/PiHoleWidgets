@@ -142,11 +142,11 @@ Download the latest installer for your platform from the [Releases page](https:/
 - **macOS:** Download and run the `.pkg` installer
 - **Linux (Debian/Ubuntu):** Download the `.deb` file and install with:
   ```bash
-  sudo dpkg -i DNSBlocker Widgets_*.deb
+  sudo dpkg -i dnsblocker-widgets_*.deb
   ```
 - **Linux (Fedora/RHEL):** Download the `.rpm` file and install with:
   ```bash
-  sudo rpm -i DNSBlocker Widgets-*.rpm
+  sudo rpm -i dnsblocker-widgets-*.rpm
   ```
 
 All packages include the bundled Java runtime - no separate Java installation needed!

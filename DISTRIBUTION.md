@@ -184,24 +184,24 @@ cd PiHoleWidgets
 **Debian/Ubuntu:**
 
 ```bash
-sudo dpkg -i DNSBlocker Widgets_*.deb
+sudo dpkg -i dnsblocker-widgets_*.deb
 sudo apt-get install -f  # Install dependencies if needed
 ```
 
 **Fedora/RHEL:**
 
 ```bash
-sudo rpm -i DNSBlocker Widgets-*.rpm
+sudo rpm -i dnsblocker-widgets-*.rpm
 ```
 
 **Uninstallation:**
 
 ```bash
 # Debian/Ubuntu
-sudo apt-get remove DNSBlocker Widgets
+sudo apt-get remove dnsblocker-widgets
 
 # Fedora/RHEL
-sudo rpm -e DNSBlocker Widgets
+sudo rpm -e dnsblocker-widgets
 ```
 
 ---
@@ -343,14 +343,14 @@ spctl -a -vvv -t install build/jpackage/DNSBlocker Widgets-2.0.0-signed.pkg
 
 ```bash
 # Sign with GPG key
-dpkg-sig --sign builder build/jpackage/DNSBlocker Widgets_*.deb
+dpkg-sig --sign builder build/jpackage/dnsblocker-widgets_*.deb
 ```
 
 #### RPM Package Signing
 
 ```bash
 # Sign with GPG key
-rpm --addsign build/jpackage/DNSBlocker Widgets-*.rpm
+rpm --addsign build/jpackage/dnsblocker-widgets-*.rpm
 ```
 
 ---
