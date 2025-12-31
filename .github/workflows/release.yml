@@ -121,7 +121,7 @@ jobs:
       - name: Generate Checksums
         run: |
           cd release-artifacts
-          sha256sum * > ../checksums.txt
+          find . -maxdepth 1 -type f -exec sha256sum {} \; > ../checksums.txt
           mv ../checksums.txt .
 
       - name: Extract Changelog Entry
