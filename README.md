@@ -20,7 +20,7 @@
 
 # <ins>Overview</ins>
 ## Pi-Hole DNS Widget for Desktop
-PiHole Widgets is a project I needed to make for my personal needs, and I decided to share it with you.
+DNSBlocker Widgets is a project I needed to make for my personal needs, and I decided to share it with you.
 
 It is developed with JavaFX, and uses the framework TilesFX.
 
@@ -186,8 +186,8 @@ For detailed build instructions, see [DISTRIBUTION.md](DISTRIBUTION.md).
 
 ### Running the widget
 
-After installation, launch PiHole Widgets from:
-- **Windows:** Start Menu > PiHole Widgets, or run directly from the portable folder
+After installation, launch DNSBlocker Widgets from:
+- **Windows:** Start Menu > DNSBlocker Widgets, or run directly from the portable folder
 - **macOS:** Applications folder
 - **Linux:** Applications menu (under Network or Utilities)
 

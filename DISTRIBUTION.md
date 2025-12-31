@@ -1,6 +1,6 @@
-# Distribution Guide for PiHole Widgets
+# Distribution Guide for DNSBlocker Widgets
 
-This guide provides comprehensive instructions for building and distributing PiHole Widgets across all major platforms: Windows, macOS, and Linux.
+This guide provides comprehensive instructions for building and distributing DNSBlocker Widgets across all major platforms: Windows, macOS, and Linux.
 
 ## Table of Contents
 
@@ -154,7 +154,7 @@ cd PiHoleWidgets
 #### Output
 
 - **PKG Installer:** `build/jpackage/PiHole-Widgets-{version}.pkg`
-- **Installation Location:** `/Applications/PiHole Widgets.app`
+- **Installation Location:** `/Applications/DNSBlocker Widgets.app`
 
 #### Distribution Notes
 
@@ -275,7 +275,7 @@ git push origin v2.0.0
 
 All installers include:
 
-- PiHole Widgets application
+- DNSBlocker Widgets application
 - Java runtime (bundled)
 - Required JavaFX libraries
 - Application icon
@@ -408,7 +408,7 @@ chmod +x gradlew
 
 ```bash
 # Remove quarantine attribute
-xattr -cr "/Applications/PiHole Widgets.app"
+xattr -cr "/Applications/DNSBlocker Widgets.app"
 
 # Or allow the app in System Preferences > Security & Privacy
 ```

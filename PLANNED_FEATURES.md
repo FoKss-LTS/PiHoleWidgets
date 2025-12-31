@@ -1,4 +1,4 @@
-# PiHole Widgets - Implementation Tasks
+# DNSBlocker Widgets - Implementation Tasks
 
 ## Phase 1: AdGuardHome Support
 

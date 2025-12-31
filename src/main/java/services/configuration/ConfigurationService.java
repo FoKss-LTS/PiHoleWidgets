@@ -42,7 +42,7 @@ public class ConfigurationService {
     private static final boolean VERBOSE = Boolean.parseBoolean(System.getProperty("dnsbloquer.verbose", "false"));
 
     // Configuration file location
-    private static final String FOLDER_NAME = "Pihole Widget";
+    private static final String FOLDER_NAME = "DNSBlocker Widget";
     private static final String FILE_NAME = "settings.json";
     private static final String HOME = System.getProperty("user.home");
 

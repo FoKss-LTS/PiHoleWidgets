@@ -126,10 +126,6 @@ public class AdGuardHomeHandler implements DnsBlockerHandler {
         }
     }
 
-    private static void logInfo(String message) {
-        LOGGER.log(Level.INFO, () -> message);
-    }
-
     private static void logError(String message, Throwable t) {
         LOGGER.log(Level.SEVERE, message, t);
     }
@@ -228,8 +224,9 @@ public class AdGuardHomeHandler implements DnsBlockerHandler {
             int domainsBeingBlocked = getEnabledFiltersCount();
             piHoleFormat.put("domains_being_blocked", domainsBeingBlocked);
 
-            // Add status from /status endpoint
-            piHoleFormat.put("status", "enabled");
+            // Do NOT hardcode status here.
+            // WidgetController may fall back to parsing DNS blocking state from the stats payload
+            // if /status fails; hardcoding "enabled" would be incorrect.
 
             return objectMapper.writeValueAsString(piHoleFormat);
 
@@ -320,7 +317,7 @@ public class AdGuardHomeHandler implements DnsBlockerHandler {
 
     @Override
     public String getTopXBlocked(int count) {
-        System.out.println("=== AdGuard getTopXBlocked(" + count + ") called ===");
+        log("=== getTopXBlocked(" + count + ") called ===");
         if (count <= 0) {
             return "";
         }
@@ -329,40 +326,39 @@ public class AdGuardHomeHandler implements DnsBlockerHandler {
             HttpResponsePayload response = getApi(STATS_ENDPOINT, Collections.emptyMap());
 
             if (!response.isSuccessful()) {
-                System.out.println("Failed to get stats for top blocked - HTTP " + response.statusCode());
+                log("Failed to get stats for top blocked - HTTP " + response.statusCode());
                 return "";
             }
 
             Optional<JsonNode> jsonOpt = response.bodyAsJson();
             if (jsonOpt.isEmpty()) {
-                System.out.println("Failed to parse stats JSON response");
+                log("Failed to parse stats JSON response");
                 return "";
             }
 
             JsonNode json = jsonOpt.get();
             // AdGuard Home returns top_blocked_domains array
             if (json.has("top_blocked_domains")) {
-                System.out.println("Found top_blocked_domains in response");
+                log("Found top_blocked_domains in response");
                 JsonNode topBlocked = json.get("top_blocked_domains");
                 return formatTopBlocked(topBlocked, count);
             }
 
             // Also try blocked_filtering which might have the data
             if (json.has("blocked_filtering")) {
-                System.out.println("Found blocked_filtering in response");
+                log("Found blocked_filtering in response");
                 JsonNode blockedFiltering = json.get("blocked_filtering");
                 return formatTopBlocked(blockedFiltering, count);
             }
 
-            System.out.println("No top_blocked_domains found in stats response");
-            return "{}";
+            log("No top_blocked_domains found in stats response");
+            return "";
 
         } catch (Exception e) {
-            System.out.println("Exception while fetching top blocked domains: " + e.getMessage());
-            e.printStackTrace();
+            logError("Exception while fetching top blocked domains", e);
         }
 
-        return "{}";
+        return "";
     }
 
     /**
@@ -370,8 +366,7 @@ public class AdGuardHomeHandler implements DnsBlockerHandler {
      */
     private String formatTopBlocked(JsonNode topBlocked, int count) {
         try {
-            System.out.println("=== formatTopBlocked called with count: " + count + " ===");
-            System.out.println("topBlocked isArray: " + topBlocked.isArray());
+            log("=== formatTopBlocked(count=" + count + ") ===");
 
             // Transform to Pi-hole format
             ObjectNode piHoleFormat = objectMapper.createObjectNode();
@@ -379,7 +374,6 @@ public class AdGuardHomeHandler implements DnsBlockerHandler {
 
             int added = 0;
             if (topBlocked.isArray()) {
-                System.out.println("topBlocked array size: " + topBlocked.size());
                 for (JsonNode entry : topBlocked) {
                     if (added >= count)
                         break;
@@ -394,14 +388,12 @@ public class AdGuardHomeHandler implements DnsBlockerHandler {
                             var field = fields.next();
                             domain = field.getKey();
                             hits = field.getValue().asInt();
-                            System.out.println("Parsed domain: " + domain + " hits: " + hits);
                         }
                     }
                     // Also support array format [domain, count] for compatibility
                     else if (entry.isArray() && entry.size() >= 2) {
                         domain = entry.get(0).asText();
                         hits = entry.get(1).asInt();
-                        System.out.println("Parsed domain (array): " + domain + " hits: " + hits);
                     }
 
                     if (!domain.isEmpty()) {
@@ -413,13 +405,11 @@ public class AdGuardHomeHandler implements DnsBlockerHandler {
 
             piHoleFormat.set("top_ads", domains);
             String result = objectMapper.writeValueAsString(piHoleFormat);
-            System.out.println("formatTopBlocked result: " + result);
             return result;
 
         } catch (Exception e) {
-            System.out.println("Failed to format top blocked domains: " + e.getMessage());
-            e.printStackTrace();
-            return "{}";
+            logError("Failed to format top blocked domains", e);
+            return "";
         }
     }
 

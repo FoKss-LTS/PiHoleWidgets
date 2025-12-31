@@ -80,7 +80,10 @@ public class PiHoleHandler implements DnsBlockerHandler {
      * This is the primary constructor for production use.
      */
     public PiHoleHandler(DnsBlockerConfig config) {
-        this(config, new HttpClientUtil(), Clock.systemDefaultZone(), true, true);
+        // IMPORTANT:
+        // The handler must respect the passed config. Loading from ConfigurationService here
+        // can silently override callers (e.g. if we later support multiple instances).
+        this(config, new HttpClientUtil(), Clock.systemDefaultZone(), false, true);
     }
 
     /**
@@ -91,7 +94,7 @@ public class PiHoleHandler implements DnsBlockerHandler {
     @Deprecated
     public PiHoleHandler(String ipAddress, int port, String scheme, String password) {
         this(DnsBlockerConfig.forPiHole(ipAddress, port, scheme, password),
-                new HttpClientUtil(), Clock.systemDefaultZone(), true, true);
+                new HttpClientUtil(), Clock.systemDefaultZone(), false, true);
     }
 
     /**

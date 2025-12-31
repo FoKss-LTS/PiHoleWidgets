@@ -517,7 +517,7 @@ public class WidgetController implements Initializable {
         runAsync(() -> {
             String statsJson = fetchPiholeStatsJson();
             if (statsJson == null || statsJson.isBlank()) {
-                log("WARNING: Pi-hole inactive, skipping fluid update");
+                log("WARNING: DNS blocker inactive, skipping fluid update");
                 return;
             }
             final Instant fetchedAt = Instant.now();
@@ -575,13 +575,13 @@ public class WidgetController implements Initializable {
                         : finalGravityUpdate;
 
                 ledTile.setTitle(apiTitle);
-                ledTile.setDescription((statsJson == null || statsJson.isBlank()) ? "No active Pi-hole" : ipsText);
+                ledTile.setDescription((statsJson == null || statsJson.isBlank()) ? "No active DNS blocker" : ipsText);
 
                 if (statsJson == null || statsJson.isBlank()) {
                     ledTile.setActiveColor(Color.RED);
                     ledTile.setActive(false);
                     ledTile.setText(gravityLabel);
-                    ledTile.setTooltipText("No active Pi-hole");
+                    ledTile.setTooltipText("No active DNS blocker");
                     return;
                 }
 
@@ -621,11 +621,10 @@ public class WidgetController implements Initializable {
     }
 
     public void inflateTopXData() {
-        System.out.println("===== inflateTopXData() called from WidgetController =====");
         log("=== inflateTopXData() called ===");
         runAsync(() -> {
             if (dnsBlockerHandler == null) {
-                log("WARNING: Pi-hole inactive, skipping topX update");
+                log("WARNING: DNS blocker inactive, skipping topX update");
                 return;
             }
 
@@ -951,11 +950,15 @@ public class WidgetController implements Initializable {
             JsonNode root = JSON.readTree(json);
 
             long total = firstLong(root,
+                    // AdGuard Home native stats key (if transformStatsResponse returns original JSON)
+                    path("num_dns_queries"),
                     path("queries", "total"),
                     path("queries", "total_queries"),
                     path("dns_queries_today"));
 
             long blocked = firstLong(root,
+                    // AdGuard Home native stats key (if transformStatsResponse returns original JSON)
+                    path("num_blocked_filtering"),
                     path("queries", "blocked"),
                     path("queries", "blocked_queries"),
                     path("ads_blocked_today"));

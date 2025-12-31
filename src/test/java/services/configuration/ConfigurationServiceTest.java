@@ -30,13 +30,13 @@ class ConfigurationServiceTest {
         // class load time
         // So we work with the actual user home directory
         String home = System.getProperty("user.home");
-        configFilePath = Path.of(home, "Pihole Widget", "settings.json");
+        configFilePath = Path.of(home, "DNSBlocker Widget", "settings.json");
         configFileExisted = Files.exists(configFilePath);
 
         // Backup existing config if it exists
         if (configFileExisted) {
             try {
-                Files.move(configFilePath, Path.of(home, "Pihole Widget", "settings.json.backup"));
+                Files.move(configFilePath, Path.of(home, "DNSBlocker Widget", "settings.json.backup"));
             } catch (IOException e) {
                 // Ignore backup failures
             }
@@ -48,7 +48,7 @@ class ConfigurationServiceTest {
         // Restore original config if it existed
         if (configFileExisted) {
             try {
-                Path backupPath = Path.of(System.getProperty("user.home"), "Pihole Widget", "settings.json.backup");
+                Path backupPath = Path.of(System.getProperty("user.home"), "DNSBlocker Widget", "settings.json.backup");
                 if (Files.exists(backupPath)) {
                     Files.move(backupPath, configFilePath);
                 }

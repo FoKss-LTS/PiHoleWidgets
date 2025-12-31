@@ -102,7 +102,7 @@ public class WidgetApplication extends Application {
 
         // Setup main widget stage
         widgetStage = primaryStage;
-        widgetStage.setTitle("PiHole Widget");
+        widgetStage.setTitle("DNSBlocker Widget");
         widgetStage.initStyle(StageStyle.UNDECORATED);
         log("Widget stage created");
         widgetStage.setOnShowing(_ -> refreshWidgetTiles());
@@ -342,7 +342,7 @@ public class WidgetApplication extends Application {
         PopupMenu popup = createTrayPopupMenu();
 
         // Create and configure tray icon
-        trayIcon = new TrayIcon(trayImage, "PiHole Widget", popup);
+        trayIcon = new TrayIcon(trayImage, "DNSBlocker Widget", popup);
         trayIcon.setImageAutoSize(true);
 
         // Double-click to show window

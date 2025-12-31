@@ -139,7 +139,7 @@ jlink {
                 '--win-per-user-install',
                 '--win-dir-chooser',
                 '--win-menu',
-                '--win-menu-group', 'PiHole Widgets',
+                '--win-menu-group', 'DNSBlocker Widgets',
                 '--win-shortcut',
                 '--win-upgrade-uuid', 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'  // Consistent UUID for upgrades
             ]
@@ -151,7 +151,7 @@ jlink {
                 '--win-per-user-install',
                 '--win-dir-chooser',
                 '--win-menu',
-                '--win-menu-group', 'PiHole Widgets',
+                '--win-menu-group', 'DNSBlocker Widgets',
                 '--win-shortcut'
             ]
         }
@@ -169,7 +169,7 @@ jlink {
             // macOS PKG installer
             installerOptions += [
                 '--mac-package-identifier', 'com.FoKss-LTS.piholewidgets',
-                '--mac-package-name', 'PiHole Widgets'
+                '--mac-package-name', 'DNSBlocker Widgets'
             ]
             // Uncomment when icon is available in .icns format
             // imageOptions += ['--icon', 'src/main/resources/media/icons/icon.icns']
@@ -179,7 +179,7 @@ jlink {
             // macOS DMG installer (alternative to PKG)
             installerOptions += [
                 '--mac-package-identifier', 'com.FoKss-LTS.piholewidgets',
-                '--mac-package-name', 'PiHole Widgets'
+                '--mac-package-name', 'DNSBlocker Widgets'
             ]
             // Uncomment when icon is available in .icns format
             // imageOptions += ['--icon', 'src/main/resources/media/icons/icon.icns']
