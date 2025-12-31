@@ -5,11 +5,16 @@ import domain.configuration.DnsBlockerType;
 import domain.configuration.WidgetConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -306,5 +311,214 @@ class ConfigurationServiceTest {
         ConfigurationService newService = new ConfigurationService();
         newService.readConfiguration();
         assertEquals(WidgetConfig.DEFAULT_THEME, newService.getWidgetConfig().getTheme());
+    }
+
+    // ==================== Self-Healing Tests ====================
+
+    @Nested
+    @DisplayName("Self-Healing for Corrupt Configuration")
+    class SelfHealingTests {
+
+        @Test
+        @DisplayName("Should self-heal from corrupt JSON and create backup")
+        void shouldSelfHealFromCorruptJson() throws IOException {
+            // Create a corrupt JSON file
+            Files.createDirectories(configFilePath.getParent());
+            Files.writeString(configFilePath, "{ this is not valid JSON !!!");
+
+            // Read should trigger self-healing
+            configService.readConfiguration();
+
+            // Verify that defaults are loaded
+            WidgetConfig widget = configService.getWidgetConfig();
+            assertNotNull(widget, "Widget config should not be null after self-heal");
+            assertEquals(WidgetConfig.DEFAULT_SIZE, widget.getSize());
+            assertEquals(WidgetConfig.DEFAULT_LAYOUT, widget.getLayout());
+            assertEquals(WidgetConfig.DEFAULT_THEME, widget.getTheme());
+
+            // Verify backup file was created
+            List<Path> backupFiles = findBackupFiles();
+            assertTrue(backupFiles.size() >= 1, "Should create at least one backup file");
+
+            // Clean up backup files
+            for (Path backup : backupFiles) {
+                Files.deleteIfExists(backup);
+            }
+        }
+
+        @Test
+        @DisplayName("Should self-heal from truncated JSON file")
+        void shouldSelfHealFromTruncatedJson() throws IOException {
+            Files.createDirectories(configFilePath.getParent());
+            // Truncated JSON - missing closing braces
+            Files.writeString(configFilePath, "{\"DNS1\": {\"IP\": \"192.168.1.1\"");
+
+            configService.readConfiguration();
+
+            WidgetConfig widget = configService.getWidgetConfig();
+            assertNotNull(widget, "Should have default widget config after self-heal");
+
+            // Clean up any backup files
+            cleanupBackupFiles();
+        }
+
+        @Test
+        @DisplayName("Should self-heal from empty file")
+        void shouldSelfHealFromEmptyFile() throws IOException {
+            Files.createDirectories(configFilePath.getParent());
+            Files.writeString(configFilePath, "");
+
+            configService.readConfiguration();
+
+            WidgetConfig widget = configService.getWidgetConfig();
+            assertNotNull(widget, "Should have default widget config after self-heal");
+
+            cleanupBackupFiles();
+        }
+
+        @Test
+        @DisplayName("Should self-heal from binary garbage")
+        void shouldSelfHealFromBinaryGarbage() throws IOException {
+            Files.createDirectories(configFilePath.getParent());
+            byte[] garbage = new byte[]{0x00, 0x01, 0x02, (byte) 0xFF, (byte) 0xFE, 0x03};
+            Files.write(configFilePath, garbage);
+
+            configService.readConfiguration();
+
+            WidgetConfig widget = configService.getWidgetConfig();
+            assertNotNull(widget, "Should have default widget config after self-heal");
+
+            cleanupBackupFiles();
+        }
+
+        @Test
+        @DisplayName("Backup file should contain original corrupt content")
+        void backupFileShouldContainOriginalContent() throws IOException {
+            // Clean up any existing backups first to ensure isolation
+            cleanupBackupFiles();
+            
+            String corruptContent = "{ corrupt content 12345 }";
+            Files.createDirectories(configFilePath.getParent());
+            Files.writeString(configFilePath, corruptContent);
+
+            configService.readConfiguration();
+
+            List<Path> backupFiles = findBackupFiles();
+            assertFalse(backupFiles.isEmpty(), "Should create backup file");
+
+            // Find the most recent backup (highest timestamp)
+            Path mostRecentBackup = backupFiles.stream()
+                    .max((a, b) -> a.getFileName().toString().compareTo(b.getFileName().toString()))
+                    .orElse(null);
+            assertNotNull(mostRecentBackup, "Should find a backup file");
+
+            // Verify the backup contains the original corrupt content
+            String backupContent = Files.readString(mostRecentBackup);
+            assertEquals(corruptContent, backupContent, "Backup should contain original corrupt content");
+
+            cleanupBackupFiles();
+        }
+
+        private List<Path> findBackupFiles() throws IOException {
+            List<Path> backups = new ArrayList<>();
+            Path parent = configFilePath.getParent();
+            if (Files.exists(parent)) {
+                try (DirectoryStream<Path> stream = Files.newDirectoryStream(parent, "settings.json.corrupt.*")) {
+                    for (Path path : stream) {
+                        backups.add(path);
+                    }
+                }
+            }
+            return backups;
+        }
+
+        private void cleanupBackupFiles() throws IOException {
+            for (Path backup : findBackupFiles()) {
+                Files.deleteIfExists(backup);
+            }
+        }
+    }
+
+    // ==================== Atomic Write Tests ====================
+
+    @Nested
+    @DisplayName("Atomic Write Operations")
+    class AtomicWriteTests {
+
+        @Test
+        @DisplayName("Should not leave temp files after successful write")
+        void shouldNotLeaveTempFilesAfterSuccessfulWrite() throws IOException {
+            boolean result = configService.writeConfigFile(
+                    DnsBlockerType.PIHOLE, "http", "192.168.1.1", 80, "", "token",
+                    DnsBlockerType.PIHOLE, "http", "", 80, "", "",
+                    "Medium", "Square", "Dark",
+                    true, true, true,
+                    2,
+                    5, 15, 60, 5);
+
+            assertTrue(result);
+
+            // Check that no .tmp files remain
+            Path parent = configFilePath.getParent();
+            try (DirectoryStream<Path> stream = Files.newDirectoryStream(parent, "*.tmp")) {
+                for (Path tmpFile : stream) {
+                    fail("Temp file should not remain after successful write: " + tmpFile);
+                }
+            }
+        }
+
+        @Test
+        @DisplayName("Configuration file should be valid JSON after write")
+        void configFileShouldBeValidJsonAfterWrite() throws IOException {
+            configService.writeConfigFile(
+                    DnsBlockerType.ADGUARD_HOME, "https", "10.0.0.1", 3000, "admin", "secret",
+                    DnsBlockerType.PIHOLE, "http", "", 80, "", "",
+                    "Large", "Horizontal", "Light",
+                    true, true, true,
+                    5,
+                    10, 20, 30, 40);
+
+            // Read the file content and verify it's valid JSON
+            String content = Files.readString(configFilePath);
+            assertNotNull(content);
+            assertFalse(content.isBlank());
+
+            // Verify it can be read back
+            ConfigurationService newService = new ConfigurationService();
+            newService.readConfiguration();
+
+            DnsBlockerConfig dns1 = newService.getConfigDNS1();
+            assertNotNull(dns1);
+            assertEquals("10.0.0.1", dns1.getIPAddress());
+            assertEquals(3000, dns1.getPort());
+            assertEquals("https", dns1.getScheme());
+            assertEquals(DnsBlockerType.ADGUARD_HOME, dns1.platform());
+        }
+
+        @Test
+        @DisplayName("Multiple rapid writes should not corrupt configuration")
+        void multipleRapidWritesShouldNotCorrupt() throws IOException {
+            // Perform multiple rapid writes
+            for (int i = 0; i < 10; i++) {
+                boolean result = configService.writeConfigFile(
+                        DnsBlockerType.PIHOLE, "http", "192.168.1." + i, 80 + i, "", "token" + i,
+                        DnsBlockerType.PIHOLE, "http", "", 80, "", "",
+                        "Medium", "Square", "Dark",
+                        true, true, true,
+                        2,
+                        5, 15, 60, 5);
+                assertTrue(result, "Write " + i + " should succeed");
+            }
+
+            // Read back and verify the last write succeeded
+            ConfigurationService newService = new ConfigurationService();
+            newService.readConfiguration();
+
+            DnsBlockerConfig dns1 = newService.getConfigDNS1();
+            assertNotNull(dns1);
+            assertEquals("192.168.1.9", dns1.getIPAddress());
+            assertEquals(89, dns1.getPort());
+            assertEquals("token9", dns1.password());
+        }
     }
 }
