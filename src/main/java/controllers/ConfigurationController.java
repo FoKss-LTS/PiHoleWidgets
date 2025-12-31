@@ -172,13 +172,19 @@ public class ConfigurationController implements Initializable {
     // DNS2 support intentionally disabled.
     // private DnsBlockerConfig configDNS2;
     private WidgetConfig widgetConfig;
+    private final AppActions appActions;
 
     // ==================== Constructor ====================
 
     public ConfigurationController(DnsBlockerConfig configDNS1, WidgetConfig widgetConfig) {
+        this(configDNS1, widgetConfig, null);
+    }
+
+    public ConfigurationController(DnsBlockerConfig configDNS1, WidgetConfig widgetConfig, AppActions appActions) {
         log("ConfigurationController created");
         this.configDNS1 = configDNS1;
         this.widgetConfig = widgetConfig;
+        this.appActions = appActions;
     }
 
     // ==================== Logging ====================
@@ -307,7 +313,9 @@ public class ConfigurationController implements Initializable {
                 log("Apply button clicked");
                 saveConfiguration();
                 showInfoAlert("Settings applied", "Configuration saved and applied to the widget.");
-                WidgetApplication.applyAndCloseConfigurationWindow();
+                if (appActions != null) {
+                    appActions.applyAndCloseConfigurationWindow();
+                }
             });
         }
 
@@ -330,7 +338,9 @@ public class ConfigurationController implements Initializable {
         if (buttonCancel != null) {
             buttonCancel.setOnMouseClicked(_ -> {
                 log("Cancel button clicked");
-                WidgetApplication.closeConfigurationWindow();
+                if (appActions != null) {
+                    appActions.closeConfigurationWindow();
+                }
             });
         }
     }

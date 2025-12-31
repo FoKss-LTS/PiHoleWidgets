@@ -2,15 +2,12 @@ package controllers;
 
 import domain.configuration.DnsBlockerConfig;
 import domain.configuration.WidgetConfig;
-import javafx.application.Platform;
 import javafx.embed.swing.JFXPanel;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.TextField;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.net.URL;
+import java.net.URI;
 import java.util.ResourceBundle;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -24,6 +21,22 @@ class ConfigurationControllerTest {
     private ConfigurationController controller;
     private DnsBlockerConfig testPiholeConfig;
     private WidgetConfig testWidgetConfig;
+    private static final AppActions NOOP_ACTIONS = new AppActions() {
+        @Override
+        public void openConfigurationWindow() {}
+
+        @Override
+        public void applyAndCloseConfigurationWindow() {}
+
+        @Override
+        public void closeConfigurationWindow() {}
+
+        @Override
+        public void hideToTray() {}
+
+        @Override
+        public void requestExit() {}
+    };
 
     @BeforeAll
     static void initJavaFX() {
@@ -35,7 +48,7 @@ class ConfigurationControllerTest {
     void setUp() {
         testPiholeConfig = DnsBlockerConfig.forPiHole("192.168.1.1", 80, "http", "testtoken");
         testWidgetConfig = new WidgetConfig("Medium", "Square", "Dark");
-        controller = new ConfigurationController(testPiholeConfig, testWidgetConfig);
+        controller = new ConfigurationController(testPiholeConfig, testWidgetConfig, NOOP_ACTIONS);
     }
 
     @Test
@@ -52,7 +65,7 @@ class ConfigurationControllerTest {
         // This test verifies initialize doesn't throw exceptions with null FXML fields
         assertDoesNotThrow(() -> {
             try {
-                controller.initialize(new URL("file:///test"), ResourceBundle.getBundle("test"));
+                controller.initialize(URI.create("file:///test").toURL(), ResourceBundle.getBundle("test"));
             } catch (Exception e) {
                 // Expected when FXML fields are not injected or resource bundle doesn't exist
                 // This is acceptable for unit tests without full JavaFX setup
@@ -62,61 +75,41 @@ class ConfigurationControllerTest {
 
     @Test
     void testParsePortWithValidPort() {
-        // Test parsePort logic through reflection or by testing the behavior
-        // Since parsePort is private, we test it indirectly through saveConfiguration
-        // But saveConfiguration requires FXML fields, so we'll test the logic
-        // separately
-
-        // Create a test TextField
-        TextField portField = new TextField("8080");
-
-        // We can't directly test private methods, but we can verify the controller
-        // handles valid configurations correctly
         assertNotNull(controller);
     }
 
     @Test
     void testParsePortWithInvalidPort() {
-        TextField portField = new TextField("99999"); // Invalid port
-        // The parsePort method should default to DEFAULT_PORT for invalid values
-        // This is tested indirectly through integration
+        assertNotNull(controller);
     }
 
     @Test
     void testParsePortWithEmptyField() {
-        TextField portField = new TextField("");
-        // Should default to DEFAULT_PORT
+        assertNotNull(controller);
     }
 
     @Test
     void testParseIntervalWithValidInterval() {
-        TextField intervalField = new TextField("30");
-        // Should parse correctly
+        assertNotNull(controller);
     }
 
     @Test
     void testParseIntervalWithInvalidInterval() {
-        TextField intervalField = new TextField("-5");
-        // Should default to provided default value
+        assertNotNull(controller);
     }
 
     @Test
     void testParseIntervalWithEmptyField() {
-        TextField intervalField = new TextField("");
-        // Should default to provided default value
+        assertNotNull(controller);
     }
 
     @Test
     void testStripSchemeRemovesHttpPrefix() {
-        // Test stripScheme logic
-        // Since it's private, we test through saveConfiguration behavior
-        // For unit testing, we'd need to extract this to a testable method
         assertNotNull(controller);
     }
 
     @Test
     void testStripSchemeRemovesHttpsPrefix() {
-        // Similar to above
         assertNotNull(controller);
     }
 
@@ -129,38 +122,25 @@ class ConfigurationControllerTest {
     @Test
     void testGetTextOrEmpty() {
         // Test getTextOrEmpty logic
-        TextField field1 = new TextField("test");
-        TextField field2 = new TextField("");
-        TextField field3 = null;
-
-        // Since getTextOrEmpty is private, we verify the controller exists
+        // Since getTextOrEmpty is private, we just verify the controller exists
         assertNotNull(controller);
     }
 
     @Test
     void testGetSelectedOrDefault() {
-        ComboBox<String> comboBox = new ComboBox<>();
-        comboBox.getItems().addAll("Option1", "Option2");
-        comboBox.setValue("Option1");
-
-        // Since getSelectedOrDefault is private, we verify the controller exists
+        // Since getSelectedOrDefault is private, we just verify the controller exists
         assertNotNull(controller);
     }
 
     @Test
     void testSetComboBoxValue() {
-        ComboBox<String> comboBox = new ComboBox<>();
-        comboBox.getItems().addAll("Option1", "Option2");
-
-        // Since setComboBoxValue is private, we verify the controller exists
+        // Since setComboBoxValue is private, we just verify the controller exists
         assertNotNull(controller);
     }
 
     @Test
     void testSetTextFieldValue() {
-        TextField field = new TextField();
-
-        // Since setTextFieldValue is private, we verify the controller exists
+        // Since setTextFieldValue is private, we just verify the controller exists
         assertNotNull(controller);
     }
 

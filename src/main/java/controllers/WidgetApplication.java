@@ -79,19 +79,46 @@ public class WidgetApplication extends Application {
     private double xOffset;
     private double yOffset;
 
-    // ==================== Static Application State ====================
+    // ==================== Application State (instance-owned) ====================
 
-    private static DnsBlockerConfig configDNS1;
-    private static WidgetConfig widgetConfig;
+    private DnsBlockerConfig configDNS1;
+    private WidgetConfig widgetConfig;
 
-    private static Parent configurationRoot;
-    private static ConfigurationService configService;
-    private static Stage configurationStage;
-    private static Stage widgetStage;
-    private static WidgetController widgetController;
-    private static SystemTray systemTray;
-    private static TrayIcon trayIcon;
-    private static final AtomicBoolean EXITING = new AtomicBoolean(false);
+    private Parent configurationRoot;
+    private ConfigurationService configService;
+    private Stage configurationStage;
+    private Stage widgetStage;
+    private WidgetController widgetController;
+    private SystemTray systemTray;
+    private TrayIcon trayIcon;
+    private final AtomicBoolean exiting = new AtomicBoolean(false);
+
+    private final AppActions appActions = new AppActions() {
+        @Override
+        public void openConfigurationWindow() {
+            WidgetApplication.this.openConfigurationWindow();
+        }
+
+        @Override
+        public void applyAndCloseConfigurationWindow() {
+            WidgetApplication.this.applyAndCloseConfigurationWindow();
+        }
+
+        @Override
+        public void closeConfigurationWindow() {
+            WidgetApplication.this.closeConfigurationWindow();
+        }
+
+        @Override
+        public void hideToTray() {
+            WidgetApplication.this.hideToTray();
+        }
+
+        @Override
+        public void requestExit() {
+            WidgetApplication.this.requestExit();
+        }
+    };
 
     // ==================== Application Lifecycle ====================
 
@@ -126,14 +153,14 @@ public class WidgetApplication extends Application {
         log("Configuration loaded - DNS1: " + (configDNS1 != null ? configDNS1.getIPAddress() : "null"));
 
         // Initialize configuration controller and view
-        ConfigurationController configurationController = new ConfigurationController(configDNS1, widgetConfig);
+        ConfigurationController configurationController = new ConfigurationController(configDNS1, widgetConfig, appActions);
         FXMLLoader configLoader = new FXMLLoader(getClass().getResource("Configuration.fxml"));
         configLoader.setController(configurationController);
         configurationRoot = configLoader.load();
         log("Configuration view loaded");
 
         // Initialize widget controller and view
-        widgetController = new WidgetController(configDNS1, widgetConfig);
+        widgetController = new WidgetController(configDNS1, widgetConfig, appActions);
         FXMLLoader widgetLoader = new FXMLLoader(getClass().getResource("WidgetContainer.fxml"));
         widgetLoader.setController(widgetController);
         Parent widgetRoot = widgetLoader.load();
@@ -261,7 +288,7 @@ public class WidgetApplication extends Application {
 
     // ==================== Configuration Window Management ====================
 
-    public static void openConfigurationWindow() {
+    public void openConfigurationWindow() {
         log("Opening configuration window");
         if (configurationStage == null)
             return;
@@ -275,7 +302,7 @@ public class WidgetApplication extends Application {
      * Updates the configuration window title based on the selected DNS blocker
      * type.
      */
-    public static void updateConfigurationWindowTitle() {
+    public void updateConfigurationWindowTitle() {
         if (configurationStage == null)
             return;
 
@@ -288,7 +315,7 @@ public class WidgetApplication extends Application {
         log("Configuration window title updated to: " + platformName + " Widget Settings");
     }
 
-    public static void applyAndCloseConfigurationWindow() {
+    public void applyAndCloseConfigurationWindow() {
         log("Applying configuration and closing window");
 
         if (configurationStage != null) {
@@ -317,7 +344,7 @@ public class WidgetApplication extends Application {
         log("Configuration applied with theme: " + theme);
     }
 
-    public static void closeConfigurationWindow() {
+    public void closeConfigurationWindow() {
         log("Closing configuration window");
         if (configurationStage != null) {
             configurationStage.hide();
@@ -326,7 +353,7 @@ public class WidgetApplication extends Application {
 
     // ==================== System Tray ====================
 
-    private static void initializeSystemTray() {
+    private void initializeSystemTray() {
         log("Initializing system tray");
 
         if (!SystemTray.isSupported()) {
@@ -348,7 +375,7 @@ public class WidgetApplication extends Application {
         trayIcon.setImageAutoSize(true);
 
         // Double-click to show window
-        trayIcon.addActionListener(_ -> Platform.runLater(WidgetApplication::showWidget));
+        trayIcon.addActionListener(_ -> Platform.runLater(this::showWidget));
 
         try {
             systemTray.add(trayIcon);
@@ -514,21 +541,21 @@ public class WidgetApplication extends Application {
         return bufferedImage;
     }
 
-    private static PopupMenu createTrayPopupMenu() {
+    private PopupMenu createTrayPopupMenu() {
         PopupMenu popup = new PopupMenu();
 
         MenuItem showItem = new MenuItem("Show");
-        showItem.addActionListener(_ -> Platform.runLater(WidgetApplication::showWidget));
+        showItem.addActionListener(_ -> Platform.runLater(this::showWidget));
         popup.add(showItem);
 
         MenuItem hideItem = new MenuItem("Hide to Tray");
-        hideItem.addActionListener(_ -> Platform.runLater(WidgetApplication::hideToTray));
+        hideItem.addActionListener(_ -> Platform.runLater(this::hideToTray));
         popup.add(hideItem);
 
         popup.addSeparator();
 
         MenuItem settingsItem = new MenuItem("Settings");
-        settingsItem.addActionListener(_ -> Platform.runLater(WidgetApplication::openConfigurationWindow));
+        settingsItem.addActionListener(_ -> Platform.runLater(this::openConfigurationWindow));
         popup.add(settingsItem);
 
         popup.addSeparator();
@@ -540,26 +567,26 @@ public class WidgetApplication extends Application {
         return popup;
     }
 
-    public static void hideToTray() {
+    public void hideToTray() {
         log("Hiding to tray");
         if (widgetStage != null) {
             widgetStage.hide();
         }
     }
 
-    public static void showFromTray() {
+    public void showFromTray() {
         log("Showing from tray");
         showWidget();
     }
 
-    private static void showWidget() {
+    private void showWidget() {
         if (widgetStage != null) {
             widgetStage.show();
             bringStageToFront(widgetStage);
         }
     }
 
-    private static void refreshWidgetTiles() {
+    private void refreshWidgetTiles() {
         if (widgetController != null) {
             widgetController.refreshAllTiles();
         }
@@ -570,7 +597,7 @@ public class WidgetApplication extends Application {
      * Windows doesn't always honor toFront() calls, so we use the "always on top"
      * trick.
      */
-    private static void bringStageToFront(Stage stage) {
+    private void bringStageToFront(Stage stage) {
         if (stage == null)
             return;
 
@@ -587,7 +614,7 @@ public class WidgetApplication extends Application {
     /**
      * Cleanup resources before exit.
      */
-    private static void cleanup() {
+    private void cleanup() {
         log("Cleaning up resources");
 
         // Shutdown widget controller schedulers
@@ -605,8 +632,8 @@ public class WidgetApplication extends Application {
      * Centralized exit path for ALL UI entry points (tray/menu/context menu).
      * Safe to call from any thread (AWT tray thread or JavaFX thread).
      */
-    public static void requestExit() {
-        if (!EXITING.compareAndSet(false, true)) {
+    public void requestExit() {
+        if (!exiting.compareAndSet(false, true)) {
             return; // already exiting
         }
 

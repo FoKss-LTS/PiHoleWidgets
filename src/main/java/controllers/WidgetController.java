@@ -83,6 +83,7 @@ import java.util.logging.Logger;
  * multiple tiles.
  */
 public class WidgetController implements Initializable {
+    private final AppActions appActions;
 
     // ==================== Constants ====================
 
@@ -204,12 +205,17 @@ public class WidgetController implements Initializable {
     // ==================== Constructor ====================
 
     public WidgetController(DnsBlockerConfig configDNS1, WidgetConfig widgetConfig) {
+        this(configDNS1, widgetConfig, null);
+    }
+
+    public WidgetController(DnsBlockerConfig configDNS1, WidgetConfig widgetConfig, AppActions appActions) {
         log("=== WidgetController constructor called ===");
         log("ConfigDNS1: " + formatConfig(configDNS1));
         log("WidgetConfig: " + formatWidgetConfig(widgetConfig));
 
         this.configDNS1 = configDNS1;
         this.widgetConfig = widgetConfig;
+        this.appActions = appActions;
     }
 
     // ==================== Initialization ====================
@@ -1374,7 +1380,9 @@ public class WidgetController implements Initializable {
         MenuItem hideToTrayItem = new MenuItem("Hide to Tray");
         hideToTrayItem.setOnAction(_ -> {
             log("Context menu: 'Hide to Tray' clicked");
-            WidgetApplication.hideToTray();
+            if (appActions != null) {
+                appActions.hideToTray();
+            }
         });
 
         MenuItem refreshItem = new MenuItem("Refresh All Now");
@@ -1386,13 +1394,20 @@ public class WidgetController implements Initializable {
         MenuItem configItem = new MenuItem("Settings");
         configItem.setOnAction(_ -> {
             log("Context menu: 'Settings' clicked");
-            WidgetApplication.openConfigurationWindow();
+            if (appActions != null) {
+                appActions.openConfigurationWindow();
+            }
         });
 
         MenuItem exitItem = new MenuItem("Exit");
         exitItem.setOnAction(_ -> {
             log("Context menu: 'Exit' clicked - shutting down");
-            WidgetApplication.requestExit();
+            if (appActions != null) {
+                appActions.requestExit();
+            } else {
+                // fallback for tests / legacy usage
+                shutdown();
+            }
         });
 
         log("Menu items created: Hide to Tray, Refresh All Now, Settings, Exit");
@@ -1450,7 +1465,9 @@ public class WidgetController implements Initializable {
     @FXML
     public void openConfigurationWindow() {
         log("openConfigurationWindow() called");
-        WidgetApplication.openConfigurationWindow();
+        if (appActions != null) {
+            appActions.openConfigurationWindow();
+        }
     }
 
     public Pane getGridPane() {

@@ -1,16 +1,11 @@
 package controllers;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import domain.configuration.DnsBlockerConfig;
 import domain.configuration.WidgetConfig;
-import javafx.application.Platform;
 import javafx.embed.swing.JFXPanel;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import java.net.URL;
-import java.util.ResourceBundle;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -23,7 +18,23 @@ class WidgetControllerTest {
     private WidgetController controller;
     private DnsBlockerConfig testPiholeConfig;
     private WidgetConfig testWidgetConfig;
-    private static final ObjectMapper JSON = new ObjectMapper();
+    // (No JSON parsing tested in this suite currently.)
+    private static final AppActions NOOP_ACTIONS = new AppActions() {
+        @Override
+        public void openConfigurationWindow() {}
+
+        @Override
+        public void applyAndCloseConfigurationWindow() {}
+
+        @Override
+        public void closeConfigurationWindow() {}
+
+        @Override
+        public void hideToTray() {}
+
+        @Override
+        public void requestExit() {}
+    };
 
     @BeforeAll
     static void initJavaFX() {
@@ -35,7 +46,7 @@ class WidgetControllerTest {
     void setUp() {
         testPiholeConfig = DnsBlockerConfig.forPiHole("192.168.1.1", 80, "http", "testtoken");
         testWidgetConfig = new WidgetConfig("Medium", "Square", "Dark");
-        controller = new WidgetController(testPiholeConfig, testWidgetConfig);
+        controller = new WidgetController(testPiholeConfig, testWidgetConfig, NOOP_ACTIONS);
     }
 
     @Test
@@ -47,7 +58,7 @@ class WidgetControllerTest {
 
     @Test
     void testConstructorWithNullConfig() {
-        WidgetController nullController = new WidgetController(null, null);
+        WidgetController nullController = new WidgetController(null, null, NOOP_ACTIONS);
         assertNotNull(nullController);
         assertNull(nullController.getConfigDNS1());
         assertNull(nullController.getWidgetConfig());
@@ -108,7 +119,7 @@ class WidgetControllerTest {
 
     @Test
     void testRefreshPiholeWithNullConfig() {
-        WidgetController nullController = new WidgetController(null, testWidgetConfig);
+        WidgetController nullController = new WidgetController(null, testWidgetConfig, NOOP_ACTIONS);
         assertDoesNotThrow(() -> {
             nullController.refreshPihole();
         });
@@ -161,8 +172,6 @@ class WidgetControllerTest {
 
     @Test
     void testOpenConfigurationWindow() {
-        // This calls static method on WidgetApplication
-        // In a real test, we'd mock WidgetApplication
         assertDoesNotThrow(() -> {
             controller.openConfigurationWindow();
         });
