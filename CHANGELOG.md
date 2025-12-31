@@ -5,7 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.5.1] - 2025-12-31
+
+## [2.5.0] - 2026-01-01
 
 ### Added
 
@@ -14,6 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Implemented an `AdGuardHomeHandler` using **HTTP Basic Authentication** (username/password).
   - Added handler routing via `DnsBlockerHandlerFactory` to select the correct implementation per platform.
   
+  - **Dual DNS Blocker Support (Re-enabled)**
+  - Configure and monitor two DNS blockers simultaneously (e.g., primary + backup Pi-hole, or Pi-hole + AdGuard Home).
+  - Statistics from both DNS blockers are combined and displayed in the widget.
+  - Toggle actions (enable/disable blocking) apply to both blockers at once.
+  - LED status shows MIXED (orange) state when one blocker is enabled and the other disabled.
+  - DNS 2 settings panel added back to the configuration UI.
+
+
 - **More Widget customization**
   - Added/standardized the **Widget Settings** controls in the settings UI.
   - You can now configure **Size**, **Layout**, and **Theme** from the UI.

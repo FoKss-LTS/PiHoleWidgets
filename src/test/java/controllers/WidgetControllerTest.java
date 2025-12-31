@@ -46,7 +46,7 @@ class WidgetControllerTest {
     void setUp() {
         testPiholeConfig = DnsBlockerConfig.forPiHole("192.168.1.1", 80, "http", "testtoken");
         testWidgetConfig = new WidgetConfig("Medium", "Square", "Dark");
-        controller = new WidgetController(testPiholeConfig, testWidgetConfig, NOOP_ACTIONS);
+        controller = new WidgetController(testPiholeConfig, null, testWidgetConfig, NOOP_ACTIONS);
     }
 
     @Test
@@ -58,7 +58,7 @@ class WidgetControllerTest {
 
     @Test
     void testConstructorWithNullConfig() {
-        WidgetController nullController = new WidgetController(null, null, NOOP_ACTIONS);
+        WidgetController nullController = new WidgetController(null, null, null, NOOP_ACTIONS);
         assertNotNull(nullController);
         assertNull(nullController.getConfigDNS1());
         assertNull(nullController.getWidgetConfig());
@@ -96,7 +96,7 @@ class WidgetControllerTest {
         // applyConfiguration may throw exceptions if JavaFX is not fully initialized
         // We test that it doesn't throw unexpected exceptions
         try {
-            controller.applyConfiguration(newPiholeConfig, newWidgetConfig);
+            controller.applyConfiguration(newPiholeConfig, null, newWidgetConfig);
             assertEquals(newPiholeConfig, controller.getConfigDNS1());
             assertEquals(newWidgetConfig, controller.getWidgetConfig());
         } catch (IllegalStateException | IllegalArgumentException e) {
@@ -119,7 +119,7 @@ class WidgetControllerTest {
 
     @Test
     void testRefreshPiholeWithNullConfig() {
-        WidgetController nullController = new WidgetController(null, testWidgetConfig, NOOP_ACTIONS);
+        WidgetController nullController = new WidgetController(null, null, testWidgetConfig, NOOP_ACTIONS);
         assertDoesNotThrow(() -> {
             nullController.refreshPihole();
         });

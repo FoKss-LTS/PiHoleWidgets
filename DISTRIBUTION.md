@@ -257,8 +257,8 @@ The project includes GitHub Actions workflows that automatically build packages 
 
 ```bash
 # Tag a release
-git tag -a v2.5.1 -m "Release version 2.5.1"
-git push origin v2.5.1
+git tag -a v2.5.0 -m "Release version 2.5.0"
+git push origin v2.5.0
 
 # GitHub Actions will automatically:
 # 1. Build Windows portable ZIP
@@ -462,4 +462,4 @@ If you encounter issues:
 ---
 
 **Last Updated:** December 2025  
-**Version:** 2.5.1
+**Version:** 2.5.0

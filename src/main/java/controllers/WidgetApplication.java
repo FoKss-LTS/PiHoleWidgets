@@ -82,6 +82,7 @@ public class WidgetApplication extends Application {
     // ==================== Application State (instance-owned) ====================
 
     private DnsBlockerConfig configDNS1;
+    private DnsBlockerConfig configDNS2;
     private WidgetConfig widgetConfig;
 
     private Parent configurationRoot;
@@ -149,18 +150,20 @@ public class WidgetApplication extends Application {
         configService.readConfiguration();
 
         configDNS1 = configService.getConfigDNS1();
+        configDNS2 = configService.getConfigDNS2();
         widgetConfig = configService.getWidgetConfig();
         log("Configuration loaded - DNS1: " + (configDNS1 != null ? configDNS1.getIPAddress() : "null"));
+        log("Configuration loaded - DNS2: " + (configDNS2 != null ? configDNS2.getIPAddress() : "null"));
 
         // Initialize configuration controller and view
-        ConfigurationController configurationController = new ConfigurationController(configDNS1, widgetConfig, appActions);
+        ConfigurationController configurationController = new ConfigurationController(configDNS1, configDNS2, widgetConfig, appActions);
         FXMLLoader configLoader = new FXMLLoader(getClass().getResource("Configuration.fxml"));
         configLoader.setController(configurationController);
         configurationRoot = configLoader.load();
         log("Configuration view loaded");
 
         // Initialize widget controller and view
-        widgetController = new WidgetController(configDNS1, widgetConfig, appActions);
+        widgetController = new WidgetController(configDNS1, configDNS2, widgetConfig, appActions);
         FXMLLoader widgetLoader = new FXMLLoader(getClass().getResource("WidgetContainer.fxml"));
         widgetLoader.setController(widgetController);
         Parent widgetRoot = widgetLoader.load();
@@ -211,12 +214,10 @@ public class WidgetApplication extends Application {
     }
 
     private boolean hasValidDnsConfig() {
-        // Check if DNS1 has both valid address AND password
+        // Check if DNS1 or DNS2 has both valid address AND password
         boolean dns1Valid = configDNS1 != null && configDNS1.isFullyValid();
-        // DNS2 support intentionally disabled.
-        // boolean dns2Valid = configDNS2 != null && configDNS2.isFullyValid();
-        // return dns1Valid || dns2Valid;
-        return dns1Valid;
+        boolean dns2Valid = configDNS2 != null && configDNS2.isFullyValid();
+        return dns1Valid || dns2Valid;
     }
 
     private void showConfigurationRequiredAlert() {
@@ -325,6 +326,7 @@ public class WidgetApplication extends Application {
         // Reload configuration
         configService.readConfiguration();
         configDNS1 = configService.getConfigDNS1();
+        configDNS2 = configService.getConfigDNS2();
         widgetConfig = configService.getWidgetConfig();
 
         // Apply theme to both scenes
@@ -338,7 +340,7 @@ public class WidgetApplication extends Application {
 
         // Update widget controller
         if (widgetController != null) {
-            widgetController.applyConfiguration(configDNS1, widgetConfig);
+            widgetController.applyConfiguration(configDNS1, configDNS2, widgetConfig);
         }
 
         log("Configuration applied with theme: " + theme);

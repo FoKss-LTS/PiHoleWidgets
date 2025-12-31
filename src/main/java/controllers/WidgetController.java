@@ -150,22 +150,13 @@ public class WidgetController implements Initializable {
     private BorderPane topXGraphicRoot;
     private FlowGridPane gridPane;
 
-    // DNS blocker handler (supports both Pi-hole and AdGuard Home)
+    // DNS blocker handlers (supports both Pi-hole and AdGuard Home)
     private volatile DnsBlockerHandler dnsBlockerHandler;
-    /*
-     * DNS2 support intentionally disabled.
-     * User request:
-     * "no need for 2 DNS management, comment all code related to 2 DNSs"
-     *
-     * private DnsBlockerHandler dnsBlocker2;
-     */
+    private volatile DnsBlockerHandler dnsBlocker2;
 
     // Configuration
     private volatile DnsBlockerConfig configDNS1;
-    /*
-     * DNS2 support intentionally disabled.
-     * private DnsBlockerConfig configDNS2;
-     */
+    private volatile DnsBlockerConfig configDNS2;
     private volatile WidgetConfig widgetConfig;
     private long statusRefreshIntervalSec = DEFAULT_STATUS_REFRESH_INTERVAL;
     private long fluidRefreshIntervalSec = DEFAULT_FLUID_REFRESH_INTERVAL;
@@ -205,15 +196,17 @@ public class WidgetController implements Initializable {
     // ==================== Constructor ====================
 
     public WidgetController(DnsBlockerConfig configDNS1, WidgetConfig widgetConfig) {
-        this(configDNS1, widgetConfig, null);
+        this(configDNS1, null, widgetConfig, null);
     }
 
-    public WidgetController(DnsBlockerConfig configDNS1, WidgetConfig widgetConfig, AppActions appActions) {
+    public WidgetController(DnsBlockerConfig configDNS1, DnsBlockerConfig configDNS2, WidgetConfig widgetConfig, AppActions appActions) {
         log("=== WidgetController constructor called ===");
         log("ConfigDNS1: " + formatConfig(configDNS1));
+        log("ConfigDNS2: " + formatConfig(configDNS2));
         log("WidgetConfig: " + formatWidgetConfig(widgetConfig));
 
         this.configDNS1 = configDNS1;
+        this.configDNS2 = configDNS2;
         this.widgetConfig = widgetConfig;
         this.appActions = appActions;
     }
@@ -524,21 +517,17 @@ public class WidgetController implements Initializable {
         } else {
             log("ConfigDNS1 is null, skipping DNS handler creation");
         }
-        /*
-         * DNS2 support intentionally disabled.
-         * User request:
-         * "no need for 2 DNS management, comment all code related to 2 DNSs"
-         *
-         * if (configDNS2 != null) {
-         * log("Creating DNS blocker handler for DNS2: " + configDNS2.platform() +
-         * " at " +
-         * configDNS2.getIPAddress() + ":" + configDNS2.getPort());
-         * dnsBlocker2 = DnsBlockerHandlerFactory.createHandler(configDNS2);
-         * log("DNS blocker handler DNS2 created");
-         * } else {
-         * log("ConfigDNS2 is null, skipping DNS2 handler creation");
-         * }
-         */
+
+        if (configDNS2 != null && configDNS2.hasValidAddress()) {
+            log("Creating DNS blocker handler for DNS2: " + configDNS2.platform() + " at " +
+                    configDNS2.getIPAddress() + ":" + configDNS2.getPort());
+            dnsBlocker2 = DnsBlockerHandlerFactory.createHandler(configDNS2);
+            logInfo("DNS Blocker 2 (" + configDNS2.platform() + ") version: " + dnsBlocker2.getVersion());
+            log("DNS blocker handler DNS2 created");
+        } else {
+            log("ConfigDNS2 is null or invalid, skipping DNS2 handler creation");
+            dnsBlocker2 = null;
+        }
 
         log("Calling inflateAllData()...");
         inflateAllData();
@@ -591,6 +580,7 @@ public class WidgetController implements Initializable {
 
     private void inflateStatusDataOnce() {
         final DnsBlockerHandler handler = this.dnsBlockerHandler;
+        final DnsBlockerHandler handler2 = this.dnsBlocker2;
         final Tile tile = this.statusTile;
         if (tile == null) {
             return;
@@ -598,7 +588,11 @@ public class WidgetController implements Initializable {
 
         String statsJson = (handler != null) ? handler.getStats() : "";
         SummaryStats s1 = parseSummaryStats(statsJson);
-        CombinedStats combined = combineStats(s1, SummaryStats.inactive());
+
+        String statsJson2 = (handler2 != null) ? handler2.getStats() : "";
+        SummaryStats s2 = parseSummaryStats(statsJson2);
+
+        CombinedStats combined = combineStats(s1, s2);
 
         String lastBlocked = (handler != null) ? handler.getLastBlocked() : "";
         String finalLastBlocked = lastBlocked == null ? "" : lastBlocked;
@@ -617,18 +611,23 @@ public class WidgetController implements Initializable {
 
     private void inflateFluidDataOnce() {
         final DnsBlockerHandler handler = this.dnsBlockerHandler;
+        final DnsBlockerHandler handler2 = this.dnsBlocker2;
         if (fluidTile == null) {
             return;
         }
 
         String statsJson = (handler != null) ? handler.getStats() : "";
-        if (statsJson == null || statsJson.isBlank()) {
+        String statsJson2 = (handler2 != null) ? handler2.getStats() : "";
+
+        // If both are empty, return early
+        if ((statsJson == null || statsJson.isBlank()) && (statsJson2 == null || statsJson2.isBlank())) {
             return;
         }
         final Instant fetchedAt = Instant.now();
 
         SummaryStats s1 = parseSummaryStats(statsJson);
-        CombinedStats combined = combineStats(s1, SummaryStats.inactive());
+        SummaryStats s2 = parseSummaryStats(statsJson2);
+        CombinedStats combined = combineStats(s1, s2);
 
         double adsPercentage = combined.percentBlocked();
         String statsFetchedText = formatStatsFetchedAt(fetchedAt);
@@ -645,7 +644,21 @@ public class WidgetController implements Initializable {
 
     private void inflateActiveDataOnce() {
         final DnsBlockerHandler handler = this.dnsBlockerHandler;
-        final String ipsText = (handler != null && configDNS1 != null) ? configDNS1.getIPAddress() : "";
+        final DnsBlockerHandler handler2 = this.dnsBlocker2;
+
+        // Build description showing active DNS blockers
+        StringBuilder ipsText = new StringBuilder();
+        if (handler != null && configDNS1 != null && configDNS1.hasValidAddress()) {
+            ipsText.append(configDNS1.getIPAddress());
+        }
+        if (handler2 != null && configDNS2 != null && configDNS2.hasValidAddress()) {
+            if (ipsText.length() > 0) {
+                ipsText.append(", ");
+            }
+            ipsText.append(configDNS2.getIPAddress());
+        }
+        final String finalIpsText = ipsText.toString();
+
         if (ledTile == null) {
             return;
         }
@@ -653,10 +666,17 @@ public class WidgetController implements Initializable {
         String statsJson = (handler != null) ? handler.getStats() : "";
         SummaryStats s1 = parseSummaryStats(statsJson);
 
-        Boolean enabled = (handler != null && statsJson != null && !statsJson.isBlank())
+        String statsJson2 = (handler2 != null) ? handler2.getStats() : "";
+        SummaryStats s2 = parseSummaryStats(statsJson2);
+
+        Boolean enabled1 = (handler != null && statsJson != null && !statsJson.isBlank())
                 ? fetchDnsBlockingEnabled(handler)
                 : null;
-        BlockingState state = computeBlockingStateSingle(enabled, s1);
+        Boolean enabled2 = (handler2 != null && statsJson2 != null && !statsJson2.isBlank())
+                ? fetchDnsBlockingEnabled(handler2)
+                : null;
+
+        BlockingState state = computeBlockingState(enabled1, enabled2, s1, s2);
         this.blockingState = state;
 
         String apiVersion = (handler != null) ? handler.getVersion() : "";
@@ -664,6 +684,8 @@ public class WidgetController implements Initializable {
 
         String finalApiVersion = apiVersion == null ? "" : apiVersion;
         String finalGravityUpdate = gravityUpdate == null ? "" : gravityUpdate;
+
+        boolean hasAnyStats = (statsJson != null && !statsJson.isBlank()) || (statsJson2 != null && !statsJson2.isBlank());
 
         Platform.runLater(() -> {
             if (ledTile == null) {
@@ -678,9 +700,9 @@ public class WidgetController implements Initializable {
                     : finalGravityUpdate;
 
             ledTile.setTitle(apiTitle);
-            ledTile.setDescription((statsJson == null || statsJson.isBlank()) ? "No active DNS blocker" : ipsText);
+            ledTile.setDescription(!hasAnyStats ? "No active DNS blocker" : finalIpsText);
 
-            if (statsJson == null || statsJson.isBlank()) {
+            if (!hasAnyStats) {
                 ledTile.setActiveColor(Color.RED);
                 ledTile.setActive(false);
                 ledTile.setText(gravityLabel);
@@ -701,7 +723,13 @@ public class WidgetController implements Initializable {
                     ledTile.setText(gravityLabel);
                     ledTile.setTooltipText("DNS blocking is DISABLED (click LED circle to enable)");
                 }
-                case MIXED, UNKNOWN -> {
+                case MIXED -> {
+                    ledTile.setActiveColor(Color.ORANGE);
+                    ledTile.setActive(true);
+                    ledTile.setText(gravityLabel);
+                    ledTile.setTooltipText("DNS blocking is MIXED (one enabled, one disabled) - click to sync");
+                }
+                case UNKNOWN -> {
                     ledTile.setActiveColor(Color.LIGHTGREEN);
                     ledTile.setActive(true);
                     ledTile.setText(gravityLabel);
@@ -1010,8 +1038,8 @@ public class WidgetController implements Initializable {
             // Apply to all configured instances (best effort)
             if (dnsBlockerHandler != null)
                 dnsBlockerHandler.setDnsBlocking(targetEnable, null);
-            // DNS2 support intentionally disabled.
-            // if (dnsBlocker2 != null) dnsBlocker2.setDnsBlocking(targetEnable, null);
+            if (dnsBlocker2 != null)
+                dnsBlocker2.setDnsBlocking(targetEnable, null);
 
             // Refresh LED/status immediately after change
             inflateActiveData();
@@ -1133,6 +1161,36 @@ public class WidgetController implements Initializable {
         if (enabled == null)
             return BlockingState.UNKNOWN;
         return enabled ? BlockingState.ENABLED : BlockingState.DISABLED;
+    }
+
+    private BlockingState computeBlockingState(Boolean b1, Boolean b2, SummaryStats s1, SummaryStats s2) {
+        // Fall back to summary stats if status endpoint didn't return blocking state
+        if (b1 == null && s1 != null && s1.active())
+            b1 = s1.dnsBlockingEnabled();
+        if (b2 == null && s2 != null && s2.active())
+            b2 = s2.dnsBlockingEnabled();
+
+        // Check if we have any active handlers
+        boolean has1 = s1 != null && s1.active();
+        boolean has2 = s2 != null && s2.active();
+
+        if (!has1 && !has2)
+            return BlockingState.UNKNOWN;
+        if (has1 && !has2)
+            return computeBlockingStateSingle(b1, s1);
+        if (!has1 && has2)
+            return computeBlockingStateSingle(b2, s2);
+
+        // Both active
+        if (b1 == null && b2 == null)
+            return BlockingState.UNKNOWN;
+        if (b1 == null)
+            return b2 ? BlockingState.ENABLED : BlockingState.DISABLED;
+        if (b2 == null)
+            return b1 ? BlockingState.ENABLED : BlockingState.DISABLED;
+        if (b1.equals(b2))
+            return b1 ? BlockingState.ENABLED : BlockingState.DISABLED;
+        return BlockingState.MIXED;
     }
 
     private Boolean fetchDnsBlockingEnabled(DnsBlockerHandler handler) {
@@ -1485,19 +1543,15 @@ public class WidgetController implements Initializable {
         this.configDNS1 = configDNS1;
     }
 
-    /*
-     * DNS2 support intentionally disabled.
-     *
-     * public PiholeConfig getConfigDNS2() {
-     * log("getConfigDNS2() - returning: " + formatConfig(configDNS2));
-     * return configDNS2;
-     * }
-     *
-     * public void setConfigDNS2(PiholeConfig configDNS2) {
-     * log("setConfigDNS2() - setting to: " + formatConfig(configDNS2));
-     * this.configDNS2 = configDNS2;
-     * }
-     */
+    public DnsBlockerConfig getConfigDNS2() {
+        log("getConfigDNS2() - returning: " + formatConfig(configDNS2));
+        return configDNS2;
+    }
+
+    public void setConfigDNS2(DnsBlockerConfig configDNS2) {
+        log("setConfigDNS2() - setting to: " + formatConfig(configDNS2));
+        this.configDNS2 = configDNS2;
+    }
 
     public WidgetConfig getWidgetConfig() {
         log("getWidgetConfig() - returning: " + formatWidgetConfig(widgetConfig));
@@ -1520,8 +1574,9 @@ public class WidgetController implements Initializable {
     /**
      * Applies new DNS and widget configuration values and refreshes the UI.
      */
-    public void applyConfiguration(DnsBlockerConfig newConfigDNS1, WidgetConfig newWidgetConfig) {
+    public void applyConfiguration(DnsBlockerConfig newConfigDNS1, DnsBlockerConfig newConfigDNS2, WidgetConfig newWidgetConfig) {
         setConfigDNS1(newConfigDNS1);
+        setConfigDNS2(newConfigDNS2);
         setWidgetConfig(newWidgetConfig);
         refreshPihole();
         String theme = newWidgetConfig != null ? newWidgetConfig.getTheme() : ThemeManager.DEFAULT_THEME;

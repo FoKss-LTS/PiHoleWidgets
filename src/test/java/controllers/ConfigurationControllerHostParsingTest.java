@@ -52,7 +52,7 @@ class ConfigurationControllerHostParsingTest {
     void setUp() throws Exception {
         DnsBlockerConfig testConfig = DnsBlockerConfig.forPiHole("192.168.1.1", 80, "http", "testtoken");
         WidgetConfig testWidgetConfig = new WidgetConfig("Medium", "Square", "Dark");
-        controller = new ConfigurationController(testConfig, testWidgetConfig, NOOP_ACTIONS);
+        controller = new ConfigurationController(testConfig, null, testWidgetConfig, NOOP_ACTIONS);
 
         // Get access to private parseHostInput method via reflection
         parseHostInputMethod = ConfigurationController.class.getDeclaredMethod("parseHostInput", String.class);

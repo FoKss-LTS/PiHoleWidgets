@@ -36,8 +36,9 @@ It is developed with JavaFX, and uses the framework TilesFX.
 
 #### Core Features
 - **Live stats from Pi-hole / AdGuard Home** - Real-time monitoring of your DNS blocker.
+- **Dual DNS blocker support** - Monitor and control two DNS blockers simultaneously (e.g., primary and backup).
 - **Modern, customizable widgets** - Beautiful TilesFX-based interface.
-- **Great summary** - All your Pi-hole DNS stats in one place.
+- **Great summary** - All your DNS blocker stats combined in one place.
 - **Last blocked domain** - See what was blocked most recently.
 - **Gravity update status** - Shows when gravity was last updated.
 
@@ -100,14 +101,20 @@ All donations are welcome and any amount of money will help me to maintain this 
 - Platform-specific build tools (see [DISTRIBUTION.md](DISTRIBUTION.md) for details).
 
 ### Configuration
-The widget automatically sets its configuration to the default pi-hole local address if that doesn't work , open the configuration interface by right clicking on the widget then click on Settings.
+The widget automatically sets its configuration to the default pi-hole local address if that doesn't work, open the configuration interface by right clicking on the widget then click on Settings.
 
 ![settings_rightclick.png](Readme_imgs/settings/settings_rightclick.png)
 
+#### DNS 1 Settings (Primary DNS Blocker)
 Select your **Platform** (Pi-hole or AdGuard Home), then enter the **IP Address**, **Port**, and your credentials:
 
 - **Pi-hole**: generate an **App Password** in the Pi-hole web UI and enter it as the password or your authentication password.
 - **AdGuard Home**: enter your **Username** and **Password** (Basic Auth).
+
+#### DNS 2 Settings (Optional Secondary DNS Blocker)
+You can optionally configure a second DNS blocker (e.g., a backup Pi-hole or a secondary AdGuard Home instance). The widget will combine statistics from both blockers and display aggregated data. Toggle actions (enable/disable blocking) will apply to both DNS blockers simultaneously.
+
+Leave DNS 2 empty if you only have one DNS blocker.
 
 Click **Apply**.
 
