@@ -23,6 +23,13 @@ jobs:
           java-version: '25'
           cache: 'gradle'
 
+      - name: Install WiX Toolset
+        run: |
+          # Install WiX Toolset 3.x for jpackage MSI/EXE generation
+          choco install wixtoolset -y --version=3.14.1
+          # Add WiX to PATH for current session
+          echo "C:\Program Files (x86)\WiX Toolset v3.14\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
       - name: Build with Gradle
         run: .\gradlew.bat build -x test
 
@@ -32,13 +39,20 @@ jobs:
       - name: Build and Package MSI
         run: .\gradlew.bat jpackage -PinstallerType=msi
 
+      - name: Build and Package EXE
+        run: |
+          .\gradlew.bat clean
+          .\gradlew.bat build -x test
+          .\gradlew.bat jpackage -PinstallerType=exe
+
       - name: Upload Windows Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: windows-portable
+          name: windows-packages
           path: |
             build/portable/*.zip
             build/jpackage/*.msi
+            build/jpackage/*.exe
 
   build-macos:
     name: Build macOS
@@ -144,6 +158,7 @@ jobs:
           files: |
             release-artifacts/*.zip
             release-artifacts/*.msi
+            release-artifacts/*.exe
             release-artifacts/*.pkg
             release-artifacts/*.deb
             release-artifacts/*.rpm
