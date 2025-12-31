@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.1] - 2025-12-31
+
+### Added
+
+- **AdGuard Home support**
+  - Added a **Platform** selection (Pi-hole / AdGuard Home) in the configuration UI and configuration model.
+  - Implemented an `AdGuardHomeHandler` using **HTTP Basic Authentication** (username/password).
+  - Added handler routing via `DnsBlockerHandlerFactory` to select the correct implementation per platform.
+  
+
+
+### Changed
+
+- **Branding & packaging names**: Standardized the application/launcher/installer naming to **DNSBlocker Widgets**. Linux packages now use the space-free name `dnsblocker-widgets`.
+- **Configuration terminology**: Standardized the configuration field naming to **Password** (Pi-hole uses an *App Password*; AdGuard Home uses *Username/Password*).
+
+
 ## [2.0.1] - 2025-12-21
 
 ### Changed

@@ -92,3 +92,4 @@ out/
 hs_err_pid*
 /.gradle
 recreatetag.bat
+REDDIT_POSTS.md

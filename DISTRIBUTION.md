@@ -176,8 +176,8 @@ cd PiHoleWidgets
 
 #### Output
 
-- **DEB Package:** `build/jpackage/DNSBlocker Widgets_{version}_amd64.deb`
-- **RPM Package:** `build/jpackage/DNSBlocker Widgets-{version}.x86_64.rpm`
+- **DEB Package:** `build/jpackage/dnsblocker-widgets_{version}_amd64.deb`
+- **RPM Package:** `build/jpackage/dnsblocker-widgets-{version}.x86_64.rpm`
 
 #### Installation
 
@@ -248,8 +248,8 @@ The project includes GitHub Actions workflows that automatically build packages 
 
 ```bash
 # Tag a release
-git tag -a v2.0.0 -m "Release version 2.0.0"
-git push origin v2.0.0
+git tag -a v2.5.1 -m "Release version 2.5.1"
+git push origin v2.5.1
 
 # GitHub Actions will automatically:
 # 1. Build Windows portable ZIP
@@ -313,28 +313,28 @@ signtool sign /n "Certificate Name" /tr http://timestamp.digicert.com build/jpac
 ```bash
 # Sign with Developer ID Installer certificate
 productsign --sign "Developer ID Installer: Your Name (TEAM_ID)" \
-  build/jpackage/DNSBlocker Widgets-2.0.0.pkg \
-  build/jpackage/DNSBlocker Widgets-2.0.0-signed.pkg
+  build/jpackage/DNSBlocker Widgets-{version}.pkg \
+  build/jpackage/DNSBlocker Widgets-{version}-signed.pkg
 ```
 
 #### Step 2: Notarize with Apple
 
 ```bash
 # Submit for notarization
-xcrun notarytool submit build/jpackage/DNSBlocker Widgets-2.0.0-signed.pkg \
+xcrun notarytool submit build/jpackage/DNSBlocker Widgets-{version}-signed.pkg \
   --apple-id "your-email@example.com" \
   --team-id "TEAM_ID" \
   --password "app-specific-password" \
   --wait
 
 # Staple the notarization ticket
-xcrun stapler staple build/jpackage/DNSBlocker Widgets-2.0.0-signed.pkg
+xcrun stapler staple build/jpackage/DNSBlocker Widgets-{version}-signed.pkg
 ```
 
 #### Step 3: Verify
 
 ```bash
-spctl -a -vvv -t install build/jpackage/DNSBlocker Widgets-2.0.0-signed.pkg
+spctl -a -vvv -t install build/jpackage/DNSBlocker Widgets-{version}-signed.pkg
 ```
 
 ### Linux Package Signing
@@ -453,4 +453,4 @@ If you encounter issues:
 ---
 
 **Last Updated:** December 2025  
-**Version:** 2.0.0
+**Version:** 2.5.1

@@ -10,7 +10,8 @@
     * [Pre-Requisites](#pre-requisites)
     * [Installation Options](#installation-options)
     * [Configuration](#configuration)
-      * [Where to find the API TOKEN](#where-to-find-the-api-token)
+      * [Where to generate a Pi-hole App Password](#where-to-generate-a-pi-hole-app-password)
+      * [AdGuard Home credentials](#adguard-home-credentials)
       * [Personalize your Widget](#personalize-your-widget)
     * [Running the widget](#running-the-widget)
 - [Testing](#testing) 
@@ -19,8 +20,8 @@
 - [License](#licence)
 
 # <ins>Overview</ins>
-## Pi-Hole DNS Widget for Desktop
-DNSBlocker Widgets is a project I needed to make for my personal needs, and I decided to share it with you.
+## DNSBlocker Widgets for Desktop (Pi-hole + AdGuard Home)
+DNSBlocker Widgets is a desktop widget for monitoring and controlling your DNS blocker (Pi-hole or AdGuard Home).
 
 It is developed with JavaFX, and uses the framework TilesFX.
 
@@ -34,7 +35,7 @@ It is developed with JavaFX, and uses the framework TilesFX.
 ### <ins>Features</ins>
 
 #### Core Features
-- **Live stats from Pi-hole servers** - Real-time monitoring of your Pi-hole DNS.
+- **Live stats from Pi-hole / AdGuard Home** - Real-time monitoring of your DNS blocker.
 - **Modern, customizable widgets** - Beautiful TilesFX-based interface.
 - **Great summary** - All your Pi-hole DNS stats in one place.
 - **Last blocked domain** - See what was blocked most recently.
@@ -74,9 +75,9 @@ It is developed with JavaFX, and uses the framework TilesFX.
 
 ### <ins>Upcoming features</ins>
 
-- Support for AdGuardHome.
 - Additional themes and color schemes.
 - Update Gravity List
+- Export configs
 
 # <ins>Donation</ins>
 All donations are welcome and any amount of money will help me to maintain this project :)
@@ -103,11 +104,16 @@ The widget automatically sets its configuration to the default pi-hole local add
 
 ![settings_rightclick.png](Readme_imgs/settings/settings_rightclick.png)
 
-Then input your controllers IP Address/Port and the web password or generatedapp password, and click Apply.
+Select your **Platform** (Pi-hole or AdGuard Home), then enter the **IP Address**, **Port**, and your credentials:
+
+- **Pi-hole**: generate an **App Password** in the Pi-hole web UI and enter it as the password or your authentication password.
+- **AdGuard Home**: enter your **Username** and **Password** (Basic Auth).
+
+Click **Apply**.
 
 ![settings.png](Readme_imgs/settings/dns_settings.png)
 
-###### Where to generate the App password
+###### Where to generate a Pi-hole App Password
 
 ![alt text](Readme_imgs/pihole_interface/option%20in%20settings.png)
 
@@ -118,6 +124,10 @@ Enable Expert Settings
 then click  on configure app password
 
 ![img.png](Readme_imgs/pihole_interface/configure_app_password.png)
+
+###### AdGuard Home credentials
+
+For **AdGuard Home**, use the same **Username** / **Password** you use to log into the AdGuard Home web interface.
 
 
 ###### Personalize your widget
@@ -213,7 +223,7 @@ App has been tested on:
 
 Automated builds and testing are performed via GitHub Actions on all supported platforms.
 
-If you find any bugs or want to suggest new features please go to: https://github.com/FoKss-LTS/PiHoleWidgets/issues
+If you find any bugs or want to suggest new features, please open an issue on the GitHub tracker: [FoKss-LTS/PiHoleWidgets issues](https://github.com/FoKss-LTS/PiHoleWidgets/issues)
 
 ---
 

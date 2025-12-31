@@ -2,8 +2,8 @@
 
 ## Phase 1: AdGuardHome Support
 
-- [ ] Task 1.1: Add AdGuardHome support
-- [ ] Task 1.2: Add AdGuardHome configuration
+- [x] Task 1.1: Add AdGuardHome support
+- [x] Task 1.2: Add AdGuardHome configuration
 
 ## Phase 2: Resilience (Week 2)
 
