@@ -47,9 +47,9 @@ public class AdGuardHomeHandler implements DnsBlockerHandler {
     // ==================== Constants ====================
 
     private static final Logger LOGGER = Logger.getLogger(AdGuardHomeHandler.class.getName());
-    private static final boolean VERBOSE = Boolean.parseBoolean(System.getProperty("pihole.verbose", "false"));
+    private static final boolean VERBOSE = Boolean.parseBoolean(System.getProperty("dnsbloquer.verbose", "false"));
 
-    private static final String CONTROL_PATH = "/control";
+    private static final String API_PATH = "/control";
     private static final String STATUS_ENDPOINT = "/status";
     private static final String STATS_ENDPOINT = "/stats";
     private static final String QUERYLOG_ENDPOINT = "/querylog";
@@ -106,7 +106,7 @@ public class AdGuardHomeHandler implements DnsBlockerHandler {
     }
 
     private String buildApiBaseUrl() {
-        return scheme + "://" + ipAddress + ":" + port + CONTROL_PATH;
+        return scheme + "://" + ipAddress + ":" + port + API_PATH;
     }
 
     private String createBasicAuthHeader() {

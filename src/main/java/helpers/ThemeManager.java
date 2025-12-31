@@ -31,7 +31,7 @@ import java.util.logging.Logger;
 public final class ThemeManager {
 
     private static final Logger LOGGER = Logger.getLogger(ThemeManager.class.getName());
-    private static final boolean VERBOSE = Boolean.parseBoolean(System.getProperty("pihole.verbose", "false"));
+    private static final boolean VERBOSE = Boolean.parseBoolean(System.getProperty("dnsbloquer.verbose", "false"));
 
     public static final String DARK_THEME = "Dark";
     public static final String LIGHT_THEME = "Light";
@@ -43,7 +43,7 @@ public final class ThemeManager {
     // Dark theme colors
     public static final Color DARK_BACKGROUND = Color.web("#101214");
     public static final Color DARK_TILE_BACKGROUND = Color.web("#1a1d21");
-    public static final Color DARK_FOREGROUND = Color.web("#e0e0e0");  // Light color for text visibility
+    public static final Color DARK_FOREGROUND = Color.web("#e0e0e0"); // Light color for text visibility
     public static final Color DARK_TEXT = Color.web("#e0e0e0");
     public static final Color DARK_TITLE_TEXT = Color.web("#ffffff");
     public static final Color DARK_MUTED_TEXT = Color.web("#888888");
@@ -52,7 +52,7 @@ public final class ThemeManager {
     // Light theme colors
     public static final Color LIGHT_BACKGROUND = Color.web("#e9ecef");
     public static final Color LIGHT_TILE_BACKGROUND = Color.web("#ffffff");
-    public static final Color LIGHT_FOREGROUND = Color.web("#212529");  // Dark color for text visibility
+    public static final Color LIGHT_FOREGROUND = Color.web("#212529"); // Dark color for text visibility
     public static final Color LIGHT_TEXT = Color.web("#212529");
     public static final Color LIGHT_TITLE_TEXT = Color.web("#1a1a2e");
     public static final Color LIGHT_MUTED_TEXT = Color.web("#6c757d");
@@ -232,4 +232,3 @@ public final class ThemeManager {
                 (int) (color.getBlue() * 255));
     }
 }
-

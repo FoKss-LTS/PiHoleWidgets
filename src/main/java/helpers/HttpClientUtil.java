@@ -48,8 +48,8 @@ public class HttpClientUtil {
     private static final Duration DEFAULT_CONNECT_TIMEOUT = Duration.ofSeconds(5);
     private static final Duration DEFAULT_REQUEST_TIMEOUT = Duration.ofSeconds(10);
 
-    // Enable verbose logging via system property: -Dpihole.verbose=true
-    public static final boolean VERBOSE = Boolean.parseBoolean(System.getProperty("pihole.verbose", "false"));
+    // Enable verbose logging via system property: -Ddnsbloquer.verbose=true
+    public static final boolean VERBOSE = Boolean.parseBoolean(System.getProperty("dnsbloquer.verbose", "false"));
 
     private final HttpClient client;
     private final Duration defaultRequestTimeout;

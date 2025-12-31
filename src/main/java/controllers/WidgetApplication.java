@@ -57,7 +57,7 @@ public class WidgetApplication extends Application {
     // ==================== Logging ====================
 
     private static final Logger LOGGER = Logger.getLogger(WidgetApplication.class.getName());
-    private static final boolean VERBOSE = Boolean.parseBoolean(System.getProperty("pihole.verbose", "false"));
+    private static final boolean VERBOSE = Boolean.parseBoolean(System.getProperty("dnsbloquer.verbose", "false"));
 
     private static void log(String message) {
         if (VERBOSE) {
@@ -110,7 +110,9 @@ public class WidgetApplication extends Application {
         // Setup configuration stage
         configurationStage = new Stage();
         configurationStage.initOwner(widgetStage);
-        configurationStage.initStyle(StageStyle.UNDECORATED);
+        configurationStage.initStyle(StageStyle.DECORATED);
+        configurationStage.setResizable(true);
+        updateConfigurationWindowTitle(); // Set initial title based on DNS config
         log("Configuration stage created");
 
         // Load configuration
@@ -158,13 +160,16 @@ public class WidgetApplication extends Application {
         showWidget();
         log("Widget stage shown");
 
-        // Setup and show configuration stage (initially hidden)
+        // Setup configuration stage (initially hidden)
         Scene configScene = new Scene(configurationRoot);
         ThemeManager.applyTheme(configScene, theme);
         configurationStage.setScene(configScene);
-        configurationStage.setOpacity(0);
-        configurationStage.setAlwaysOnTop(true);
-        configurationStage.show();
+
+        // Handle close button click - just hide the window
+        configurationStage.setOnCloseRequest(event -> {
+            event.consume();
+            closeConfigurationWindow();
+        });
 
         // Show configuration alert if not fully configured, but don't open settings
         // automatically
@@ -259,16 +264,33 @@ public class WidgetApplication extends Application {
         if (configurationStage == null)
             return;
 
-        configurationStage.setOpacity(1);
+        updateConfigurationWindowTitle(); // Update title based on current DNS config
         configurationStage.show();
         bringStageToFront(configurationStage);
+    }
+
+    /**
+     * Updates the configuration window title based on the selected DNS blocker
+     * type.
+     */
+    public static void updateConfigurationWindowTitle() {
+        if (configurationStage == null)
+            return;
+
+        String platformName = "DNS Blocker";
+        if (configDNS1 != null && configDNS1.getPlatform() != null) {
+            platformName = configDNS1.getPlatform().getDisplayName();
+        }
+
+        configurationStage.setTitle(platformName + " Widget Settings");
+        log("Configuration window title updated to: " + platformName + " Widget Settings");
     }
 
     public static void applyAndCloseConfigurationWindow() {
         log("Applying configuration and closing window");
 
         if (configurationStage != null) {
-            configurationStage.setOpacity(0);
+            configurationStage.hide();
         }
 
         // Reload configuration
@@ -296,7 +318,7 @@ public class WidgetApplication extends Application {
     public static void closeConfigurationWindow() {
         log("Closing configuration window");
         if (configurationStage != null) {
-            configurationStage.setOpacity(0);
+            configurationStage.hide();
         }
     }
 

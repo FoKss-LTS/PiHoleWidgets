@@ -50,7 +50,7 @@ public class ConfigurationController implements Initializable {
     // ==================== Constants ====================
 
     private static final Logger LOGGER = Logger.getLogger(ConfigurationController.class.getName());
-    private static final boolean VERBOSE = Boolean.parseBoolean(System.getProperty("pihole.verbose", "false"));
+    private static final boolean VERBOSE = Boolean.parseBoolean(System.getProperty("dnsbloquer.verbose", "false"));
 
     private static final List<String> SIZES = List.of("Small", "Medium", "Large", "XXL", "Full Screen");
     private static final List<String> LAYOUTS = List.of("Horizontal", "Square");

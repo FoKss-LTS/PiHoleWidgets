@@ -39,7 +39,7 @@ import java.util.logging.Logger;
 public class ConfigurationService {
 
     private static final Logger LOGGER = Logger.getLogger(ConfigurationService.class.getName());
-    private static final boolean VERBOSE = Boolean.parseBoolean(System.getProperty("pihole.verbose", "false"));
+    private static final boolean VERBOSE = Boolean.parseBoolean(System.getProperty("dnsbloquer.verbose", "false"));
 
     // Configuration file location
     private static final String FOLDER_NAME = "Pihole Widget";

@@ -46,7 +46,7 @@ public class PiHoleHandler implements DnsBlockerHandler {
     // ==================== Constants ====================
 
     private static final Logger LOGGER = Logger.getLogger(PiHoleHandler.class.getName());
-    private static final boolean VERBOSE = Boolean.parseBoolean(System.getProperty("pihole.verbose", "false"));
+    private static final boolean VERBOSE = Boolean.parseBoolean(System.getProperty("dnsbloquer.verbose", "false"));
 
     private static final String API_PATH = "/api";
     private static final String AUTH_ENDPOINT = "/auth";

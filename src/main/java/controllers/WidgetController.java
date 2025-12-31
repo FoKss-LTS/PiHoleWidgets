@@ -114,7 +114,7 @@ public class WidgetController implements Initializable {
     }
 
     private static final Logger LOGGER = Logger.getLogger(WidgetController.class.getName());
-    private static final boolean VERBOSE = Boolean.parseBoolean(System.getProperty("pihole.verbose", "false"));
+    private static final boolean VERBOSE = Boolean.parseBoolean(System.getProperty("dnsbloquer.verbose", "false"));
     private static final ObjectMapper JSON = new ObjectMapper();
 
     private static void log(String message) {
@@ -1103,22 +1103,38 @@ public class WidgetController implements Initializable {
             return List.of();
         try {
             JsonNode root = JSON.readTree(json);
-            // Pi-hole format: {"top_ads": {"domain1.com": 123, "domain2.com": 456}}
-            JsonNode topAds = root.path("top_ads");
-            if (!topAds.isObject())
-                return List.of();
-
             List<TopDomain> result = new ArrayList<>();
-            var fields = topAds.fields();
-            while (fields.hasNext()) {
-                var entry = fields.next();
-                String domain = entry.getKey();
-                long count = entry.getValue().asLong(0L);
-                if (domain == null || domain.isBlank())
-                    continue;
-                result.add(new TopDomain(domain, Math.max(0L, count)));
+
+            // Try Pi-hole v6 format: {"domains": [{"domain": "...", "count": 123}]}
+            JsonNode domains = root.path("domains");
+            if (domains.isArray() && domains.size() > 0) {
+                for (JsonNode item : domains) {
+                    String domain = item.path("domain").asText("");
+                    long count = item.path("count").asLong(0L);
+                    if (domain != null && !domain.isBlank()) {
+                        result.add(new TopDomain(domain, Math.max(0L, count)));
+                    }
+                }
+                return result;
             }
-            return result;
+
+            // Try AdGuard Home format: {"top_ads": {"domain1.com": 123, "domain2.com":
+            // 456}}
+            JsonNode topAds = root.path("top_ads");
+            if (topAds.isObject() && topAds.size() > 0) {
+                var fields = topAds.fields();
+                while (fields.hasNext()) {
+                    var entry = fields.next();
+                    String domain = entry.getKey();
+                    long count = entry.getValue().asLong(0L);
+                    if (domain != null && !domain.isBlank()) {
+                        result.add(new TopDomain(domain, Math.max(0L, count)));
+                    }
+                }
+                return result;
+            }
+
+            return List.of();
         } catch (Exception e) {
             System.out.println("WARNING: Failed to parse top domains JSON: " + e.getMessage());
             e.printStackTrace();

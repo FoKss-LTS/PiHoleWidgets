@@ -52,10 +52,10 @@ processResources {
     }
 }
 
-// Pass pihole.verbose property to the running application
+// Pass dnsbloquer.verbose property to the running application
 tasks.named('run') {
-    def verboseFlag = project.findProperty('pihole.verbose') ?: 'false'
-    jvmArgs += ["-Dpihole.verbose=${verboseFlag}"]
+    def verboseFlag = project.findProperty('dnsbloquer.verbose') ?: 'false'
+    jvmArgs += ["-Ddnsbloquer.verbose=${verboseFlag}"]
 }
 
 javafx {

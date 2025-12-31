@@ -1,15 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Accordion?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.TitledPane?>
 <?import javafx.scene.control.Tooltip?>
 <?import javafx.scene.layout.AnchorPane?>
-<?import javafx.scene.layout.Pane?>
-<?import javafx.scene.paint.Color?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
 <!--
@@ -30,63 +33,67 @@
   ~
   -->
 
-<Pane fx:id="configRootPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="311.0" prefWidth="650.0" styleClass="config-root"
-   xmlns="http://javafx.com/javafx/25"
-   xmlns:fx="http://javafx.com/fxml/1">
-   <Accordion fx:id="accord" prefHeight="264.0" prefWidth="650.0">
+<VBox fx:id="configRootPane" minHeight="350.0" minWidth="550.0" prefHeight="550.0" prefWidth="850.0" spacing="10" styleClass="config-root" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1">
+   <padding>
+      <Insets bottom="10" left="10" right="10" top="10" />
+   </padding>
+
+   <Accordion fx:id="accord" VBox.vgrow="ALWAYS">
       <panes>
          <TitledPane fx:id="dns1TitledPane" text="DNS 1 Settings">
             <content>
-               <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0" styleClass="config-content">
-                  <children>
-                     <Label layoutX="30.0" layoutY="15.0" text="Platform:">
-                        <font>
-                           <Font size="12.0" />
-                        </font>
-                     </Label>
-                     <ComboBox fx:id="ComboBox_Platform1" layoutX="105.0" layoutY="10.0" prefWidth="150.0" />
-                     <Label layoutX="270.0" layoutY="15.0" text="(Pi-hole or AdGuard Home)" styleClass="label-muted">
-                        <font>
-                           <Font size="10.0" />
-                        </font>
-                     </Label>
-                     <Label layoutX="30.0" layoutY="55.0" text="Protocol:">
-                        <font>
-                           <Font size="12.0" />
-                        </font>
-                     </Label>
-                     <ComboBox fx:id="ComboBox_Scheme1" layoutX="105.0" layoutY="50.0" prefWidth="80.0" />
-                     <Label layoutX="200.0" layoutY="55.0" text="IP Address:">
-                        <font>
-                           <Font size="12.0" />
-                        </font>
-                     </Label>
-                     <TextField fx:id="TF_IP1" layoutX="285.0" layoutY="50.0" prefWidth="200.0" promptText="192.168.1.1" />
-                     <Label layoutX="30.0" layoutY="100.0" text="Port:">
-                        <font>
-                           <Font size="12.0" />
-                        </font>
-                     </Label>
-                     <TextField fx:id="TF_Port1" layoutX="105.0" layoutY="95.0" prefHeight="26.0" prefWidth="80.0" text="80" />
-                     <Label layoutX="200.0" layoutY="100.0" text="(Default: 80)" styleClass="label-muted">
-                        <font>
-                           <Font size="10.0" />
-                        </font>
-                     </Label>
-                     <Label fx:id="Label_Username1" layoutX="30.0" layoutY="145.0" text="Username:" visible="false" managed="false">
-                        <font>
-                           <Font size="12.0" />
-                        </font>
-                     </Label>
-                     <TextField fx:id="TF_Username1" layoutX="105.0" layoutY="140.0" prefHeight="26.0" prefWidth="180.0" promptText="admin" visible="false" managed="false" />
-                     <Label fx:id="Label_Password1" layoutX="30.0" layoutY="185.0" text="App Password:">
-                        <font>
-                           <Font size="12.0" />
-                        </font>
-                     </Label>
-                     <TextField fx:id="TF_AUTH1" layoutX="105.0" layoutY="180.0" prefHeight="26.0" prefWidth="477.0" promptText="Enter app password" />
-                  </children>
-               </AnchorPane>
+               <ScrollPane fitToHeight="true" fitToWidth="true">
+                  <AnchorPane minHeight="220.0" minWidth="0.0" prefHeight="220.0" styleClass="config-content">
+                     <children>
+                        <Label layoutX="30.0" layoutY="15.0" text="Platform:">
+                           <font>
+                              <Font size="12.0" />
+                           </font>
+                        </Label>
+                        <ComboBox fx:id="ComboBox_Platform1" layoutX="120.0" layoutY="10.0" prefHeight="39.0" prefWidth="226.0" />
+                        <Label layoutX="354.0" layoutY="16.0" styleClass="label-muted" text="(Pi-hole or AdGuard Home)">
+                           <font>
+                              <Font size="10.0" />
+                           </font>
+                        </Label>
+                        <Label layoutX="30.0" layoutY="55.0" text="Protocol:">
+                           <font>
+                              <Font size="12.0" />
+                           </font>
+                        </Label>
+                        <ComboBox fx:id="ComboBox_Scheme1" layoutX="120.0" layoutY="50.0" prefHeight="39.0" prefWidth="150.0" />
+                        <Label layoutX="287.0" layoutY="55.0" text="IP Address:">
+                           <font>
+                              <Font size="12.0" />
+                           </font>
+                        </Label>
+                        <TextField fx:id="TF_IP1" layoutX="406.0" layoutY="50.0" prefWidth="200.0" promptText="192.168.1.1" AnchorPane.rightAnchor="222.0" />
+                        <Label layoutX="30.0" layoutY="100.0" text="Port:">
+                           <font>
+                              <Font size="12.0" />
+                           </font>
+                        </Label>
+                        <TextField fx:id="TF_Port1" layoutX="120.0" layoutY="95.0" prefHeight="26.0" prefWidth="80.0" text="80" />
+                        <Label layoutX="220.0" layoutY="100.0" styleClass="label-muted" text="(Default: 80)">
+                           <font>
+                              <Font size="10.0" />
+                           </font>
+                        </Label>
+                        <Label fx:id="Label_Username1" layoutX="30.0" layoutY="145.0" managed="false" text="Username:" visible="false">
+                           <font>
+                              <Font size="12.0" />
+                           </font>
+                        </Label>
+                        <TextField fx:id="TF_Username1" layoutX="120.0" layoutY="140.0" managed="false" prefHeight="26.0" prefWidth="180.0" promptText="admin" visible="false" />
+                        <Label fx:id="Label_Password1" layoutX="30.0" layoutY="185.0" text="App Password:">
+                           <font>
+                              <Font size="12.0" />
+                           </font>
+                        </Label>
+                        <TextField fx:id="TF_AUTH1" layoutX="120.0" layoutY="174.0" prefHeight="26.0" promptText="Enter app password" AnchorPane.rightAnchor="484.0" />
+                     </children>
+                  </AnchorPane>
+               </ScrollPane>
             </content>
          </TitledPane>
          <!--
@@ -95,89 +102,96 @@
        -->
          <TitledPane text="Widget Settings">
             <content>
-               <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="230.0" prefWidth="200.0" styleClass="config-content">
-                  <children>
-                     <Label layoutX="32.0" layoutY="29.0" text="Size:">
-                        <font>
-                           <Font size="12.0" />
-                        </font>
-                     </Label>
-                     <ComboBox fx:id="ComboBoxSize" layoutX="93.0" layoutY="26.0" prefWidth="150.0" />
-                     <Label layoutX="260.0" layoutY="30.0" text="(*)" styleClass="label-warning">
-                        <font>
-                           <Font size="12.0" />
-                        </font>
-                     </Label>
-                     <Label layoutX="28.0" layoutY="73.0" text="Layout:">
-                        <font>
-                           <Font size="12.0" />
-                        </font>
-                     </Label>
-                     <ComboBox fx:id="ComboBoxLayout" layoutX="93.0" layoutY="69.0" prefWidth="150.0" />
-                     <Label layoutX="260.0" layoutY="74.0" text="(*)" styleClass="label-warning">
-                        <font>
-                           <Font size="12.0" />
-                        </font>
-                     </Label>
-                     <Label layoutX="28.0" layoutY="117.0" text="Theme:">
-                        <font>
-                           <Font size="12.0" />
-                        </font>
-                     </Label>
-                     <ComboBox fx:id="ComboBoxTheme" layoutX="93.0" layoutY="113.0" prefWidth="150.0" />
-                     <Label layoutX="276.0" layoutY="29.0" text="Status update (s):">
-                        <font>
-                           <Font size="12.0" />
-                        </font>
-                     </Label>
-                     <TextField fx:id="tfUpdateStatus" layoutX="410.0" layoutY="24.0" prefWidth="70.0" promptText="5" />
-                     <Label layoutX="276.0" layoutY="73.0" text="Fluid update (s):">
-                        <font>
-                           <Font size="12.0" />
-                        </font>
-                     </Label>
-                     <TextField fx:id="tfUpdateFluid" layoutX="410.0" layoutY="68.0" prefWidth="70.0" promptText="15" />
-                     <Label layoutX="276.0" layoutY="117.0" text="Active update (s):">
-                        <font>
-                           <Font size="12.0" />
-                        </font>
-                     </Label>
-                     <TextField fx:id="tfUpdateActive" layoutX="410.0" layoutY="112.0" prefWidth="70.0" promptText="60" />
-                     <Label layoutX="276.0" layoutY="161.0" text="Top domains update (s):">
-                        <font>
-                           <Font size="12.0" />
-                        </font>
-                     </Label>
-                     <TextField fx:id="tfUpdateTopX" layoutX="410.0" layoutY="156.0" prefWidth="70.0" promptText="5" />
-                  </children>
-               </AnchorPane>
+               <ScrollPane fitToHeight="true" fitToWidth="true">
+                  <AnchorPane minHeight="200.0" minWidth="0.0" prefHeight="200.0" styleClass="config-content">
+                     <children>
+                        <Label layoutX="32.0" layoutY="29.0" text="Size:">
+                           <font>
+                              <Font size="12.0" />
+                           </font>
+                        </Label>
+                        <ComboBox fx:id="ComboBoxSize" layoutX="93.0" layoutY="26.0" prefWidth="150.0" />
+                        <Label layoutX="260.0" layoutY="30.0" styleClass="label-warning" text="(*)">
+                           <font>
+                              <Font size="12.0" />
+                           </font>
+                        </Label>
+                        <Label layoutX="28.0" layoutY="73.0" text="Layout:">
+                           <font>
+                              <Font size="12.0" />
+                           </font>
+                        </Label>
+                        <ComboBox fx:id="ComboBoxLayout" layoutX="93.0" layoutY="69.0" prefWidth="150.0" />
+                        <Label layoutX="260.0" layoutY="74.0" styleClass="label-warning" text="(*)">
+                           <font>
+                              <Font size="12.0" />
+                           </font>
+                        </Label>
+                        <Label layoutX="28.0" layoutY="117.0" text="Theme:">
+                           <font>
+                              <Font size="12.0" />
+                           </font>
+                        </Label>
+                        <ComboBox fx:id="ComboBoxTheme" layoutX="93.0" layoutY="113.0" prefWidth="150.0" />
+                        <Label layoutX="296.0" layoutY="29.0" text="Status update (s):">
+                           <font>
+                              <Font size="12.0" />
+                           </font>
+                        </Label>
+                        <TextField fx:id="tfUpdateStatus" layoutX="430.0" layoutY="24.0" prefWidth="70.0" promptText="5" />
+                        <Label layoutX="296.0" layoutY="73.0" text="Fluid update (s):">
+                           <font>
+                              <Font size="12.0" />
+                           </font>
+                        </Label>
+                        <TextField fx:id="tfUpdateFluid" layoutX="430.0" layoutY="68.0" prefWidth="70.0" promptText="15" />
+                        <Label layoutX="296.0" layoutY="117.0" text="Active update (s):">
+                           <font>
+                              <Font size="12.0" />
+                           </font>
+                        </Label>
+                        <TextField fx:id="tfUpdateActive" layoutX="430.0" layoutY="112.0" prefWidth="70.0" promptText="60" />
+                        <Label layoutX="534.0" layoutY="30.0" text="Top domains update (s):">
+                           <font>
+                              <Font size="12.0" />
+                           </font>
+                        </Label>
+                        <TextField fx:id="tfUpdateTopX" layoutX="724.0" layoutY="24.0" prefWidth="70.0" promptText="5" />
+                     </children>
+                  </AnchorPane>
+               </ScrollPane>
             </content>
          </TitledPane>
       </panes>
    </Accordion>
-   <Button fx:id="button_apply" layoutX="500.0" layoutY="272.0" mnemonicParsing="false" styleClass="btn-primary" text="Apply">
-      <tooltip>
-         <Tooltip text="Save, apply changes, and close settings" />
-      </tooltip>
-   </Button>
-   <Button fx:id="button_load" layoutX="430.0" layoutY="272.0" mnemonicParsing="false" styleClass="btn-secondary" text="Load">
-      <tooltip>
-         <Tooltip text="Load settings from the configuration file" />
-      </tooltip>
-   </Button>
-   <Button fx:id="button_save" layoutX="360.0" layoutY="272.0" mnemonicParsing="false" styleClass="btn-success" text="Save">
-      <tooltip>
-         <Tooltip text="Save settings to the configuration file" />
-      </tooltip>
-   </Button>
-   <Button fx:id="button_cancel" layoutX="570.0" layoutY="272.0" mnemonicParsing="false" styleClass="btn-danger" text="Cancel">
-      <tooltip>
-         <Tooltip text="Close without saving changes" />
-      </tooltip>
-   </Button>
-   <Label layoutX="14.0" layoutY="279.0" text="Setting with (*) need a Restart" styleClass="label-muted">
-      <font>
-         <Font size="10.0" />
-      </font>
-   </Label>
-</Pane>
+
+   <!-- Button bar at bottom -->
+   <HBox alignment="CENTER_RIGHT" spacing="10">
+      <Label styleClass="label-muted" text="Setting with (*) need a Restart" HBox.hgrow="ALWAYS">
+         <font>
+            <Font size="10.0" />
+         </font>
+      </Label>
+      <Region HBox.hgrow="ALWAYS" />
+      <Button fx:id="button_save" mnemonicParsing="false" styleClass="btn-success" text="Save">
+         <tooltip>
+            <Tooltip text="Save settings to the configuration file" />
+         </tooltip>
+      </Button>
+      <Button fx:id="button_load" mnemonicParsing="false" styleClass="btn-secondary" text="Load">
+         <tooltip>
+            <Tooltip text="Load settings from the configuration file" />
+         </tooltip>
+      </Button>
+      <Button fx:id="button_apply" mnemonicParsing="false" styleClass="btn-primary" text="Apply">
+         <tooltip>
+            <Tooltip text="Save, apply changes, and close settings" />
+         </tooltip>
+      </Button>
+      <Button fx:id="button_cancel" mnemonicParsing="false" styleClass="btn-danger" text="Cancel">
+         <tooltip>
+            <Tooltip text="Close without saving changes" />
+         </tooltip>
+      </Button>
+   </HBox>
+</VBox>

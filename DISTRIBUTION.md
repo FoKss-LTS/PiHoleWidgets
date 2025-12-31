@@ -86,7 +86,7 @@ cd PiHoleWidgets
 ./gradlew run
 
 # Run with verbose logging
-./gradlew run -Ppihole.verbose=true
+./gradlew run -Pdnsbloquer.verbose=true
 ```
 
 ### Create Installers
@@ -217,7 +217,7 @@ sudo rpm -e pihole-widgets
 | `./gradlew test` | Run tests |
 | `./gradlew build` | Build JAR file |
 | `./gradlew run` | Run the application |
-| `./gradlew run -Ppihole.verbose=true` | Run with verbose logging |
+| `./gradlew run -Pdnsbloquer.verbose=true` | Run with verbose logging |
 | `./gradlew jlink` | Create runtime image (without installer) |
 
 ### Installer Commands

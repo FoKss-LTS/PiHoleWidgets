@@ -28,7 +28,7 @@ package domain.configuration;
  * @param scheme    the URL scheme (http or https)
  * @param authToken the authentication token for the Pi-hole API
  */
-public record PiholeConfig(
+public record PiholeConfigtodelete(
         String ipAddress,
         int port,
         String scheme,
@@ -43,7 +43,7 @@ public record PiholeConfig(
     /**
      * Compact constructor with validation.
      */
-    public PiholeConfig {
+    public PiholeConfigtodelete {
         // Provide defaults for null values
         if (scheme == null || scheme.isBlank()) {
             scheme = DEFAULT_SCHEME;
@@ -63,7 +63,7 @@ public record PiholeConfig(
     /**
      * Creates a PiholeConfig with default port.
      */
-    public PiholeConfig(String ipAddress, String scheme, String authToken) {
+    public PiholeConfigtodelete(String ipAddress, String scheme, String authToken) {
         this(ipAddress, DEFAULT_PORT, scheme, authToken);
     }
 
