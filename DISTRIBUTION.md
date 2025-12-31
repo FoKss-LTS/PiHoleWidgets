@@ -30,6 +30,15 @@ This guide provides comprehensive instructions for building and distributing DNS
 2. **Git** (for cloning the repository)
    - Download from [git-scm.com](https://git-scm.com/)
 
+### Configuration file (runtime)
+
+DNSBlocker Widgets stores its runtime configuration in a JSON file under the user home directory:
+
+- **Windows:** `%USERPROFILE%\\DNSBlocker Widget\\settings.json`
+- **Linux/macOS:** `~\/DNSBlocker Widget\/settings.json`
+
+On startup, the app will **create** this file only if it is missing (it will **not overwrite** an existing `settings.json`).
+
 ### Platform-Specific Requirements
 
 #### Windows

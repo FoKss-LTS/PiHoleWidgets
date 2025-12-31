@@ -67,6 +67,7 @@ public class ConfigurationController implements Initializable {
     private static final int DEFAULT_UPDATE_FLUID_SEC = WidgetConfig.DEFAULT_FLUID_UPDATE_SEC;
     private static final int DEFAULT_UPDATE_ACTIVE_SEC = WidgetConfig.DEFAULT_ACTIVE_UPDATE_SEC;
     private static final int DEFAULT_UPDATE_TOPX_SEC = WidgetConfig.DEFAULT_TOPX_UPDATE_SEC;
+    private static final int DEFAULT_TOPX_COUNT = WidgetConfig.DEFAULT_TOPX_COUNT;
 
     // Button styles
     private static final String APPLY_BTN_NORMAL = "-fx-background-color: #4a9eff; -fx-text-fill: white; -fx-background-radius: 5; -fx-padding: 8 16 8 16;";
@@ -110,6 +111,8 @@ public class ConfigurationController implements Initializable {
     private TextField tfUpdateActive;
     @FXML
     private TextField tfUpdateTopX;
+    @FXML
+    private TextField tfTopXCount;
     // DNS2 support intentionally disabled.
     // @FXML private TextField tfIp2;
     // @FXML private TextField tfPort2;
@@ -408,6 +411,7 @@ public class ConfigurationController implements Initializable {
         int updateFluidSec = parseInterval(tfUpdateFluid, DEFAULT_UPDATE_FLUID_SEC);
         int updateActiveSec = parseInterval(tfUpdateActive, DEFAULT_UPDATE_ACTIVE_SEC);
         int updateTopXSec = parseInterval(tfUpdateTopX, DEFAULT_UPDATE_TOPX_SEC);
+        int topXCount = parseInterval(tfTopXCount, DEFAULT_TOPX_COUNT);
 
         log("Saving - DNS1: " + scheme1 + "://" + ip1 + ":" + port1);
         // DNS2 support intentionally disabled.
@@ -425,6 +429,7 @@ public class ConfigurationController implements Initializable {
                 // signature.
                 DnsBlockerType.PIHOLE, DnsBlockerConfig.DEFAULT_SCHEME, "", DnsBlockerConfig.DEFAULT_PORT, "", "",
                 size, layout, theme, true, true, true,
+                topXCount,
                 updateStatusSec, updateFluidSec, updateActiveSec, updateTopXSec);
 
         log("Configuration saved");
@@ -495,11 +500,13 @@ public class ConfigurationController implements Initializable {
             setTextFieldValue(tfUpdateFluid, String.valueOf(widgetConfig.getUpdate_fluid_sec()));
             setTextFieldValue(tfUpdateActive, String.valueOf(widgetConfig.getUpdate_active_sec()));
             setTextFieldValue(tfUpdateTopX, String.valueOf(widgetConfig.getUpdate_topx_sec()));
+            setTextFieldValue(tfTopXCount, String.valueOf(widgetConfig.topX()));
         } else {
             setTextFieldValue(tfUpdateStatus, String.valueOf(DEFAULT_UPDATE_STATUS_SEC));
             setTextFieldValue(tfUpdateFluid, String.valueOf(DEFAULT_UPDATE_FLUID_SEC));
             setTextFieldValue(tfUpdateActive, String.valueOf(DEFAULT_UPDATE_ACTIVE_SEC));
             setTextFieldValue(tfUpdateTopX, String.valueOf(DEFAULT_UPDATE_TOPX_SEC));
+            setTextFieldValue(tfTopXCount, String.valueOf(DEFAULT_TOPX_COUNT));
         }
 
         log("Configuration loaded");

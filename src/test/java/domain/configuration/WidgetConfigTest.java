@@ -14,7 +14,8 @@ class WidgetConfigTest {
         var config = new WidgetConfig(
             "Large", "Horizontal", "Light",
             true, false, true,
-            10, 20, 30, 40
+            10, 20, 30, 40,
+            3
         );
         
         assertEquals("Large", config.size());
@@ -27,6 +28,7 @@ class WidgetConfigTest {
         assertEquals(20, config.updateFluidSec());
         assertEquals(30, config.updateActiveSec());
         assertEquals(40, config.updateTopXSec());
+        assertEquals(3, config.topX());
     }
 
     @Test
@@ -43,6 +45,7 @@ class WidgetConfigTest {
         assertEquals(WidgetConfig.DEFAULT_FLUID_UPDATE_SEC, config.updateFluidSec());
         assertEquals(WidgetConfig.DEFAULT_ACTIVE_UPDATE_SEC, config.updateActiveSec());
         assertEquals(WidgetConfig.DEFAULT_TOPX_UPDATE_SEC, config.updateTopXSec());
+        assertEquals(WidgetConfig.DEFAULT_TOPX_COUNT, config.topX());
     }
 
     @Test
@@ -71,58 +74,58 @@ class WidgetConfigTest {
 
     @Test
     void testNullSizeDefaultsToMedium() {
-        var config = new WidgetConfig(null, "Square", "Dark", true, true, true, 5, 15, 60, 5);
+        var config = new WidgetConfig(null, "Square", "Dark", true, true, true, 5, 15, 60, 5, 2);
         assertEquals(WidgetConfig.DEFAULT_SIZE, config.size());
     }
 
     @Test
     void testBlankSizeDefaultsToMedium() {
-        var config = new WidgetConfig("   ", "Square", "Dark", true, true, true, 5, 15, 60, 5);
+        var config = new WidgetConfig("   ", "Square", "Dark", true, true, true, 5, 15, 60, 5, 2);
         assertEquals(WidgetConfig.DEFAULT_SIZE, config.size());
     }
 
     @Test
     void testNullLayoutDefaultsToSquare() {
-        var config = new WidgetConfig("Medium", null, "Dark", true, true, true, 5, 15, 60, 5);
+        var config = new WidgetConfig("Medium", null, "Dark", true, true, true, 5, 15, 60, 5, 2);
         assertEquals(WidgetConfig.DEFAULT_LAYOUT, config.layout());
     }
 
     @Test
     void testBlankLayoutDefaultsToSquare() {
-        var config = new WidgetConfig("Medium", "   ", "Dark", true, true, true, 5, 15, 60, 5);
+        var config = new WidgetConfig("Medium", "   ", "Dark", true, true, true, 5, 15, 60, 5, 2);
         assertEquals(WidgetConfig.DEFAULT_LAYOUT, config.layout());
     }
 
     @Test
     void testNullThemeDefaultsToDark() {
-        var config = new WidgetConfig("Medium", "Square", null, true, true, true, 5, 15, 60, 5);
+        var config = new WidgetConfig("Medium", "Square", null, true, true, true, 5, 15, 60, 5, 2);
         assertEquals(WidgetConfig.DEFAULT_THEME, config.theme());
     }
 
     @Test
     void testBlankThemeDefaultsToDark() {
-        var config = new WidgetConfig("Medium", "Square", "   ", true, true, true, 5, 15, 60, 5);
+        var config = new WidgetConfig("Medium", "Square", "   ", true, true, true, 5, 15, 60, 5, 2);
         assertEquals(WidgetConfig.DEFAULT_THEME, config.theme());
     }
 
     @Test
     void testInvalidUpdateIntervalsDefaultToDefaults() {
-        var config1 = new WidgetConfig("Medium", "Square", "Dark", true, true, true, 0, 15, 60, 5);
+        var config1 = new WidgetConfig("Medium", "Square", "Dark", true, true, true, 0, 15, 60, 5, 2);
         assertEquals(WidgetConfig.DEFAULT_STATUS_UPDATE_SEC, config1.updateStatusSec());
         
-        var config2 = new WidgetConfig("Medium", "Square", "Dark", true, true, true, 5, -1, 60, 5);
+        var config2 = new WidgetConfig("Medium", "Square", "Dark", true, true, true, 5, -1, 60, 5, 2);
         assertEquals(WidgetConfig.DEFAULT_FLUID_UPDATE_SEC, config2.updateFluidSec());
         
-        var config3 = new WidgetConfig("Medium", "Square", "Dark", true, true, true, 5, 15, 0, 5);
+        var config3 = new WidgetConfig("Medium", "Square", "Dark", true, true, true, 5, 15, 0, 5, 2);
         assertEquals(WidgetConfig.DEFAULT_ACTIVE_UPDATE_SEC, config3.updateActiveSec());
         
-        var config4 = new WidgetConfig("Medium", "Square", "Dark", true, true, true, 5, 15, 60, -5);
+        var config4 = new WidgetConfig("Medium", "Square", "Dark", true, true, true, 5, 15, 60, -5, 2);
         assertEquals(WidgetConfig.DEFAULT_TOPX_UPDATE_SEC, config4.updateTopXSec());
     }
 
     @Test
     void testValidUpdateIntervals() {
-        var config = new WidgetConfig("Medium", "Square", "Dark", true, true, true, 1, 2, 3, 4);
+        var config = new WidgetConfig("Medium", "Square", "Dark", true, true, true, 1, 2, 3, 4, 2);
         
         assertEquals(1, config.updateStatusSec());
         assertEquals(2, config.updateFluidSec());
@@ -132,7 +135,7 @@ class WidgetConfigTest {
 
     @Test
     void testLegacyGetters() {
-        var config = new WidgetConfig("Large", "Horizontal", "Light", true, false, true, 10, 20, 30, 40);
+        var config = new WidgetConfig("Large", "Horizontal", "Light", true, false, true, 10, 20, 30, 40, 3);
         
         assertEquals("Large", config.getSize());
         assertEquals("Horizontal", config.getLayout());
@@ -144,13 +147,14 @@ class WidgetConfigTest {
         assertEquals(20, config.getUpdate_fluid_sec());
         assertEquals(30, config.getUpdate_active_sec());
         assertEquals(40, config.getUpdate_topx_sec());
+        assertEquals(3, config.getTopX());
     }
 
     @Test
     void testRecordEquality() {
-        var config1 = new WidgetConfig("Medium", "Square", "Dark", true, true, true, 5, 15, 60, 5);
-        var config2 = new WidgetConfig("Medium", "Square", "Dark", true, true, true, 5, 15, 60, 5);
-        var config3 = new WidgetConfig("Large", "Square", "Dark", true, true, true, 5, 15, 60, 5);
+        var config1 = new WidgetConfig("Medium", "Square", "Dark", true, true, true, 5, 15, 60, 5, 2);
+        var config2 = new WidgetConfig("Medium", "Square", "Dark", true, true, true, 5, 15, 60, 5, 2);
+        var config3 = new WidgetConfig("Large", "Square", "Dark", true, true, true, 5, 15, 60, 5, 2);
         
         assertEquals(config1, config2);
         assertNotEquals(config1, config3);
@@ -159,7 +163,7 @@ class WidgetConfigTest {
 
     @Test
     void testToString() {
-        var config = new WidgetConfig("Medium", "Square", "Dark", true, true, true, 5, 15, 60, 5);
+        var config = new WidgetConfig("Medium", "Square", "Dark", true, true, true, 5, 15, 60, 5, 2);
         var toString = config.toString();
         
         assertNotNull(toString);

@@ -45,6 +45,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.CornerRadii;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
@@ -63,6 +64,7 @@ import java.time.Year;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Properties;
 import java.util.ResourceBundle;
@@ -82,7 +84,6 @@ public class WidgetController implements Initializable {
     // ==================== Constants ====================
 
     private static final String WIDGET_VERSION = loadVersion();
-    private static final int DEFAULT_TOP_X = 2;
     private static final int DOMAIN_TRUNCATE_LENGTH = 20;
     private static final String TRUNCATION_SUFFIX = "..";
     private static final String RANK_ICON_PATH_PATTERN = "/media/images/%d.png";
@@ -134,7 +135,7 @@ public class WidgetController implements Initializable {
     private double tileHeight = DEFAULT_TILE_HEIGHT;
     private int cols = 2;
     private int rows = 2;
-    private int topX = DEFAULT_TOP_X;
+    private int topX = WidgetConfig.DEFAULT_TOPX_COUNT;
 
     // UI Components
     private Tile statusTile;
@@ -142,6 +143,7 @@ public class WidgetController implements Initializable {
     private Tile fluidTile;
     private Tile topXTile;
     private VBox dataTable;
+    private BorderPane topXGraphicRoot;
     private FlowGridPane gridPane;
 
     // DNS blocker handler (supports both Pi-hole and AdGuard Home)
@@ -213,6 +215,7 @@ public class WidgetController implements Initializable {
 
         configureTileDimensions();
         configureLayout();
+        applyTopXFromConfig();
 
         log("Calling refreshPihole()...");
         refreshPihole();
@@ -356,6 +359,14 @@ public class WidgetController implements Initializable {
         log("Scheduler intervals applied from config - status: " + statusRefreshIntervalSec + "s, active: "
                 + activeRefreshIntervalSec
                 + "s, fluid: " + fluidRefreshIntervalSec + "s, topX: " + topXRefreshIntervalSec + "s");
+    }
+
+    private void applyTopXFromConfig() {
+        if (widgetConfig == null) {
+            topX = WidgetConfig.DEFAULT_TOPX_COUNT;
+            return;
+        }
+        topX = widgetConfig.topX() > 0 ? widgetConfig.topX() : WidgetConfig.DEFAULT_TOPX_COUNT;
     }
 
     private long positiveOrDefault(int candidate, long defaultValue) {
@@ -632,7 +643,10 @@ public class WidgetController implements Initializable {
 
             log("Fetching top " + topX + " blocked domains...");
             String topBlockedJson = handler.getTopXBlocked(topX);
-            List<TopDomain> domains = parseTopBlockedDomains(topBlockedJson);
+            List<TopDomain> domains = parseTopBlockedDomains(topBlockedJson).stream()
+                    .sorted(Comparator.comparingLong(TopDomain::count).reversed())
+                    .limit(Math.max(1, topX))
+                    .toList();
 
             Platform.runLater(() -> {
                 log("inflateTopXData - updating UI...");
@@ -654,7 +668,8 @@ public class WidgetController implements Initializable {
                 }
 
                 dataTable.getChildren().setAll(rows);
-                topXTile.setGraphic(dataTable);
+                // Ensure correct title in case TopX was changed via config.
+                topXTile.setTitle("Top " + topX + " Blocked");
 
                 log("inflateTopXData complete");
             });
@@ -1250,16 +1265,28 @@ public class WidgetController implements Initializable {
 
         dataTable = new VBox();
         dataTable.setFillWidth(true);
-        dataTable.setAlignment(Pos.CENTER_LEFT);
+        // Pin header + items to the top of the tile.
+        dataTable.setAlignment(Pos.TOP_LEFT);
+        dataTable.setSpacing(2);
+        dataTable.setPadding(new Insets(0, 6, 0, 6));
+        dataTable.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
         log("initCustomTile() - DataTable VBox created");
 
         String copyright = "Copyright (C) " + Year.now().getValue() + ".  Reda ELFARISSI aka FoKss-LTS";
+
+        // Wrap the VBox in a root container that can expand, so the Tile skin doesn't
+        // vertically center the content.
+        topXGraphicRoot = new BorderPane();
+        topXGraphicRoot.setTop(dataTable);
+        BorderPane.setAlignment(dataTable, Pos.TOP_LEFT);
+        topXGraphicRoot.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
 
         topXTile = TileBuilder.create()
                 .skinType(Tile.SkinType.CUSTOM)
                 .prefSize(tileWidth, tileHeight)
                 .title("Top " + topX + " Blocked")
                 .text(copyright)
+                .graphic(topXGraphicRoot)
                 .backgroundColor(ThemeManager.getTileBackgroundColor(theme))
                 .foregroundColor(ThemeManager.getForegroundColor(theme))
                 .titleColor(ThemeManager.getTitleColor(theme))
@@ -1394,7 +1421,11 @@ public class WidgetController implements Initializable {
     public void setWidgetConfig(WidgetConfig widgetConfig) {
         log("setWidgetConfig() - setting to: " + formatWidgetConfig(widgetConfig));
         this.widgetConfig = widgetConfig;
+        applyTopXFromConfig();
         applyIntervalsFromConfig();
+        if (topXTile != null) {
+            topXTile.setTitle("Top " + topX + " Blocked");
+        }
         if (scheduler != null) {
             restartSchedulers();
         }

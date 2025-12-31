@@ -31,6 +31,7 @@ package domain.configuration;
  * @param updateFluidSec fluid tile update interval in seconds
  * @param updateActiveSec active tile update interval in seconds
  * @param updateTopXSec Top X tile update interval in seconds
+ * @param topX how many domains to display in the Top X Blocked tile
  */
 public record WidgetConfig(
         String size,
@@ -42,13 +43,15 @@ public record WidgetConfig(
         int updateStatusSec,
         int updateFluidSec,
         int updateActiveSec,
-        int updateTopXSec
+        int updateTopXSec,
+        int topX
 ) {
     
     // Default values aligned with legacy scheduler behaviour
     public static final String DEFAULT_SIZE = "Medium";
     public static final String DEFAULT_LAYOUT = "Square";
     public static final String DEFAULT_THEME = "Dark";
+    public static final int DEFAULT_TOPX_COUNT = 5;
     public static final int DEFAULT_STATUS_UPDATE_SEC = 5;
     public static final int DEFAULT_FLUID_UPDATE_SEC = 15;
     public static final int DEFAULT_ACTIVE_UPDATE_SEC = 60;
@@ -79,6 +82,9 @@ public record WidgetConfig(
         if (updateTopXSec <= 0) {
             updateTopXSec = DEFAULT_TOPX_UPDATE_SEC;
         }
+        if (topX <= 0) {
+            topX = DEFAULT_TOPX_COUNT;
+        }
     }
     
     /**
@@ -86,7 +92,7 @@ public record WidgetConfig(
      */
     public WidgetConfig(String size, String layout) {
         this(size, layout, DEFAULT_THEME, true, true, true,
-             DEFAULT_STATUS_UPDATE_SEC, DEFAULT_FLUID_UPDATE_SEC, DEFAULT_ACTIVE_UPDATE_SEC, DEFAULT_TOPX_UPDATE_SEC);
+             DEFAULT_STATUS_UPDATE_SEC, DEFAULT_FLUID_UPDATE_SEC, DEFAULT_ACTIVE_UPDATE_SEC, DEFAULT_TOPX_UPDATE_SEC, DEFAULT_TOPX_COUNT);
     }
     
     /**
@@ -94,7 +100,7 @@ public record WidgetConfig(
      */
     public WidgetConfig(String size, String layout, String theme) {
         this(size, layout, theme, true, true, true,
-             DEFAULT_STATUS_UPDATE_SEC, DEFAULT_FLUID_UPDATE_SEC, DEFAULT_ACTIVE_UPDATE_SEC, DEFAULT_TOPX_UPDATE_SEC);
+             DEFAULT_STATUS_UPDATE_SEC, DEFAULT_FLUID_UPDATE_SEC, DEFAULT_ACTIVE_UPDATE_SEC, DEFAULT_TOPX_UPDATE_SEC, DEFAULT_TOPX_COUNT);
     }
     
     /**
@@ -144,5 +150,9 @@ public record WidgetConfig(
     
     public int getUpdate_topx_sec() {
         return updateTopXSec;
+    }
+
+    public int getTopX() {
+        return topX;
     }
 }

@@ -68,6 +68,7 @@ public class ConfigurationService {
     private static final String KEY_UPDATE_FLUID = "UpdateFluidSec";
     private static final String KEY_UPDATE_ACTIVE = "UpdateActiveSec";
     private static final String KEY_UPDATE_TOPX = "UpdateTopXSec";
+    private static final String KEY_TOPX = "TopX";
 
     private final Path configFilePath;
     private final ObjectMapper objectMapper;
@@ -145,13 +146,14 @@ public class ConfigurationService {
         String size = getTextOrDefault(node, KEY_SIZE, WidgetConfig.DEFAULT_SIZE);
         String layout = getTextOrDefault(node, KEY_LAYOUT, WidgetConfig.DEFAULT_LAYOUT);
         String theme = getTextOrDefault(node, KEY_THEME, WidgetConfig.DEFAULT_THEME);
+        int topX = getIntOrDefault(node, KEY_TOPX, WidgetConfig.DEFAULT_TOPX_COUNT);
         int updateStatus = getIntOrDefault(node, KEY_UPDATE_STATUS, WidgetConfig.DEFAULT_STATUS_UPDATE_SEC);
         int updateFluid = getIntOrDefault(node, KEY_UPDATE_FLUID, WidgetConfig.DEFAULT_FLUID_UPDATE_SEC);
         int updateActive = getIntOrDefault(node, KEY_UPDATE_ACTIVE, WidgetConfig.DEFAULT_ACTIVE_UPDATE_SEC);
         int updateTopX = getIntOrDefault(node, KEY_UPDATE_TOPX, WidgetConfig.DEFAULT_TOPX_UPDATE_SEC);
 
         return new WidgetConfig(size, layout, theme, true, true, true, updateStatus, updateFluid, updateActive,
-                updateTopX);
+                updateTopX, topX);
     }
 
     private String getTextOrDefault(JsonNode node, String key, String defaultValue) {
@@ -174,6 +176,13 @@ public class ConfigurationService {
     public boolean saveEmptyConfiguration() {
         log("Creating empty configuration file");
 
+        // Safety: never overwrite an existing settings.json. This method is intended
+        // only for first-run initialization when the file is missing.
+        if (Files.exists(configFilePath)) {
+            log("Configuration file already exists; skipping default write: " + configFilePath);
+            return true;
+        }
+
         // Ensure parent directory exists
         HelperService.createFile(HOME, FILE_NAME, FOLDER_NAME);
 
@@ -184,6 +193,7 @@ public class ConfigurationService {
                 DnsBlockerConfig.DEFAULT_PORT, DnsBlockerConfig.DEFAULT_USERNAME, "",
                 WidgetConfig.DEFAULT_SIZE, WidgetConfig.DEFAULT_LAYOUT, WidgetConfig.DEFAULT_THEME,
                 true, true, true,
+                WidgetConfig.DEFAULT_TOPX_COUNT,
                 WidgetConfig.DEFAULT_STATUS_UPDATE_SEC,
                 WidgetConfig.DEFAULT_FLUID_UPDATE_SEC,
                 WidgetConfig.DEFAULT_ACTIVE_UPDATE_SEC,
@@ -198,6 +208,7 @@ public class ConfigurationService {
             DnsBlockerType platform2, String scheme2, String ip2, int port2, String username2, String auth2,
             String size, String layout, String theme,
             boolean showLive, boolean showStatus, boolean showFluid,
+            int topX,
             int updateStatusSec, int updateFluidSec, int updateActiveSec, int updateTopXSec) {
 
         log("Writing configuration to: " + configFilePath);
@@ -233,6 +244,7 @@ public class ConfigurationService {
         widgetNode.put(KEY_SIZE, size);
         widgetNode.put(KEY_LAYOUT, layout);
         widgetNode.put(KEY_THEME, theme != null ? theme : WidgetConfig.DEFAULT_THEME);
+        widgetNode.put(KEY_TOPX, topX);
         widgetNode.put(KEY_UPDATE_STATUS, updateStatusSec);
         widgetNode.put(KEY_UPDATE_FLUID, updateFluidSec);
         widgetNode.put(KEY_UPDATE_ACTIVE, updateActiveSec);

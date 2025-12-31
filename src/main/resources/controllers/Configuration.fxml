@@ -157,6 +157,12 @@
                            </font>
                         </Label>
                         <TextField fx:id="tfUpdateTopX" layoutX="724.0" layoutY="24.0" prefWidth="70.0" promptText="5" />
+                        <Label layoutX="534.0" layoutY="73.0" text="Top domains count:">
+                           <font>
+                              <Font size="12.0" />
+                           </font>
+                        </Label>
+                        <TextField fx:id="tfTopXCount" layoutX="724.0" layoutY="68.0" prefWidth="70.0" promptText="5" />
                      </children>
                   </AnchorPane>
                </ScrollPane>

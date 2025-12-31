@@ -14,12 +14,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Implemented an `AdGuardHomeHandler` using **HTTP Basic Authentication** (username/password).
   - Added handler routing via `DnsBlockerHandlerFactory` to select the correct implementation per platform.
   
-
+- **More Widget customization**
+  - Added/standardized the **Widget Settings** controls in the settings UI.
+  - You can now configure **Size**, **Layout**, and **Theme** from the UI.
+  - Added configuration for the **Top X Blocked** tile:
+    - **Top domains update (s)** (refresh interval)
+    - **Top domains count** (how many domains to display)
+  - Note: settings marked with `(*)` in the UI (typically **Size** and **Layout**) require a **restart** to take effect.
 
 ### Changed
 
 - **Branding & packaging names**: Standardized the application/launcher/installer naming to **DNSBlocker Widgets**. Linux packages now use the space-free name `dnsblocker-widgets`.
 - **Configuration terminology**: Standardized the configuration field naming to **Password** (Pi-hole uses an *App Password*; AdGuard Home uses *Username/Password*).
+
+- **Bug fixes**
 
 
 ## [2.0.1] - 2025-12-21

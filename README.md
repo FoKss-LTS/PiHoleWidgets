@@ -113,6 +113,15 @@ Click **Apply**.
 
 ![settings.png](Readme_imgs/settings/dns_settings.png)
 
+###### Configuration file location
+
+Your settings are stored in a `settings.json` file under your user home directory:
+
+- **Windows:** `%USERPROFILE%\\DNSBlocker Widget\\settings.json`
+- **Linux/macOS:** `~\/DNSBlocker Widget\/settings.json`
+
+On startup, the app will **create** this file only if it is missing (it will **not overwrite** an existing `settings.json`).
+
 ###### Where to generate a Pi-hole App Password
 
 ![alt text](Readme_imgs/pihole_interface/option%20in%20settings.png)
@@ -132,7 +141,9 @@ For **AdGuard Home**, use the same **Username** / **Password** you use to log in
 
 ###### Personalize your widget
 
-You can set your Widget size, layout, and theme by accessing the Widget configuration panel in Settings (Restart needed for some changes).
+You can set your Widget size, layout, theme, and refresh behavior in the **Widget Settings** panel.
+
+Note: settings marked with `(*)` in the UI (typically **Size** and **Layout**) require a **restart** to take effect.
 
 ![widget_settings.png](Readme_imgs/settings/widget_settings.png)
 
@@ -140,7 +151,12 @@ You can set your Widget size, layout, and theme by accessing the Widget configur
 - **Size:** Small, Medium, Large, XXL, Full Screen
 - **Layout:** Horizontal, Square
 - **Theme:** Dark, Light
-- **Time to refresh:** Customizable
+- **Refresh intervals (seconds):**
+  - **Status update (s)**
+  - **Fluid update (s)**
+  - **Active update (s)**
+  - **Top domains update (s)**
+- **Top domains count:** how many domains to show in the “Top X Blocked” tile
 
 ### Installation Options
 

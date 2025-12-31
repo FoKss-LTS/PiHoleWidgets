@@ -106,6 +106,7 @@ class ConfigurationServiceTest {
                     "Size": "Large",
                     "Layout": "Horizontal",
                     "Theme": "Light",
+                    "TopX": 3,
                     "UpdateStatusSec": 10,
                     "UpdateFluidSec": 20,
                     "UpdateActiveSec": 30,
@@ -133,6 +134,7 @@ class ConfigurationServiceTest {
         assertEquals(20, widget.getUpdate_fluid_sec());
         assertEquals(30, widget.getUpdate_active_sec());
         assertEquals(40, widget.getUpdate_topx_sec());
+        assertEquals(3, widget.topX());
     }
 
     @Test
@@ -194,6 +196,7 @@ class ConfigurationServiceTest {
                 DnsBlockerType.PIHOLE, "http", "192.168.1.2", 80, "", "token2",
                 "Large", "Horizontal", "Light",
                 true, true, true,
+                2,
                 10, 20, 30, 40);
 
         assertTrue(result);
@@ -226,6 +229,7 @@ class ConfigurationServiceTest {
                 DnsBlockerType.PIHOLE, "http", "", 80, "", "",
                 "Medium", "Square", "Dark",
                 true, true, true,
+                2,
                 5, 15, 60, 5);
 
         assertTrue(result);
@@ -242,6 +246,7 @@ class ConfigurationServiceTest {
                 DnsBlockerType.PIHOLE, "http", "", 80, "", "",
                 "Large", "Horizontal", "Light",
                 true, true, true,
+                4,
                 10, 20, 30, 40);
 
         // Create new service instance and read
@@ -264,6 +269,7 @@ class ConfigurationServiceTest {
         assertEquals(20, widget.getUpdate_fluid_sec());
         assertEquals(30, widget.getUpdate_active_sec());
         assertEquals(40, widget.getUpdate_topx_sec());
+        assertEquals(4, widget.topX());
     }
 
     @Test
@@ -291,6 +297,7 @@ class ConfigurationServiceTest {
                 DnsBlockerType.PIHOLE, "http", "", 80, "", "",
                 "Medium", "Square", null,
                 true, true, true,
+                2,
                 5, 15, 60, 5);
 
         assertTrue(result);
