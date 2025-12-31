@@ -10,6 +10,9 @@ group = 'controllers'
 version = appVersion
 description = 'A desktop Widget to display Pi-hole data'
 
+def APP_NAME = 'DNSBlocker Widgets'
+def APP_VERSION = version.toString().replaceAll('-SNAPSHOT', '')
+
 repositories {
     mavenCentral()
 }
@@ -101,7 +104,7 @@ jlink {
 
     launcher {
         // Keep launcher name consistent across packaging types (also becomes the Windows .exe name)
-        name = 'DNSBlocker Widgets'
+        name = APP_NAME
         jvmArgs = [
             '--enable-native-access=javafx.base,javafx.graphics,javafx.controls,javafx.fxml,javafx.web,javafx.swing'
         ]
@@ -114,14 +117,14 @@ jlink {
     jpackage {
         // For portable distributions we only want an app-image (no installer)
         skipInstaller = (installerType == 'app-image')
-        installerName = 'DNSBlocker Widgets'
-        appVersion = version.toString().replaceAll('-SNAPSHOT', '')
+        installerName = APP_NAME
+        appVersion = APP_VERSION
         
         // Common installer options for all platforms
         installerOptions = [
                 '--description', project.description,
                 '--vendor', 'Reda ELFARISSI',
-                '--copyright', 'Copyright (C) 2022-2025 Reda ELFARISSI aka FoKss-LTS',
+                '--copyright', 'Copyright (C) 2022-2026 Reda ELFARISSI aka FoKss-LTS',
                 '--license-file', 'LICENCE'
         ]
         
@@ -265,10 +268,11 @@ tasks.register('portableZip', Zip) {
     
     dependsOn 'jpackageImage'
     
-    def appImageDir = file("${buildDir}/jpackage/DNSBlocker Widgets")
+    def appImageDir = file("${buildDir}/jpackage/${APP_NAME}")
     from appImageDir
-    into 'DNSBlocker Widgets'
-    archiveFileName = "DNSBlocker Widgets-${version}-portable.zip"
+    // Include the version in the folder name inside the zip so multiple versions can coexist.
+    into "${APP_NAME}-${APP_VERSION}"
+    archiveFileName = "${APP_NAME}-${APP_VERSION}-portable.zip"
     destinationDirectory = file("${buildDir}/portable")
     
     doFirst {

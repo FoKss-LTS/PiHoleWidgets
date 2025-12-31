@@ -128,7 +128,7 @@ cd PiHoleWidgets
 #### Output
 
 - **Portable app-image folder:** `build/jpackage/DNSBlocker Widgets/` (contains `DNSBlocker Widgets.exe`)
-- **Portable ZIP:** `build/portable/DNSBlocker Widgets-{version}-portable.zip`
+- **Portable ZIP:** `build/portable/DNSBlocker Widgets-{version}-portable.zip` (contains a versioned folder: `DNSBlocker Widgets-{version}/`)
 
 #### Distribution Notes
 
