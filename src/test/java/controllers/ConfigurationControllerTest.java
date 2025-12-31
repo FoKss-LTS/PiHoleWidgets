@@ -48,7 +48,7 @@ class ConfigurationControllerTest {
     void setUp() {
         testPiholeConfig = DnsBlockerConfig.forPiHole("192.168.1.1", 80, "http", "testtoken");
         testWidgetConfig = new WidgetConfig("Medium", "Square", "Dark");
-        controller = new ConfigurationController(testPiholeConfig, testWidgetConfig, NOOP_ACTIONS);
+        controller = new ConfigurationController(testPiholeConfig, null, testWidgetConfig, NOOP_ACTIONS);
     }
 
     @Test
