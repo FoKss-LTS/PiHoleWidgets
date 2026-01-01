@@ -34,7 +34,7 @@ jobs:
     - name: Build and Test with Gradle
       run: |
         if [ "$RUNNER_OS" == "Windows" ]; then
-          .\gradlew.bat build test
+          ./gradlew.bat build test
         else
           ./gradlew build test
         fi
