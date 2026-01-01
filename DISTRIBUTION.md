@@ -253,13 +253,6 @@ The project includes GitHub Actions workflows that automatically build packages 
 1. **Pull requests and Pushes (CI):** Builds and tests all platforms automatically on every pull request and push to main/develop.
 2. **Tagged releases (Release):** Dedicated workflow that builds all platforms, generates checksums, extracts release notes from the changelog, and creates a GitHub release.
 
-### Triggering a Release
-
-```bash
-# Tag a release
-git tag -a v2.5.0 -m "Release version 2.5.0"
-git push origin v2.5.0
-
 # GitHub Actions will automatically:
 # 1. Build Windows portable ZIP
 # 2. Build macOS PKG

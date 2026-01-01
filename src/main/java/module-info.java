@@ -1,4 +1,4 @@
-module pihole {
+module dnsblocker {
     requires transitive javafx.graphics;
     requires javafx.controls;
     requires javafx.fxml;

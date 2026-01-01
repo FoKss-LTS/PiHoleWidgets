@@ -76,7 +76,7 @@ gradle-app.setting
 # User-specific stuff
 .idea/
 .vscode/
-
+.cursor/
 
 # CMake
 cmake-build-*/
@@ -91,5 +91,6 @@ out/
 
 hs_err_pid*
 /.gradle
-recreatetag.bat
+*.bat
 REDDIT_POSTS.md
+RELEASE.md

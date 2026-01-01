@@ -42,7 +42,7 @@ tasks.withType(Javadoc).configureEach {
 }
 
 application {
-    mainModule = 'pihole'
+    mainModule = 'dnsblocker'
     mainClass = 'controllers.WidgetApplication'
     applicationDefaultJvmArgs = [
         '--enable-native-access=javafx.base,javafx.graphics,javafx.controls,javafx.fxml,javafx.web,javafx.swing'
@@ -114,7 +114,7 @@ jlink {
     }
 
     version = project.version
-    description ="A desktop Widget to display Pihole data"
+    description ="A desktop Widget to display DNSBlockers data"
 
 
     jpackage {
@@ -225,7 +225,7 @@ jlink {
 }
 
 def JLINK_DIR = "$buildDir/jpackage/DNSBlocker Widgets"
-/*
+
 tasks.jlink.doLast {
 
     copy {
@@ -242,7 +242,8 @@ tasks.jlink.doLast {
     }
 
 }
-*/
+
+
 jlinkZip {
     group = 'distribution'
 }
