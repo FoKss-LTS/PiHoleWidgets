@@ -34,8 +34,22 @@ jobs:
       - name: Create Windows portable ZIP
         run: .\gradlew.bat portableZip -PinstallerType=app-image
 
+      - name: Upload Windows portable ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-portable-zip
+          path: build/portable/*.zip
+          if-no-files-found: error
+
       - name: Build and Package MSI
         run: .\gradlew.bat jpackage -PinstallerType=msi
+
+      - name: Upload Windows MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-msi
+          path: build/jpackage/*.msi
+          if-no-files-found: error
 
       - name: Build and Package EXE
         run: |
@@ -43,14 +57,12 @@ jobs:
           .\gradlew.bat build -x test
           .\gradlew.bat jpackage -PinstallerType=exe
 
-      - name: Upload Windows Artifact
+      - name: Upload Windows EXE
         uses: actions/upload-artifact@v4
         with:
-          name: windows-packages
-          path: |
-            build/portable/*.zip
-            build/jpackage/*.msi
-            build/jpackage/*.exe
+          name: windows-exe
+          path: build/jpackage/*.exe
+          if-no-files-found: error
 
   build-macos:
     name: Build macOS
@@ -80,6 +92,7 @@ jobs:
         with:
           name: macos-pkg
           path: build/jpackage/*.pkg
+          if-no-files-found: error
 
   build-linux:
     name: Build Linux
@@ -113,6 +126,7 @@ jobs:
           path: |
             build/jpackage/*.deb
             build/jpackage/*.rpm
+          if-no-files-found: error
 
   publish:
     name: Publish Release
@@ -130,11 +144,25 @@ jobs:
           path: release-artifacts
           merge-multiple: true
 
+      - name: List downloaded artifacts
+        run: |
+          echo "=== Artifact structure ==="
+          find release-artifacts -type f -o -type d | head -20
+          echo ""
+          echo "=== All files ==="
+          find release-artifacts -type f
+
+      - name: Flatten artifact structure
+        run: |
+          # Move all files from subdirectories to the root of release-artifacts
+          find release-artifacts -mindepth 2 -type f -exec mv {} release-artifacts/ \;
+          # Remove empty subdirectories
+          find release-artifacts -type d -empty -delete
+
       - name: Generate Checksums
         run: |
           cd release-artifacts
-          find . -maxdepth 1 -type f -exec sha256sum {} \; > ../checksums.txt
-          mv ../checksums.txt .
+          find . -maxdepth 1 -type f \( -name "*.zip" -o -name "*.msi" -o -name "*.exe" -o -name "*.pkg" -o -name "*.deb" -o -name "*.rpm" \) -exec sha256sum {} \; > checksums.txt
 
       - name: Extract Changelog Entry
         id: changelog
