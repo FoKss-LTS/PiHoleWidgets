@@ -26,7 +26,7 @@ jobs:
       - name: Install WiX Toolset
         run: |
           # Install WiX Toolset 3.x for jpackage MSI/EXE generation
-          choco install wixtoolset -y --version=latest
+          choco install wixtoolset -y
 
       - name: Build with Gradle
         run: .\gradlew.bat build -x test
