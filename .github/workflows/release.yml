@@ -26,9 +26,7 @@ jobs:
       - name: Install WiX Toolset
         run: |
           # Install WiX Toolset 3.x for jpackage MSI/EXE generation
-          choco install wixtoolset -y --version=3.14.1
-          # Add WiX to PATH for current session
-          echo "C:\Program Files (x86)\WiX Toolset v3.14\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          choco install wixtoolset -y --version=latest
 
       - name: Build with Gradle
         run: .\gradlew.bat build -x test
